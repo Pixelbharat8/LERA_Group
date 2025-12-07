@@ -1,0 +1,16 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: rule_engine
+
+  datasource:
+    url: jdbc:postgresql://postgres:5432/lera
+    username: lera
+    password: lera123
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false

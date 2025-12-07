@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: lera_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: lera
+      POSTGRES_PASSWORD: lera123
+      POSTGRES_DB: lera
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d
+      - lera_pgdata:/var/lib/postgresql/data
+
+volumes:
+  lera_pgdata:

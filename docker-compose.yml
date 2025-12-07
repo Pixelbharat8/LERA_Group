@@ -1,0 +1,243 @@
+version: '3.9'
+
+services:
+
+  ###############################################################
+  # PostgreSQL Database
+  ###############################################################
+  postgres:
+    image: postgres:15
+    container_name: lera_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: lera
+      POSTGRES_PASSWORD: lera123
+      POSTGRES_DB: lera
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/init:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lera-net
+
+  ###############################################################
+  # PGADMIN (Database GUI)
+  ###############################################################
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: lera_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@lera.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - lera-net
+
+  ###############################################################
+  # Backend Microservice: academy_service
+  ###############################################################
+  academy_service:
+    build: ./backend/academy_service
+    container_name: academy_service
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_USER: lera
+      DB_PASSWORD: lera123
+      DB_NAME: lera
+    depends_on:
+      - postgres
+    ports:
+      - "0:8080"   # Random port mapping
+    networks:
+      - lera-net
+
+  ###############################################################
+  # Backend Microservice: attendance_service
+  ###############################################################
+  attendance_service:
+    build: ./backend/attendance_service
+    container_name: attendance_service
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_USER: lera
+      DB_PASSWORD: lera123
+      DB_NAME: lera
+    depends_on:
+      - postgres
+    ports:
+      - "0:8080"   # Random port mapping
+    networks:
+      - lera-net
+
+  ###############################################################
+  # Backend Microservice: connect_service
+  ###############################################################
+  connect_service:
+    build: ./backend/connect_service
+    container_name: connect_service
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_USER: lera
+      DB_PASSWORD: lera123
+      DB_NAME: lera
+    depends_on:
+      - postgres
+    ports:
+      - "0:8080"   # Random port mapping
+    networks:
+      - lera-net
+
+  ###############################################################
+  # Backend Microservice: identity_service
+  ###############################################################
+  identity_service:
+    build: ./backend/identity_service
+    container_name: identity_service
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_USER: lera
+      DB_PASSWORD: lera123
+      DB_NAME: lera
+    depends_on:
+      - postgres
+    ports:
+      - "0:8080"   # Random port mapping
+    networks:
+      - lera-net
+
+  ###############################################################
+  # Backend Microservice: payment_service
+  ###############################################################
+  payment_service:
+    build: ./backend/payment_service
+    container_name: payment_service
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_USER: lera
+      DB_PASSWORD: lera123
+      DB_NAME: lera
+    depends_on:
+      - postgres
+    ports:
+      - "0:8080"   # Random port mapping
+    networks:
+      - lera-net
+
+  ###############################################################
+  # Backend Microservice: payroll_service
+  ###############################################################
+  payroll_service:
+    build: ./backend/payroll_service
+    container_name: payroll_service
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_USER: lera
+      DB_PASSWORD: lera123
+      DB_NAME: lera
+    depends_on:
+      - postgres
+    ports:
+      - "0:8080"   # Random port mapping
+    networks:
+      - lera-net
+
+  ###############################################################
+  # Backend Microservice: rule_engine
+  ###############################################################
+  rule_engine:
+    build: ./backend/rule_engine
+    container_name: rule_engine
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_USER: lera
+      DB_PASSWORD: lera123
+      DB_NAME: lera
+    depends_on:
+      - postgres
+    ports:
+      - "0:8080"   # Random port mapping
+    networks:
+      - lera-net
+
+  ###############################################################
+  # Backend Microservice: ai_gateway
+  ###############################################################
+  ai_gateway:
+    build: ./backend/ai_gateway
+    container_name: ai_gateway
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_USER: lera
+      DB_PASSWORD: lera123
+      DB_NAME: lera
+    depends_on:
+      - postgres
+    ports:
+      - "0:8080"   # Random port mapping
+    networks:
+      - lera-net
+
+  ###############################################################
+  # Frontend (Next.js 14)
+  ###############################################################
+  frontend:
+    build: ./frontend
+    container_name: lera_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    networks:
+      - lera-net
+
+  ###############################################################
+  # API GATEWAY (NGINX Reverse Proxy)
+  ###############################################################
+  gateway:
+    build: ./gateway
+    container_name: lera_gateway
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - academy_service
+      - attendance_service
+      - connect_service
+      - identity_service
+      - payment_service
+      - payroll_service
+      - rule_engine
+      - ai_gateway
+    networks:
+      - lera-net
+
+
+###############################################################
+# NETWORKS & VOLUMES
+###############################################################
+networks:
+  lera-net:
+
+volumes:
+  postgres_data:

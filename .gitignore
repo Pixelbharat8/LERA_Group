@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+target/
+*.log
+.DS_Store
+.env
+.env.local
+.env.docker
+.vscode/
+.idea/
+postgres_data/
