@@ -12,3 +12,5 @@ target/
 .vscode/
 .idea/
 postgres_data/
+package-lock.json
+next-env.d.ts
