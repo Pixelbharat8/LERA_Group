@@ -1,14 +1,59 @@
+# Dependencies
 node_modules/
+
+# Next.js build output
 .next/
 out/
+
+# Playwright (frontend/e2e)
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+
+# Java build output
 build/
+bin/
 dist/
 target/
+
+# Embedded DB files (never commit binary DB dumps)
+*.mv.db
+*.trace.db
+backend/*/data/
+
+# Logs
 *.log
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Environment (secrets - never commit!)
 .env
 .env.local
 .env.docker
+.env.development
+.env.production
+
+# IDE
 .vscode/
 .idea/
+*.iml
+*.swp
+*.swo
+
+# Database
 postgres_data/
+
+# Docker volumes
+docker-data/
+
+# Maven wrapper (optional)
+.mvn/wrapper/maven-wrapper.jar
+
+# Misc
+*.class
+*.jar
+!**/src/**/target/
+*.bak
+*.tmp
