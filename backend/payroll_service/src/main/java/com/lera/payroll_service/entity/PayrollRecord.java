@@ -99,6 +99,9 @@ public class PayrollRecord {
                 .add(teachingAmount != null ? teachingAmount : BigDecimal.ZERO)
                 .add(bonus != null ? bonus : BigDecimal.ZERO);
         BigDecimal totalDeductions = (deductions != null ? deductions : BigDecimal.ZERO);
-        totalAmount = gross.subtract(totalDeductions);
+        // Clamp to zero: net pay can never be negative. Deductions exceeding gross would
+        // otherwise persist a negative "salary owed by employee" and could be paid out as a
+        // negative payout. (@PositiveOrZero does not run on @PrePersist-computed values.)
+        totalAmount = gross.subtract(totalDeductions).max(BigDecimal.ZERO);
     }
 }
