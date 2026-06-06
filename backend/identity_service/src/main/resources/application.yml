@@ -1,16 +1,32 @@
 server:
-  port: 0
+  port: 8081
 
 spring:
   application:
     name: identity_service
 
   datasource:
-    url: jdbc:postgresql://postgres:5432/lera
+    url: jdbc:postgresql://localhost:5432/lera
     username: lera
-    password: lera123
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
+
+  # Optional — when set, forgot-password emails are sent in production
+  # mail:
+  #   host: smtp.example.com
+  #   port: 587
+  #   username: ...
+  #   password: ...
+  #   properties.mail.smtp.auth: true
+  #   properties.mail.smtp.starttls.enable: true
+
+# Public web origin used in password-reset links (no trailing slash); transactional From header can override spring.mail.username
+lera:
+  mail:
+    from: ${LERA_MAIL_FROM:}
+  password-reset:
+    frontend-base-url: ${LERA_PASSWORD_RESET_FRONTEND_URL:http://localhost:3000}

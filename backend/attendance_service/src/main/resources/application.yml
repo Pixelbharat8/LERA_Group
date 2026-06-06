@@ -1,16 +1,37 @@
 server:
-  port: 0
+  port: 8085
 
 spring:
   application:
     name: attendance_service
 
   datasource:
-    url: jdbc:postgresql://postgres:5432/lera
+    url: jdbc:postgresql://localhost:5432/lera
     username: lera
-    password: lera123
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
+
+connect:
+  service:
+    url: ${CONNECT_SERVICE_URL:http://localhost:8086}
+
+attendance:
+  monthly-report:
+    # Comma-separated auth user UUIDs (ops/admin) who also receive the monthly digest
+    extra-notify-user-ids: ${ATTENDANCE_MONTHLY_REPORT_NOTIFY_USER_IDS:}
+  class-reminder:
+    enabled: ${ATTENDANCE_CLASS_REMINDER_ENABLED:true}
+    send-email: ${ATTENDANCE_CLASS_REMINDER_SEND_EMAIL:true}
+    # Daily 19:00 server time — parents get Connect notification (+ email if spring.mail is set)
+    cron: ${ATTENDANCE_CLASS_REMINDER_CRON:0 0 19 * * ?}
+
+# Must match connect_service when using profile prod (no unauthenticated /trigger)
+lera:
+  internal:
+    api-key: ${LERA_INTERNAL_API_KEY:}
+  mail:
+    from: ${LERA_MAIL_FROM:}

@@ -7,7 +7,7 @@
  <parent>
      <groupId>org.springframework.boot</groupId>
      <artifactId>spring-boot-starter-parent</artifactId>
-     <version>3.2.1</version>
+        <version>3.3.13</version>
      <relativePath/>
  </parent>
 
@@ -24,7 +24,42 @@
      </dependency>
      <dependency>
          <groupId>org.springframework.boot</groupId>
+         <artifactId>spring-boot-starter-actuator</artifactId>
+     </dependency>
+     <!-- Prometheus metrics endpoint at /actuator/prometheus -->
+     <dependency>
+         <groupId>io.micrometer</groupId>
+         <artifactId>micrometer-registry-prometheus</artifactId>
+         <scope>runtime</scope>
+     </dependency>
+     <dependency>
+         <groupId>org.springframework.boot</groupId>
          <artifactId>spring-boot-starter-data-jpa</artifactId>
+     </dependency>
+     <dependency>
+         <groupId>org.springframework.boot</groupId>
+         <artifactId>spring-boot-starter-validation</artifactId>
+     </dependency>
+     <dependency>
+         <groupId>org.springframework.boot</groupId>
+         <artifactId>spring-boot-starter-security</artifactId>
+     </dependency>
+     <dependency>
+         <groupId>io.jsonwebtoken</groupId>
+         <artifactId>jjwt-api</artifactId>
+         <version>0.11.5</version>
+     </dependency>
+     <dependency>
+         <groupId>io.jsonwebtoken</groupId>
+         <artifactId>jjwt-impl</artifactId>
+         <version>0.11.5</version>
+         <scope>runtime</scope>
+     </dependency>
+     <dependency>
+         <groupId>io.jsonwebtoken</groupId>
+         <artifactId>jjwt-jackson</artifactId>
+         <version>0.11.5</version>
+         <scope>runtime</scope>
      </dependency>
      <dependency>
          <groupId>org.postgresql</groupId>
@@ -33,20 +68,104 @@
      <dependency>
          <groupId>org.projectlombok</groupId>
          <artifactId>lombok</artifactId>
-         <optional>true</optional>
+         <version>1.18.36</version>
+         <scope>provided</scope>
      </dependency>
      <dependency>
          <groupId>org.springframework.boot</groupId>
          <artifactId>spring-boot-starter-test</artifactId>
          <scope>test</scope>
      </dependency>
- </dependencies>
+     <!-- WebSocket for real-time messaging -->
+     <dependency>
+         <groupId>org.springframework.boot</groupId>
+         <artifactId>spring-boot-starter-websocket</artifactId>
+     </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+
+        <!-- Caching with Caffeine -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+         <!-- Flyway Database Migrations -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+        <!-- Web Push (browser Push API + VAPID) — official web-push-libs implementation -->
+        <dependency>
+            <groupId>nl.martijndwars</groupId>
+            <artifactId>web-push</artifactId>
+            <version>5.1.2</version>
+        </dependency>
+        <!-- web-push uses Apache HttpClient 4 + BouncyCastle; not always pulled transitively in all BOMs -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.14</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.78.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bitbucket.b_c</groupId>
+            <artifactId>jose4j</artifactId>
+            <version>0.9.4</version>
+        </dependency>
+    </dependencies>
 
  <build>
      <plugins>
          <plugin>
              <groupId>org.springframework.boot</groupId>
              <artifactId>spring-boot-maven-plugin</artifactId>
+             <configuration>
+                 <excludes>
+                     <exclude>
+                         <groupId>org.projectlombok</groupId>
+                         <artifactId>lombok</artifactId>
+                     </exclude>
+                 </excludes>
+             </configuration>
+         </plugin>
+         <plugin>
+             <groupId>org.apache.maven.plugins</groupId>
+             <artifactId>maven-compiler-plugin</artifactId>
+             <configuration>
+                 <annotationProcessorPaths>
+                     <path>
+                         <groupId>org.projectlombok</groupId>
+                         <artifactId>lombok</artifactId>
+                         <version>1.18.36</version>
+                     </path>
+                 </annotationProcessorPaths>
+             </configuration>
+         </plugin>
+         <plugin>
+             <groupId>org.apache.maven.plugins</groupId>
+             <artifactId>maven-surefire-plugin</artifactId>
+             <configuration>
+                 <argLine>-Djdk.attach.allowAttachSelf=true</argLine>
+             </configuration>
          </plugin>
      </plugins>
  </build>

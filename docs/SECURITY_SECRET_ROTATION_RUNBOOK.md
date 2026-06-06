@@ -67,31 +67,42 @@ existing tokens — every user must re-login.** Schedule a brief window or commu
 > (the current working tree has ~1,900 staged files; commit or stash them first, or this
 > will refuse to run / lose changes).
 
+A guarded, ready-to-run wrapper lives at **`scripts/scrub-history.sh`** — it refuses to run
+unless it's inside a mirror clone and `CONFIRM=yes` is set, and it carries the full secret
+list (kept in sync with the table above). Preferred path:
+
 ```bash
 # Install the tool (preferred over filter-branch/BFG)
 pip install git-filter-repo            # or: brew install git-filter-repo
 
-# Fresh mirror clone
+# Fresh mirror clone, then run the guarded script
 git clone --mirror <repo-url> lera-scrub && cd lera-scrub
+CONFIRM=yes /path/to/repo/scripts/scrub-history.sh
 
-# Replacement rules — each old secret -> a redaction token
+# Review, then publish the rewritten history
+git push --force --all
+git push --force --tags
+```
+
+<details><summary>Manual equivalent (if you prefer not to use the script)</summary>
+
+```bash
 cat > /tmp/secrets.txt <<'EOF'
 bGVyYUFjYWRlbXlTZWNyZXRLZXkyMDI0VmVyeUxvbmdTZWN1cmVLZXlGb3JKd3RUb2tlbkdlbmVyYXRpb24=
 leraAcademySecretKey2024VeryLongSecureKeyForJwtTokenGeneration
+mkYvtzRZH/1Y5gSL198znxPfoHTWjrmGa6kF4hoNDHbh8KB5De17hS7sd65jM2BP
 LERA_INTERNAL_SVC_KEY_2024
+dev-internal-key-do-not-use-in-prod
 lera123456
 lera123
 admin123
 chairman123
 ceo123
 EOF
-
 git filter-repo --replace-text /tmp/secrets.txt
-
-# Review, then publish the rewritten history
-git push --force --all
-git push --force --tags
+git push --force --all && git push --force --tags
 ```
+</details>
 
 After the force-push:
 - Everyone deletes their local clone and re-clones.

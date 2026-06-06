@@ -1,0 +1,61 @@
+version: 2
+updates:
+  # ---- Java / Maven (one entry per service pom) ----
+  - package-ecosystem: "maven"
+    directories:
+      - "/backend"
+      - "/backend/academy_service"
+      - "/backend/attendance_service"
+      - "/backend/connect_service"
+      - "/backend/identity_service"
+      - "/backend/payment_service"
+      - "/backend/payroll_service"
+      - "/backend/rule_engine"
+      - "/backend/ai_gateway"
+      - "/backend/social_media_service"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      spring:
+        patterns:
+          - "org.springframework*"
+          - "io.micrometer*"
+
+  # ---- Frontend / npm ----
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      next:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+
+  # ---- Docker base images ----
+  - package-ecosystem: "docker"
+    directories:
+      - "/backend/academy_service"
+      - "/backend/attendance_service"
+      - "/backend/connect_service"
+      - "/backend/identity_service"
+      - "/backend/payment_service"
+      - "/backend/payroll_service"
+      - "/backend/rule_engine"
+      - "/backend/ai_gateway"
+      - "/backend/social_media_service"
+      - "/frontend"
+      - "/gateway"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # ---- GitHub Actions ----
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
