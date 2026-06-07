@@ -23,7 +23,9 @@ public class JobApplication {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @NotNull
+    // Set server-side from the {id} path param in the apply endpoint, so no bean-level
+    // @NotNull here (it would reject the apply body, which never carries jobOpeningId).
+    // The DB column stays NOT NULL.
     @Column(name = "job_opening_id", nullable = false)
     private UUID jobOpeningId;
 
