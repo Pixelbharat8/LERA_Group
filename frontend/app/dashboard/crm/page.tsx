@@ -147,6 +147,14 @@ export default function CRMDashboard() {
               <p className="text-sm text-gray-500">Book &amp; convert</p>
             </Link>
             <Link
+              href="/dashboard/crm/renewals"
+              className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors text-center"
+            >
+              <span className="text-2xl">🔁</span>
+              <p className="font-medium mt-2">Renewals</p>
+              <p className="text-sm text-gray-500">Retain students</p>
+            </Link>
+            <Link
               href="/dashboard/crm/registrations"
               className="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors text-center"
             >
