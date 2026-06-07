@@ -360,6 +360,8 @@ const withRewrites = {
       // CRM / Connect
       { source: "/api/leads", destination: `${connectUrl}/api/leads` },
       { source: "/api/leads/:path*", destination: `${connectUrl}/api/leads/:path*` },
+      { source: "/api/trial-sessions", destination: `${connectUrl}/api/trial-sessions` },
+      { source: "/api/trial-sessions/:path*", destination: `${connectUrl}/api/trial-sessions/:path*` },
       { source: "/api/deals", destination: `${connectUrl}/api/deals` },
       { source: "/api/deals/:path*", destination: `${connectUrl}/api/deals/:path*` },
       { source: "/api/marketing-campaigns", destination: `${connectUrl}/api/marketing-campaigns` },
