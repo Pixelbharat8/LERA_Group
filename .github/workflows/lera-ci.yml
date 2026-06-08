@@ -195,6 +195,10 @@ jobs:
         working-directory: frontend
         run: npm audit --audit-level=high --omit=dev
 
+      - name: Unit tests (Vitest)
+        working-directory: frontend
+        run: npm run test
+
       - name: Build Next.js
         working-directory: frontend
         env:
