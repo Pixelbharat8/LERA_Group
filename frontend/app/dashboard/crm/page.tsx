@@ -139,6 +139,14 @@ export default function CRMDashboard() {
               <p className="text-sm text-gray-500">{stats.pendingFollowups} pending</p>
             </Link>
             <Link
+              href="/dashboard/crm/work-queue"
+              className="p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors text-center"
+            >
+              <span className="text-2xl">🎯</span>
+              <p className="font-medium mt-2">Work Queue</p>
+              <p className="text-sm text-gray-500">Hot &amp; overdue leads</p>
+            </Link>
+            <Link
               href="/dashboard/crm/trials"
               className="p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors text-center"
             >

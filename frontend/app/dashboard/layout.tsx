@@ -535,6 +535,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       permission: "users" as const,
       children: [
         { name: `📊 ${t("dashboard")}`, href: "/dashboard/crm" },
+        { name: `🎯 ${language === "VI" ? "Hàng đợi" : "Work Queue"}`, href: "/dashboard/crm/work-queue" },
         { name: `👥 ${t("leads")}`, href: "/dashboard/crm/leads" },
         { name: `🏷️ ${language === "VI" ? "Trạng thái Lead" : "Lead Statuses"}`, href: "/dashboard/superadmin/crm/lead-statuses" },
         { name: `📞 ${t("followUps")}`, href: "/dashboard/crm/followups" },
