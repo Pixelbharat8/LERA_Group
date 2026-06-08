@@ -40,6 +40,7 @@ public class LeadController {
     private static final ObjectMapper AUDIT_JSON = new ObjectMapper();
 
     private final LeadRepository leadRepository;
+    private final com.lera.connect_service.service.LeadScoringService leadScoringService;
     private final FollowupRepository followupRepository;
     private final JdbcAuditWriter auditWriter;
     private final LeadPlacementSyncService leadPlacementSyncService;
@@ -154,9 +155,17 @@ public class LeadController {
             }
             lead.setCenterId(jwt);
         }
+        // Duplicate detection (by phone) + scoring
+        if (lead.getParentPhone() != null && !lead.getParentPhone().isBlank()) {
+            leadRepository.findByParentPhoneOrderByCreatedAtDesc(lead.getParentPhone()).stream()
+                    .filter(l -> !"CONVERTED".equals(l.getStatus()) && !"LOST".equals(l.getStatus()))
+                    .findFirst()
+                    .ifPresent(prev -> { lead.setDuplicate(true); lead.setDuplicateOfLeadId(prev.getId()); });
+        }
+        leadScoringService.apply(lead);
         return ResponseEntity.ok(leadRepository.save(lead));
     }
-    
+
     @PostMapping("/bulk")
     public ResponseEntity<List<Lead>> createLeadsBulk(
             @Valid @RequestBody List<Lead> leads,
@@ -192,8 +201,50 @@ public class LeadController {
             if (leadDetails.getStatus() != null) lead.setStatus(leadDetails.getStatus());
             if (leadDetails.getAssignedTo() != null) lead.setAssignedTo(leadDetails.getAssignedTo());
             if (leadDetails.getNotes() != null) lead.setNotes(leadDetails.getNotes());
+            // Speed-to-lead: stamp first-contact when the lead leaves NEW for the first time.
+            if (lead.getFirstContactedAt() == null && lead.getStatus() != null && !"NEW".equals(lead.getStatus())) {
+                lead.setFirstContactedAt(java.time.LocalDateTime.now());
+            }
+            leadScoringService.apply(lead);  // re-score on every change
             return ResponseEntity.ok(leadRepository.save(lead));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // --- Smart CRM endpoints: hot leads, needs-contact (SLA), duplicates, rescore ---
+
+    /** Leads still NEW + never contacted + older than {slaMinutes} — the "contact these now" queue. */
+    @GetMapping("/needs-contact")
+    public ResponseEntity<List<Lead>> needsContact(
+            @RequestParam(defaultValue = "60") int slaMinutes,
+            @RequestParam(required = false) UUID centerId,
+            @AuthenticationPrincipal AuthUser authUser) {
+        UUID eff = ConnectSecurity.effectiveCenterId(authUser, centerId);
+        java.time.LocalDateTime threshold = java.time.LocalDateTime.now().minusMinutes(Math.max(0, slaMinutes));
+        return ResponseEntity.ok(leadRepository.findNeedingContact(threshold, eff));
+    }
+
+    @GetMapping("/duplicates")
+    public ResponseEntity<List<Lead>> duplicates(@AuthenticationPrincipal AuthUser authUser) {
+        List<Lead> dups = leadRepository.findByDuplicateTrueOrderByCreatedAtDesc();
+        if (!ConnectSecurity.isOrgWide(authUser)) {
+            UUID eff = ConnectSecurity.effectiveCenterId(authUser, null);
+            dups = dups.stream().filter(l -> eff != null && eff.equals(l.getCenterId())).toList();
+        }
+        return ResponseEntity.ok(dups);
+    }
+
+    /** Recompute scores for all (centre-scoped) leads — run after changing scoring rules. */
+    @PostMapping("/rescore")
+    public ResponseEntity<Map<String, Object>> rescore(
+            @RequestParam(required = false) UUID centerId,
+            @AuthenticationPrincipal AuthUser authUser) {
+        UUID eff = ConnectSecurity.effectiveCenterId(authUser, centerId);
+        List<Lead> leads = eff != null
+                ? leadRepository.findByCenterIdOrderByCreatedAtDesc(eff)
+                : leadRepository.findAllByOrderByCreatedAtDesc();
+        leads.forEach(leadScoringService::apply);
+        leadRepository.saveAll(leads);
+        return ResponseEntity.ok(Map.of("rescored", leads.size()));
     }
     
     @PutMapping("/{id}/convert")

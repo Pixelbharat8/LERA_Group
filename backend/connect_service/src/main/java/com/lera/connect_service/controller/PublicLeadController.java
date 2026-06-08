@@ -37,6 +37,7 @@ public class PublicLeadController {
 
     private final LeadRepository leadRepository;
     private final NotificationService notificationService;
+    private final com.lera.connect_service.service.LeadScoringService leadScoringService;
     private final ConcurrentMap<String, Deque<Long>> submissionsByClient = new ConcurrentHashMap<>();
     /** Global backstop window: bounds total public leads even if per-IP keys are evaded. */
     private final Deque<Long> globalSubmissions = new ArrayDeque<>();
@@ -94,8 +95,22 @@ public class PublicLeadController {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
+        // Duplicate detection: flag if another still-open lead shares this phone number.
+        if (!"—".equals(phone)) {
+            leadRepository.findByParentPhoneOrderByCreatedAtDesc(phone).stream()
+                    .filter(l -> !"CONVERTED".equals(l.getStatus()) && !"LOST".equals(l.getStatus()))
+                    .findFirst()
+                    .ifPresent(prev -> {
+                        lead.setDuplicate(true);
+                        lead.setDuplicateOfLeadId(prev.getId());
+                    });
+        }
+        // Lead scoring (hot/warm/cold)
+        leadScoringService.apply(lead);
+
         Lead saved = leadRepository.save(lead);
-        log.info("Public lead created id={} campaign={}", saved.getId(), saved.getUtmCampaign());
+        log.info("Public lead created id={} campaign={} score={} dup={}",
+                saved.getId(), saved.getUtmCampaign(), saved.getScore(), saved.getDuplicate());
 
         List<UUID> notifyIds = parseNotifyIds();
         if (!notifyIds.isEmpty()) {

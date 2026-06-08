@@ -35,6 +35,17 @@ public interface LeadRepository extends JpaRepository<Lead, UUID> {
     @Query("SELECT l FROM Lead l WHERE LOWER(l.parentName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(l.studentName) LIKE LOWER(CONCAT('%', :search, '%'))")
     List<Lead> searchLeads(String search);
 
+    // --- Smart CRM: dedup, speed-to-lead, duplicates ---
+    List<Lead> findByParentPhoneOrderByCreatedAtDesc(String parentPhone);
+
+    List<Lead> findByDuplicateTrueOrderByCreatedAtDesc();
+
+    /** Open leads (still NEW) never contacted and older than the SLA threshold — "needs contact now". */
+    @Query("SELECT l FROM Lead l WHERE l.status = 'NEW' AND l.firstContactedAt IS NULL "
+         + "AND l.createdAt < :threshold AND (:centerId IS NULL OR l.centerId = :centerId) "
+         + "ORDER BY l.createdAt ASC")
+    List<Lead> findNeedingContact(java.time.LocalDateTime threshold, java.util.UUID centerId);
+
     // --- Marketing ROI: lead funnel grouped by channel ---
     // Row: [bucket, totalLeads, trialStage, converted]
     @Query("SELECT COALESCE(l.utmSource, 'Direct / Unknown'), COUNT(l), "

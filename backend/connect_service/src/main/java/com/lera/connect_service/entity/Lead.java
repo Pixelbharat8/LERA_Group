@@ -70,6 +70,27 @@ public class Lead {
     @Column(name = "utm_campaign", length = 100)
     private String utmCampaign;
     
+    // --- Smart CRM: scoring, dedup, speed-to-lead ---
+    /** 0-100 lead score (computed by LeadScoringService). */
+    @Column(name = "score")
+    private Integer score;
+
+    /** HOT | WARM | COLD (derived from score). */
+    @Column(name = "temperature", length = 10)
+    private String temperature;
+
+    /** Flagged when another open lead with the same phone already exists. */
+    @Column(name = "duplicate")
+    @Builder.Default
+    private Boolean duplicate = false;
+
+    @Column(name = "duplicate_of_lead_id")
+    private UUID duplicateOfLeadId;
+
+    /** When the lead was first contacted (status left NEW) — drives speed-to-lead/SLA. */
+    @Column(name = "first_contacted_at")
+    private LocalDateTime firstContactedAt;
+
     @Column(name = "created_at")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

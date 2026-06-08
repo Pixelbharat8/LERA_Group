@@ -475,6 +475,21 @@ export default function LeadsPage() {
                   >
                     {lead.status}
                   </button>
+                  {(lead as any).temperature && (
+                    <span
+                      className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                        (lead as any).temperature === "HOT" ? "bg-red-100 text-red-700" :
+                        (lead as any).temperature === "WARM" ? "bg-amber-100 text-amber-700" :
+                        "bg-blue-100 text-blue-700"
+                      }`}
+                      title={`Lead score: ${(lead as any).score ?? "—"}`}
+                    >
+                      {(lead as any).temperature === "HOT" ? "🔥" : (lead as any).temperature === "WARM" ? "🌡️" : "❄️"} {(lead as any).score ?? ""}
+                    </span>
+                  )}
+                  {(lead as any).duplicate && (
+                    <span className="ml-1 px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-700" title="Possible duplicate (same phone)">⚠️ dup</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-500">{lead.createdAt}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
