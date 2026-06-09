@@ -39,6 +39,7 @@ class NewModulesPreAuthorizeWebMvcTest {
     @MockBean private PerformanceReviewRepository performanceReviewRepository;
     @MockBean private JobOpeningRepository jobOpeningRepository;
     @MockBean private JobApplicationRepository jobApplicationRepository;
+    @MockBean private com.lera.academy_service.security.AcademyAuthorizationService authz;
 
     // --- Calendar: staff-level read (TEACHER allowed, PARENT not) ---
 
@@ -104,5 +105,17 @@ class NewModulesPreAuthorizeWebMvcTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"English Teacher\"}"))
                 .andExpect(status().isOk());
+    }
+
+    // --- Center scoping: the list delegates to AcademyAuthorizationService, which rejects a
+    //     centre-bound caller asking for another centre. ---
+    @Test
+    @WithMockUser(roles = "CENTER_MANAGER")
+    void reviewsList_crossCenter_forbidden() throws Exception {
+        when(authz.effectiveListCenterId(any()))
+                .thenThrow(new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.FORBIDDEN, "Cannot list another center's data"));
+        mockMvc.perform(get("/api/performance-reviews?centerId=" + java.util.UUID.randomUUID()))
+                .andExpect(status().isForbidden());
     }
 }

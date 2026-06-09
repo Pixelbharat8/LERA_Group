@@ -145,6 +145,11 @@ public class LeadController {
     public ResponseEntity<Lead> createLead(
             @Valid @RequestBody Lead lead,
             @AuthenticationPrincipal AuthUser authUser) {
+        if (lead.getParentName() == null || lead.getParentName().isBlank()
+                || lead.getParentPhone() == null || lead.getParentPhone().isBlank()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "parentName and parentPhone are required");
+        }
         if (!ConnectSecurity.isOrgWide(authUser)) {
             UUID jwt = authUser != null ? authUser.getCenterId() : null;
             if (jwt == null) {
@@ -248,6 +253,7 @@ public class LeadController {
     }
     
     @PutMapping("/{id}/convert")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ConvertLeadResponse> convertLead(
             @PathVariable UUID id,
             @RequestBody(required = false) ConvertLeadRequest body,

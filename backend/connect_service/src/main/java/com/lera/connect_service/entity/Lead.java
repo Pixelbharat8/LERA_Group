@@ -31,6 +31,7 @@ public class Lead {
     private String parentPhone;
     
     @Column(name = "parent_email")
+    @jakarta.validation.constraints.Email
     private String parentEmail;
     
     @Column(name = "student_name")

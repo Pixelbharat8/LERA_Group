@@ -171,7 +171,14 @@ public class AuthController {
         String token = request.get("token");
         String newPassword = request.get("password");
         Map<String, Object> response = new HashMap<>();
-        
+
+        // Reject blank / too-short passwords before they are encoded and saved.
+        if (newPassword == null || newPassword.trim().length() < 8) {
+            response.put("success", false);
+            response.put("message", "Password must be at least 8 characters");
+            return ResponseEntity.badRequest().body(response);
+        }
+
         // Validate token
         Map<String, Object> tokenData = resetTokens.get(token);
         if (tokenData == null) {

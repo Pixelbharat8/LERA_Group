@@ -25,6 +25,7 @@ public class StudentFeePlan {
     private BigDecimal totalAmount;
 
     @Column(name = "installments")
+    @jakarta.validation.constraints.Positive
     private Integer installments;
 
     @Column(name = "installment_amount", precision = 10, scale = 2)
