@@ -20,16 +20,20 @@ import java.util.UUID;
 public class StaffCertificationController {
 
     private final StaffCertificationRepository repository;
+    private final com.lera.academy_service.security.AcademyAuthorizationService authz;
 
-    public StaffCertificationController(StaffCertificationRepository repository) {
+    public StaffCertificationController(StaffCertificationRepository repository,
+                                        com.lera.academy_service.security.AcademyAuthorizationService authz) {
         this.repository = repository;
+        this.authz = authz;
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER')")
     public ResponseEntity<List<StaffCertification>> list(@RequestParam(required = false) UUID centerId) {
-        return ResponseEntity.ok(centerId != null
-                ? repository.findByCenterIdOrderByIssueDateDesc(centerId)
+        UUID eff = authz.effectiveListCenterId(centerId);
+        return ResponseEntity.ok(eff != null
+                ? repository.findByCenterIdOrderByIssueDateDesc(eff)
                 : repository.findAllByOrderByIssueDateDesc());
     }
 

@@ -5,6 +5,7 @@ import com.lera.academy_service.entity.TrainingSession;
 import com.lera.academy_service.repository.TrainingRegistrationRepository;
 import com.lera.academy_service.repository.TrainingSessionRepository;
 import com.lera.academy_service.security.AcademyRoles;
+import com.lera.academy_service.security.AcademyAuthorizationService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -31,11 +32,14 @@ public class TrainingSessionController {
 
     private final TrainingSessionRepository sessions;
     private final TrainingRegistrationRepository registrations;
+    private final AcademyAuthorizationService authz;
 
     public TrainingSessionController(TrainingSessionRepository sessions,
-                                     TrainingRegistrationRepository registrations) {
+                                     TrainingRegistrationRepository registrations,
+                                     AcademyAuthorizationService authz) {
         this.sessions = sessions;
         this.registrations = registrations;
+        this.authz = authz;
     }
 
     // ---- sessions ----
@@ -43,15 +47,15 @@ public class TrainingSessionController {
     @GetMapping
     public ResponseEntity<List<TrainingSession>> list(@RequestParam(required = false) String status,
                                                       @RequestParam(required = false) UUID centerId) {
+        UUID eff = authz.effectiveListCenterId(centerId);
+        boolean hasStatus = status != null && !status.isBlank();
         List<TrainingSession> result;
-        if (centerId != null && status != null && !status.isBlank()) {
-            result = sessions.findByCenterIdAndStatusOrderByScheduledAtDesc(centerId, status);
-        } else if (centerId != null) {
-            result = sessions.findByCenterIdOrderByScheduledAtDesc(centerId);
-        } else if (status != null && !status.isBlank()) {
-            result = sessions.findByStatusOrderByScheduledAtDesc(status);
+        if (eff != null) {
+            result = hasStatus ? sessions.findByCenterIdAndStatusOrderByScheduledAtDesc(eff, status)
+                               : sessions.findByCenterIdOrderByScheduledAtDesc(eff);
         } else {
-            result = sessions.findAllByOrderByScheduledAtDesc();
+            result = hasStatus ? sessions.findByStatusOrderByScheduledAtDesc(status)
+                               : sessions.findAllByOrderByScheduledAtDesc();
         }
         return ResponseEntity.ok(result);
     }

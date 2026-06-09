@@ -25,17 +25,21 @@ public class PerformanceReviewController {
             "hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER')";
 
     private final PerformanceReviewRepository repository;
+    private final com.lera.academy_service.security.AcademyAuthorizationService authz;
 
-    public PerformanceReviewController(PerformanceReviewRepository repository) {
+    public PerformanceReviewController(PerformanceReviewRepository repository,
+                                       com.lera.academy_service.security.AcademyAuthorizationService authz) {
         this.repository = repository;
+        this.authz = authz;
     }
 
     @GetMapping
     @PreAuthorize(MANAGER_ROLES)
     public ResponseEntity<List<PerformanceReview>> list(@RequestParam(required = false) String status,
                                                         @RequestParam(required = false) UUID centerId) {
+        UUID eff = authz.effectiveListCenterId(centerId);
         List<PerformanceReview> result;
-        if (centerId != null) result = repository.findByCenterIdOrderByReviewDateDesc(centerId);
+        if (eff != null) result = repository.findByCenterIdOrderByReviewDateDesc(eff);
         else if (status != null && !status.isBlank()) result = repository.findByStatusOrderByReviewDateDesc(status);
         else result = repository.findAllByOrderByReviewDateDesc();
         return ResponseEntity.ok(result);

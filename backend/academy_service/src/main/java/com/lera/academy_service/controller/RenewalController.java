@@ -7,6 +7,7 @@ import com.lera.academy_service.repository.ClassRepository;
 import com.lera.academy_service.repository.EnrollmentRepository;
 import com.lera.academy_service.repository.RenewalRepository;
 import com.lera.academy_service.security.AcademyRoles;
+import com.lera.academy_service.security.AcademyAuthorizationService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,34 +33,43 @@ public class RenewalController {
     private final RenewalRepository renewalRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final ClassRepository classRepository;
+    private final AcademyAuthorizationService authz;
 
     public RenewalController(RenewalRepository renewalRepository,
                             EnrollmentRepository enrollmentRepository,
-                            ClassRepository classRepository) {
+                            ClassRepository classRepository,
+                            AcademyAuthorizationService authz) {
         this.renewalRepository = renewalRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.classRepository = classRepository;
+        this.authz = authz;
+    }
+
+    /** Throws 403 if a centre-bound caller tries to touch another centre's renewal. */
+    private void assertCenter(Renewal r) {
+        authz.effectiveListCenterId(r.getCenterId());
     }
 
     @GetMapping
     public ResponseEntity<List<Renewal>> list(@RequestParam(required = false) String status,
                                               @RequestParam(required = false) UUID centerId) {
+        UUID eff = authz.effectiveListCenterId(centerId);
+        boolean hasStatus = status != null && !status.isBlank();
         List<Renewal> result;
-        if (centerId != null && status != null && !status.isBlank()) {
-            result = renewalRepository.findByCenterIdAndStatusOrderByEndDateAsc(centerId, status);
-        } else if (centerId != null) {
-            result = renewalRepository.findByCenterIdOrderByEndDateAsc(centerId);
-        } else if (status != null && !status.isBlank()) {
-            result = renewalRepository.findByStatusOrderByEndDateAsc(status);
+        if (eff != null) {
+            result = hasStatus ? renewalRepository.findByCenterIdAndStatusOrderByEndDateAsc(eff, status)
+                               : renewalRepository.findByCenterIdOrderByEndDateAsc(eff);
         } else {
-            result = renewalRepository.findAllByOrderByEndDateAsc();
+            result = hasStatus ? renewalRepository.findByStatusOrderByEndDateAsc(status)
+                               : renewalRepository.findAllByOrderByEndDateAsc();
         }
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Renewal> getById(@PathVariable UUID id) {
-        return renewalRepository.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        return renewalRepository.findById(id).map(r -> { assertCenter(r); return ResponseEntity.ok(r); })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     /**
@@ -70,6 +80,7 @@ public class RenewalController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER','STAFF')")
     public ResponseEntity<Map<String, Object>> generate(@RequestParam(defaultValue = "30") int daysAhead,
                                                         @RequestParam(required = false) UUID centerId) {
+        UUID eff = authz.effectiveListCenterId(centerId);
         LocalDate today = LocalDate.now();
         LocalDate until = today.plusDays(Math.max(1, daysAhead));
         List<Enrollment> ending = enrollmentRepository.findByStatusAndEndDateBetween("ACTIVE", today, until);
@@ -79,7 +90,7 @@ public class RenewalController {
             if (renewalRepository.existsByCurrentEnrollmentId(e.getId())) continue;
             ClassEntity cls = (e.getClassId() != null)
                     ? classRepository.findById(e.getClassId()).orElse(null) : null;
-            if (centerId != null && (cls == null || !centerId.equals(cls.getCenterId()))) continue;
+            if (eff != null && (cls == null || !eff.equals(cls.getCenterId()))) continue;
             Renewal r = new Renewal();
             r.setStudentId(e.getStudentId());
             r.setCurrentEnrollmentId(e.getId());
@@ -103,6 +114,7 @@ public class RenewalController {
     @PutMapping("/{id}")
     public ResponseEntity<Renewal> update(@PathVariable UUID id, @Valid @RequestBody Renewal body) {
         return renewalRepository.findById(id).map(r -> {
+            assertCenter(r);
             r.setAssignedTo(body.getAssignedTo());
             r.setReminderDate(body.getReminderDate());
             if (body.getNotes() != null) r.setNotes(body.getNotes());
@@ -148,9 +160,11 @@ public class RenewalController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        if (!renewalRepository.existsById(id)) return ResponseEntity.notFound().build();
-        renewalRepository.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return renewalRepository.findById(id).map(r -> {
+            assertCenter(r);
+            renewalRepository.delete(r);
+            return ResponseEntity.noContent().<Void>build();
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/stats")
@@ -180,7 +194,9 @@ public class RenewalController {
     }
 
     private Renewal require(UUID id) {
-        return renewalRepository.findById(id)
+        Renewal r = renewalRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Renewal not found"));
+        assertCenter(r);
+        return r;
     }
 }

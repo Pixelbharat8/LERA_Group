@@ -29,10 +29,13 @@ public class RecruitmentController {
 
     private final JobOpeningRepository openings;
     private final JobApplicationRepository applications;
+    private final com.lera.academy_service.security.AcademyAuthorizationService authz;
 
-    public RecruitmentController(JobOpeningRepository openings, JobApplicationRepository applications) {
+    public RecruitmentController(JobOpeningRepository openings, JobApplicationRepository applications,
+                                 com.lera.academy_service.security.AcademyAuthorizationService authz) {
         this.openings = openings;
         this.applications = applications;
+        this.authz = authz;
     }
 
     // ---- openings ----
@@ -40,8 +43,9 @@ public class RecruitmentController {
     @GetMapping
     public ResponseEntity<List<JobOpening>> list(@RequestParam(required = false) String status,
                                                  @RequestParam(required = false) UUID centerId) {
+        UUID eff = authz.effectiveListCenterId(centerId);
         List<JobOpening> result;
-        if (centerId != null) result = openings.findByCenterIdOrderByPostedDateDesc(centerId);
+        if (eff != null) result = openings.findByCenterIdOrderByPostedDateDesc(eff);
         else if (status != null && !status.isBlank()) result = openings.findByStatusOrderByPostedDateDesc(status);
         else result = openings.findAllByOrderByPostedDateDesc();
         return ResponseEntity.ok(result);

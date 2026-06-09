@@ -24,9 +24,12 @@ import java.util.UUID;
 public class CalendarController {
 
     private final CalendarEventRepository repository;
+    private final com.lera.academy_service.security.AcademyAuthorizationService authz;
 
-    public CalendarController(CalendarEventRepository repository) {
+    public CalendarController(CalendarEventRepository repository,
+                             com.lera.academy_service.security.AcademyAuthorizationService authz) {
         this.repository = repository;
+        this.authz = authz;
     }
 
     /** Events whose start date falls within the given month (defaults to the current month). */
@@ -43,8 +46,9 @@ public class CalendarController {
         LocalDateTime from = LocalDate.of(targetYear, targetMonth, 1).atStartOfDay();
         LocalDateTime to = from.plusMonths(1);
 
-        List<CalendarEvent> events = (centerId != null)
-                ? repository.findByStartDateBetweenAndCenterIdOrderByStartDateAsc(from, to, centerId)
+        UUID eff = authz.effectiveListCenterId(centerId);
+        List<CalendarEvent> events = (eff != null)
+                ? repository.findByStartDateBetweenAndCenterIdOrderByStartDateAsc(from, to, eff)
                 : repository.findByStartDateBetweenOrderByStartDateAsc(from, to);
         return ResponseEntity.ok(events);
     }

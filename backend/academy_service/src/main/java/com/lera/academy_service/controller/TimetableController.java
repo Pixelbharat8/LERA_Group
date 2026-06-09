@@ -19,9 +19,12 @@ import java.util.*;
 public class TimetableController {
 
     private final ClassRepository classRepository;
+    private final com.lera.academy_service.security.AcademyAuthorizationService authz;
 
-    public TimetableController(ClassRepository classRepository) {
+    public TimetableController(ClassRepository classRepository,
+                              com.lera.academy_service.security.AcademyAuthorizationService authz) {
         this.classRepository = classRepository;
+        this.authz = authz;
     }
 
     private List<Map<String, Object>> entriesFor(List<ClassEntity> classes) {
@@ -51,8 +54,9 @@ public class TimetableController {
     }
 
     private List<ClassEntity> resolve(UUID teacherId, UUID centerId) {
+        UUID eff = authz.effectiveListCenterId(centerId);   // throws 403 on cross-centre request
         if (teacherId != null) return classRepository.findByTeacherId(teacherId);
-        if (centerId != null) return classRepository.findByCenterIdAndStatus(centerId, "OPEN");
+        if (eff != null) return classRepository.findByCenterIdAndStatus(eff, "OPEN");
         return classRepository.findByStatus("OPEN");
     }
 

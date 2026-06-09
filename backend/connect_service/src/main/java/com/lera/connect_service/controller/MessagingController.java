@@ -1,6 +1,8 @@
 package com.lera.connect_service.controller;
 
+import com.lera.connect_service.entity.Lead;
 import com.lera.connect_service.entity.OutboundMessage;
+import com.lera.connect_service.repository.LeadRepository;
 import com.lera.connect_service.repository.OutboundMessageRepository;
 import com.lera.connect_service.security.AuthUser;
 import com.lera.connect_service.security.ConnectSecurity;
@@ -29,6 +31,15 @@ public class MessagingController {
 
     private final OutboundMessagingService messagingService;
     private final OutboundMessageRepository messageRepository;
+    private final LeadRepository leadRepository;
+
+    /** Load a lead and assert the caller may access it (centre-scoped / assignment-scoped). */
+    private Lead requireAccessibleLead(UUID leadId, AuthUser authUser) {
+        Lead lead = leadRepository.findById(leadId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lead not found"));
+        ConnectSecurity.assertCanAccessLead(authUser, lead);
+        return lead;
+    }
 
     /** Which channels are live (Zalo/SMS configured?). */
     @GetMapping("/status")
@@ -45,13 +56,16 @@ public class MessagingController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "channel and body are required");
         }
         UUID leadId = uuid(body.get("leadId"));
+        if (leadId != null) requireAccessibleLead(leadId, authUser);   // no messaging another centre's lead
         String toPhone = str(body.get("toPhone"));
         UUID sentBy = ConnectSecurity.requireUserId(authUser);
         return ResponseEntity.ok(messagingService.send(leadId, toPhone, channel, message, sentBy));
     }
 
     @GetMapping("/lead/{leadId}")
-    public ResponseEntity<List<OutboundMessage>> byLead(@PathVariable UUID leadId) {
+    public ResponseEntity<List<OutboundMessage>> byLead(@PathVariable UUID leadId,
+                                                        @AuthenticationPrincipal AuthUser authUser) {
+        requireAccessibleLead(leadId, authUser);
         return ResponseEntity.ok(messageRepository.findByLeadIdOrderByCreatedAtDesc(leadId));
     }
 

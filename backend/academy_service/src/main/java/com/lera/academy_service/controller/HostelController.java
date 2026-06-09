@@ -29,10 +29,13 @@ public class HostelController {
 
     private final HostelRoomRepository rooms;
     private final HostelRegistrationRepository registrations;
+    private final com.lera.academy_service.security.AcademyAuthorizationService authz;
 
-    public HostelController(HostelRoomRepository rooms, HostelRegistrationRepository registrations) {
+    public HostelController(HostelRoomRepository rooms, HostelRegistrationRepository registrations,
+                            com.lera.academy_service.security.AcademyAuthorizationService authz) {
         this.rooms = rooms;
         this.registrations = registrations;
+        this.authz = authz;
     }
 
     private Map<String, Object> roomDto(HostelRoom r) {
@@ -58,8 +61,9 @@ public class HostelController {
 
     @GetMapping("/rooms")
     public ResponseEntity<List<Map<String, Object>>> getRooms(@RequestParam(required = false) UUID centerId) {
-        List<HostelRoom> list = centerId != null
-                ? rooms.findByCenterIdOrderByRoomNumberAsc(centerId) : rooms.findAllByOrderByRoomNumberAsc();
+        UUID eff = authz.effectiveListCenterId(centerId);
+        List<HostelRoom> list = eff != null
+                ? rooms.findByCenterIdOrderByRoomNumberAsc(eff) : rooms.findAllByOrderByRoomNumberAsc();
         return ResponseEntity.ok(list.stream().map(this::roomDto).toList());
     }
 
@@ -104,12 +108,14 @@ public class HostelController {
     @GetMapping("/my-registration")
     public ResponseEntity<HostelRegistration> myRegistration(@RequestParam(required = false) UUID studentId) {
         if (studentId == null) return ResponseEntity.ok(null);
+        authz.assertCanViewStudent(studentId);   // only the student's own people / their centre's staff
         return registrations.findByStudentIdOrderByCreatedAtDesc(studentId).stream()
                 .findFirst().map(ResponseEntity::ok).orElse(ResponseEntity.ok(null));
     }
 
     @PostMapping("/register")
     public ResponseEntity<HostelRegistration> register(@Valid @RequestBody HostelRegistration reg) {
+        authz.assertCanViewStudent(reg.getStudentId());   // can't register a student you can't access
         reg.setId(null);
         reg.setStatus("PENDING");
         return ResponseEntity.ok(registrations.save(reg));

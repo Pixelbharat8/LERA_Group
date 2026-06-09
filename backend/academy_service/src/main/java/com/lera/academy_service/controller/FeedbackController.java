@@ -23,9 +23,12 @@ import java.util.UUID;
 public class FeedbackController {
 
     private final FeedbackRepository repository;
+    private final com.lera.academy_service.security.AcademyAuthorizationService authz;
 
-    public FeedbackController(FeedbackRepository repository) {
+    public FeedbackController(FeedbackRepository repository,
+                             com.lera.academy_service.security.AcademyAuthorizationService authz) {
         this.repository = repository;
+        this.authz = authz;
     }
 
     @GetMapping
@@ -33,7 +36,7 @@ public class FeedbackController {
             @RequestParam(required = false) String centerId,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String status) {
-        UUID center = parseUuid(centerId);
+        UUID center = authz.effectiveListCenterId(parseUuid(centerId));
         String cat = blankToNull(category);
         String st = blankToNull(status);
         return ResponseEntity.ok(repository.search(center, cat, st));
