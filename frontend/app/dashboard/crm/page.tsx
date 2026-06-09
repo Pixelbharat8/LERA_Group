@@ -13,6 +13,8 @@ interface CRMStats {
   pendingFollowups: number;
   registrations: number;
   conversionRate: number;
+  hotLeads: number;
+  needsContact: number;
 }
 
 export default function CRMDashboard() {
@@ -25,6 +27,8 @@ export default function CRMDashboard() {
     pendingFollowups: 0,
     registrations: 0,
     conversionRate: 0,
+    hotLeads: 0,
+    needsContact: 0,
   });
   const [recentLeads, setRecentLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,13 +44,16 @@ export default function CRMDashboard() {
       const leadsUrl = buildCenterFilterUrl("/api/leads", shouldFilterByCenter ? userCenterId : null);
       // Use apiFetch (adds the JWT auth header + returns parsed JSON). Raw fetch() here
       // silently 401'd, so every stat showed 0. Endpoint is /api/followups (not /api/follow-ups).
-      const [leads, followups] = await Promise.all([
+      const needsUrl = buildCenterFilterUrl("/api/leads/needs-contact?slaMinutes=60", shouldFilterByCenter ? userCenterId : null);
+      const [leads, followups, needsContact] = await Promise.all([
         apiFetch(leadsUrl).catch(() => []),
         apiFetch("/api/followups").catch(() => []),
+        apiFetch(needsUrl).catch(() => []),
       ]);
 
       const leadsArray = Array.isArray(leads) ? leads : [];
       const convertedCount = leadsArray.filter((l: any) => l.status === "CONVERTED").length;
+      const hotCount = leadsArray.filter((l: any) => l.temperature === "HOT" && l.status !== "CONVERTED" && l.status !== "LOST").length;
 
       setStats({
         totalLeads: leadsArray.length,
@@ -55,6 +62,8 @@ export default function CRMDashboard() {
         pendingFollowups: Array.isArray(followups) ? followups.filter((f: any) => f.status === "PENDING").length : 0,
         registrations: convertedCount,
         conversionRate: leadsArray.length > 0 ? Math.round((convertedCount / leadsArray.length) * 100) : 0,
+        hotLeads: hotCount,
+        needsContact: Array.isArray(needsContact) ? needsContact.length : 0,
       });
 
       setRecentLeads(leadsArray.slice(0, 5));
@@ -90,6 +99,14 @@ export default function CRMDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <Link href="/dashboard/crm/work-queue" className="bg-red-50 p-4 rounded-lg shadow border-l-4 border-red-500 hover:bg-red-100 transition-colors">
+          <h3 className="text-red-600 text-xs uppercase">🔥 Hot leads</h3>
+          <p className="text-2xl font-bold text-red-700">{stats.hotLeads}</p>
+        </Link>
+        <Link href="/dashboard/crm/work-queue" className="bg-amber-50 p-4 rounded-lg shadow border-l-4 border-amber-500 hover:bg-amber-100 transition-colors">
+          <h3 className="text-amber-600 text-xs uppercase">⏰ Needs contact</h3>
+          <p className="text-2xl font-bold text-amber-700">{stats.needsContact}</p>
+        </Link>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
           <h3 className="text-gray-500 text-xs uppercase">{t("totalLeads")}</h3>
           <p className="text-2xl font-bold">{stats.totalLeads}</p>
