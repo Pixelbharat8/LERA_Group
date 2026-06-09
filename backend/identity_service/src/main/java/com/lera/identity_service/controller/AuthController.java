@@ -90,11 +90,24 @@ public class AuthController {
                 && !internalApiKey.isBlank()
                 && !InternalApiKeyValidator.LEGACY_WEAK_KEY.equals(internalApiKey);
         boolean isInternal = keyConfigured && internalApiKey.equals(internalKey);
-        AuthResponse response = userService.register(request, isInternal);
+        // An authenticated org-wide admin (Chairman/CEO/Super-Admin/Director) creating a user from
+        // the admin panel is a privileged creation: honour the requested role and auto-activate,
+        // so the Chairman can actually appoint admins/super-admins. Centre-bound roles stay public.
+        boolean privileged = isInternal || isAuthenticatedOrgWideAdmin();
+        AuthResponse response = userService.register(request, privileged);
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);
         }
         return ResponseEntity.badRequest().body(response);
+    }
+
+    /** True when the current request is made by an authenticated org-wide admin role. */
+    private boolean isAuthenticatedOrgWideAdmin() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return false;
+        java.util.Set<String> orgWide = java.util.Set.of(
+                "ROLE_SUPER_ADMIN", "ROLE_SUPERADMIN", "ROLE_CHAIRMAN", "ROLE_CEO", "ROLE_DIRECTOR");
+        return auth.getAuthorities().stream().map(Object::toString).anyMatch(orgWide::contains);
     }
 
     @PostMapping("/login")
