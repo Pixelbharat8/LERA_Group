@@ -461,6 +461,38 @@ public class LeadController {
         return ResponseEntity.ok(mapFunnelRows(leadRepository.conversionByCampaign(eff)));
     }
 
+    /** Pipeline funnel: ordered stage counts + overall conversion (centre-scoped). */
+    @GetMapping("/analytics/funnel")
+    public ResponseEntity<Map<String, Object>> analyticsFunnel(
+            @RequestParam(required = false) UUID centerId,
+            @AuthenticationPrincipal AuthUser authUser) {
+        UUID eff = ConnectSecurity.effectiveCenterId(authUser, centerId);
+        java.util.Map<String, Long> counts = new java.util.HashMap<>();
+        for (Object[] r : leadRepository.funnelStageCounts(eff)) {
+            counts.put(r[0] != null ? r[0].toString() : "NEW", ((Number) r[1]).longValue());
+        }
+        String[] order = {"NEW", "CONTACTED", "QUALIFIED", "TRIAL_BOOKED", "TRIAL_ATTENDED", "CONVERTED"};
+        long totalLeads = counts.values().stream().mapToLong(Long::longValue).sum();
+        List<Map<String, Object>> stages = new java.util.ArrayList<>();
+        for (String s : order) {
+            long c = counts.getOrDefault(s, 0L);
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("stage", s);
+            m.put("count", c);
+            m.put("pctOfTotal", totalLeads > 0 ? Math.round(c * 1000.0 / totalLeads) / 10.0 : 0);
+            stages.add(m);
+        }
+        long converted = counts.getOrDefault("CONVERTED", 0L);
+        long lost = counts.getOrDefault("LOST", 0L) + counts.getOrDefault("NO_SHOW", 0L);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("stages", stages);
+        out.put("totalLeads", totalLeads);
+        out.put("converted", converted);
+        out.put("lost", lost);
+        out.put("overallConversionRate", totalLeads > 0 ? Math.round(converted * 1000.0 / totalLeads) / 10.0 : 0);
+        return ResponseEntity.ok(out);
+    }
+
     private List<Map<String, Object>> mapFunnelRows(List<Object[]> rows) {
         List<Map<String, Object>> out = new java.util.ArrayList<>();
         for (Object[] r : rows) {

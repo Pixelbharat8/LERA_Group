@@ -61,4 +61,9 @@ public interface LeadRepository extends JpaRepository<Lead, UUID> {
          + "FROM Lead l WHERE (:centerId IS NULL OR l.centerId = :centerId) "
          + "GROUP BY l.utmCampaign ORDER BY COUNT(l) DESC")
     List<Object[]> conversionByCampaign(UUID centerId);
+
+    /** [status, count] for every pipeline stage — drives the conversion funnel view. */
+    @Query("SELECT l.status, COUNT(l) FROM Lead l "
+         + "WHERE (:centerId IS NULL OR l.centerId = :centerId) GROUP BY l.status")
+    List<Object[]> funnelStageCounts(UUID centerId);
 }
