@@ -692,6 +692,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         permission: "dashboard" as const,
       },
       {
+        name: `📋 ${language === "VI" ? "Bảng điểm" : "Gradebook"}`,
+        icon: "📋",
+        href: "/dashboard/teacher/gradebook",
+        roles: ["TEACHER"],
+        permission: "dashboard" as const,
+      },
+      {
         name: `👨‍🎓 ${language === "VI" ? "Học sinh" : "My Students"}`,
         icon: "👨‍🎓",
         href: "/dashboard/teacher/students",
