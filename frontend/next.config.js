@@ -74,6 +74,8 @@ const withRewrites = {
       // File Upload + stored assets (local backend serves /uploads/**)
       { source: "/api/upload", destination: `${academyUrl}/api/upload` },
       { source: "/api/upload/:path*", destination: `${academyUrl}/api/upload/:path*` },
+      { source: "/api/report-cards", destination: `${academyUrl}/api/report-cards` },
+      { source: "/api/report-cards/:path*", destination: `${academyUrl}/api/report-cards/:path*` },
       { source: "/uploads/:path*", destination: `${academyUrl}/uploads/:path*` },
 
       // Academy core
