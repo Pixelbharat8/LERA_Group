@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,6 +21,12 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
 
     /** Invoices in a given status whose due date is strictly before the cutoff (for overdue sweeps). */
     List<Invoice> findByStatusAndDueDateBefore(String status, LocalDate cutoff);
+
+    /** Unpaid invoices due on/before the cutoff that haven't been reminded since {@code since} (today). */
+    @Query("SELECT i FROM Invoice i WHERE i.status IN ('PENDING','OVERDUE') "
+         + "AND i.dueDate IS NOT NULL AND i.dueDate <= :cutoff "
+         + "AND (i.lastReminderAt IS NULL OR i.lastReminderAt < :since)")
+    List<Invoice> findRemindable(@Param("cutoff") LocalDate cutoff, @Param("since") LocalDateTime since);
 
     /**
      * Parent portal: same Postgres DB as academy — join students by parent_id.

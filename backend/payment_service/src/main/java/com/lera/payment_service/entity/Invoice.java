@@ -53,6 +53,10 @@ public class Invoice {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    /** When a payment reminder was last sent for this invoice (avoids re-sending the same day). */
+    @Column(name = "last_reminder_at")
+    private LocalDateTime lastReminderAt;
+
     private String notes;
 
     @Column(name = "created_by")
@@ -119,6 +123,9 @@ public class Invoice {
 
     public LocalDateTime getPaidAt() { return paidAt; }
     public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+
+    public LocalDateTime getLastReminderAt() { return lastReminderAt; }
+    public void setLastReminderAt(LocalDateTime lastReminderAt) { this.lastReminderAt = lastReminderAt; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
