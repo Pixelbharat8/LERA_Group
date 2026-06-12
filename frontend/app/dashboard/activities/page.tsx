@@ -39,7 +39,8 @@ export default function ActivitiesPage() {
       const end = new Date().toISOString();
       const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const data = await apiFetch(`/api/activity-logs/date-range?start=${start}&end=${end}`);
-      const rows = Array.isArray(data) ? data : data?.content || [];
+      // identity wraps lists in { success, message, data }; also tolerate bare arrays / Page.content.
+      const rows = Array.isArray(data) ? data : data?.data ?? data?.content ?? [];
       setActivities(
         rows.map((a: any) => ({
           id: a.id,
