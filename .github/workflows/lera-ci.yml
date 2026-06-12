@@ -264,12 +264,56 @@ jobs:
           fi
 
   ###########################################################
-  # 5. Deployment placeholder — wire up when the VPS exists.
+  # 5. Deploy the hardened AWS infrastructure (CloudFormation).
+  #    Self-gating: runs on push to main, but no-ops (success) until the
+  #    AWS_* / DB_PASSWORD / JWT_SECRET repo secrets are configured — so it
+  #    is safe to merge now and "turns on" the moment you add the secrets.
   ###########################################################
   deploy:
-    if: false
-    name: Deployment Disabled
+    name: Deploy (AWS CloudFormation)
     runs-on: ubuntu-latest
     needs: docker-build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - run: echo "Deployment skipped — no VPS configured."
+      - name: Check deploy is configured
+        id: gate
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ] \
+             || [ -z "${{ secrets.DB_PASSWORD }}" ] || [ -z "${{ secrets.JWT_SECRET }}" ]; then
+            echo "::notice::Deploy skipped — add repo secrets AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, DB_PASSWORD, JWT_SECRET to enable."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+
+      - name: Configure AWS credentials
+        if: steps.gate.outputs.enabled == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # WAFv2 WebACL is Scope=CLOUDFRONT, which AWS only allows in us-east-1.
+          aws-region: us-east-1
+
+      - name: Deploy CloudFormation stack (Multi-AZ RDS + WAF + VPC)
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          aws cloudformation deploy \
+            --template-file aws/cloudformation-template.yaml \
+            --stack-name lera-prod \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              Environment=prod \
+              DBPassword='${{ secrets.DB_PASSWORD }}' \
+              JWTSecret='${{ secrets.JWT_SECRET }}'
+
+      - name: Report stack status
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          aws cloudformation describe-stacks --stack-name lera-prod \
+            --query "Stacks[0].StackStatus" --output text
+          echo "::notice::Infra deployed. Next: run Flyway migrations against the RDS and roll out the pushed images on your compute layer (ECS/EC2/k8s)."
