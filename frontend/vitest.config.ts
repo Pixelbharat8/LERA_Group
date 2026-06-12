@@ -1,10 +1,12 @@
 import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
 import path from "path";
 
-// Note: @vitejs/plugin-react is intentionally omitted (its version conflicts with the
-// bundled vite). Pure-TS unit tests don't need it; add it for JSX component tests once the
-// vite/plugin-react versions are aligned.
+// @vitejs/plugin-react is pinned to a vite-5-compatible major (^4.x) so it matches the
+// vite bundled with vitest. With the React plugin enabled, JSX/TSX component tests work
+// alongside the pure-TS unit tests.
 export default defineConfig({
+  plugins: [react()],
   test: {
     environment: "jsdom",
     globals: true,
