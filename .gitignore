@@ -57,3 +57,8 @@ docker-data/
 !**/src/**/target/
 *.bak
 *.tmp
+
+# runtime pids/state
+.lera-runtime/
+# stray symlink to personal cloud storage — never commit
+/OneDrive - LERA GROUP

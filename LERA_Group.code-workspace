@@ -1,0 +1,53 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "typescript.tsserver.maxTsServerMemory": 4096,
+    "typescript.disableAutomaticTypeAcquisition": true,
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/.next/**": true,
+      "**/dist/**": true,
+      "**/build/**": true,
+      "**/target/**": true,
+      "**/.git/objects/**": true,
+      "**/.git/subtree-cache/**": true,
+      "**/database/archive/**": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/dist": true,
+      "**/build": true,
+      "**/target": true,
+      "**/database/archive": true
+    },
+    "editor.largeFileOptimizations": true,
+    "files.autoSave": "onFocusChange",
+    "java.jdt.ls.vmargs": "-Xmx2g -XX:+UseG1GC -XX:+UseStringDeduplication",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.jdt.ls.lombokSupport.enabled": true,
+    "java.import.maven.enabled": true,
+    "java.autobuild.enabled": true,
+    "files.associations": {
+      "*.sql": "sql"
+    },
+    "[sql]": {
+      "editor.defaultFormatter": null,
+      "editor.wordWrap": "off"
+    },
+    "editor.minimap.enabled": false,
+    "editor.renderWhitespace": "none",
+    "workbench.editor.limit.enabled": true,
+    "workbench.editor.limit.value": 10,
+    "git.autorefresh": false
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": []
+  }
+}

@@ -1,0 +1,141 @@
+
+╔═══════════════════════════════════════════════════════════════════╗
+║                                                                   ║
+║           🎯 LERA GROUP - QUICK START VISUAL GUIDE               ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 1: RUN THE FIX SCRIPT                                     │
+└─────────────────────────────────────────────────────────────────┘
+
+   Open terminal and run:
+   
+   bash /Users/rahulsharma/LERA_Group/FINAL_FIX_START.sh
+
+
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 2: OPEN 7 TERMINAL TABS IN VS CODE                       │
+└─────────────────────────────────────────────────────────────────┘
+
+   Press: Ctrl + ` (backtick) to open terminal
+   Click the "+" button 7 times
+   
+   ┌──────────┬──────────┬──────────┬──────────┬──────────┬──────────┬──────────┐
+   │Terminal 1│Terminal 2│Terminal 3│Terminal 4│Terminal 5│Terminal 6│Terminal 7│
+   │          │          │          │          │          │          │          │
+   │ Identity │ Academy  │ Payment  │ Payroll  │Attendance│ Connect  │ Frontend │
+   │  (8080)  │  (8081)  │  (8082)  │  (8083)  │  (8084)  │  (8085)  │  (3000)  │
+   └──────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
+
+
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 3: PASTE COMMANDS (one per terminal)                     │
+└─────────────────────────────────────────────────────────────────┘
+
+   Terminal 1: cd /Users/rahulsharma/LERA_Group/backend/identity_service && mvn spring-boot:run
+   Terminal 2: cd /Users/rahulsharma/LERA_Group/backend/academy_service && mvn spring-boot:run
+   Terminal 3: cd /Users/rahulsharma/LERA_Group/backend/payment_service && mvn spring-boot:run
+   Terminal 4: cd /Users/rahulsharma/LERA_Group/backend/payroll_service && mvn spring-boot:run
+   Terminal 5: cd /Users/rahulsharma/LERA_Group/backend/attendance_service && mvn spring-boot:run
+   Terminal 6: cd /Users/rahulsharma/LERA_Group/backend/connect_service && mvn spring-boot:run
+   Terminal 7: cd /Users/rahulsharma/LERA_Group/frontend && npm run dev
+
+
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 4: WAIT FOR "STARTED" MESSAGES                            │
+└─────────────────────────────────────────────────────────────────┘
+
+   Backend services will show:
+   ✅ "Started Application in XX.XXX seconds"
+   
+   Frontend will show:
+   ✅ "ready started server on 0.0.0.0:3000"
+   
+   ⏱️  Total wait time: 2-3 minutes
+
+
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 5: VERIFY ALL SERVICES RUNNING                            │
+└─────────────────────────────────────────────────────────────────┘
+
+   In a NEW terminal run:
+   
+   bash /Users/rahulsharma/LERA_Group/CHECK_STATUS.sh
+   
+   You should see 7 green checkmarks ✅
+
+
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 6: OPEN BROWSER                                           │
+└─────────────────────────────────────────────────────────────────┘
+
+   URL: http://localhost:3000
+   
+   Login:
+   📧 Email: admin@lera.com
+   🔑 Password: admin123
+
+
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 7: TEST SUPERADMIN DASHBOARD                              │
+└─────────────────────────────────────────────────────────────────┘
+
+   Navigate to each page and verify data appears:
+   
+   ✅ Teachers      → Should show 3 teachers
+   ✅ Students      → Should show 4 students
+   ✅ Classes       → Should show 2 classes
+   ✅ Payments      → Should show 7 payments
+   ✅ Payroll       → Should show 8 payroll records
+   ✅ Attendance    → Should show 16 attendance records
+   ✅ CRM Leads     → Should show lead data
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║                     TROUBLESHOOTING                               ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+   ❌ Service won't start?
+   → Check the terminal output for errors
+   → Make sure PostgreSQL is running: pg_isready
+   
+   ❌ Port already in use?
+   → lsof -i :8080  (check which port)
+   → kill -9 <PID>  (kill the process)
+   
+   ❌ "Failed to fetch" in browser?
+   → Run CHECK_STATUS.sh to see which service isn't running
+   → Restart that specific service
+   
+   ❌ Database connection error?
+   → brew services restart postgresql@15
+   → Wait 5 seconds and try again
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║                     HELPFUL COMMANDS                              ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+   🔍 Check status:
+      bash /Users/rahulsharma/LERA_Group/CHECK_STATUS.sh
+   
+   🛑 Stop all services:
+      killall java && killall node
+   
+   📝 View logs:
+      tail -f /tmp/identity.log
+      tail -f /tmp/academy.log
+   
+   📚 Read full guide:
+      cat /Users/rahulsharma/LERA_Group/COMPLETE_TROUBLESHOOTING_GUIDE.md
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║                   🎉 YOU'RE ALL SET!                              ║
+║                                                                   ║
+║  Run: bash /Users/rahulsharma/LERA_Group/FINAL_FIX_START.sh     ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+
