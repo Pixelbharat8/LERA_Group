@@ -47,14 +47,21 @@ public class LedgerEntryService {
 
     public Map<String, Object> getFinancialSummary(LocalDate startDate, LocalDate endDate) {
         Map<String, Object> summary = new HashMap<>();
-        summary.put("totalCredits", ledgerEntryRepository.getTotalCreditsBetween(startDate, endDate));
-        summary.put("totalDebits", ledgerEntryRepository.getTotalDebitsBetween(startDate, endDate));
-        summary.put("overallCredits", ledgerEntryRepository.getTotalCredits());
-        summary.put("overallDebits", ledgerEntryRepository.getTotalDebits());
-        BigDecimal credits = ledgerEntryRepository.getTotalCreditsBetween(startDate, endDate);
-        BigDecimal debits = ledgerEntryRepository.getTotalDebitsBetween(startDate, endDate);
+        // SUM queries return null when no rows match (e.g. an empty range or a fresh
+        // centre's ledger); coalesce to ZERO so the response — and the subtract below —
+        // never NPEs.
+        BigDecimal credits = nz(ledgerEntryRepository.getTotalCreditsBetween(startDate, endDate));
+        BigDecimal debits = nz(ledgerEntryRepository.getTotalDebitsBetween(startDate, endDate));
+        summary.put("totalCredits", credits);
+        summary.put("totalDebits", debits);
+        summary.put("overallCredits", nz(ledgerEntryRepository.getTotalCredits()));
+        summary.put("overallDebits", nz(ledgerEntryRepository.getTotalDebits()));
         summary.put("netBalance", credits.subtract(debits));
         return summary;
+    }
+
+    private static BigDecimal nz(BigDecimal v) {
+        return v != null ? v : BigDecimal.ZERO;
     }
 
     @Transactional
