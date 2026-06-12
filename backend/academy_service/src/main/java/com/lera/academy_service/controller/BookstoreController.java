@@ -162,8 +162,13 @@ public class BookstoreController {
     public ResponseEntity<BookstoreProduct> adjustStock(@PathVariable UUID productId, @RequestBody Map<String, Object> body) {
         return products.findById(productId).map(p -> {
             int cur = p.getStock() != null ? p.getStock() : 0;
-            if (body.get("stock") != null) p.setStock(Integer.parseInt(body.get("stock").toString()));
-            else if (body.get("delta") != null) p.setStock(cur + Integer.parseInt(body.get("delta").toString()));
+            try {
+                if (body.get("stock") != null) p.setStock(Integer.parseInt(body.get("stock").toString()));
+                else if (body.get("delta") != null) p.setStock(cur + Integer.parseInt(body.get("delta").toString()));
+            } catch (NumberFormatException e) {
+                // Non-numeric stock/delta is a client error, not a 500.
+                return ResponseEntity.badRequest().<BookstoreProduct>build();
+            }
             return ResponseEntity.ok(products.save(p));
         }).orElse(ResponseEntity.notFound().build());
     }
