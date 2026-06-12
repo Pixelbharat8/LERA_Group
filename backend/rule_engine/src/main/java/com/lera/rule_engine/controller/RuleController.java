@@ -345,18 +345,41 @@ public class RuleController {
                 return contextValue.toString().equals(expectedValue);
             case "NOT_EQUALS":
                 return !contextValue.toString().equals(expectedValue);
-            case "GREATER_THAN":
-                return Double.parseDouble(contextValue.toString()) > Double.parseDouble(expectedValue);
-            case "LESS_THAN":
-                return Double.parseDouble(contextValue.toString()) < Double.parseDouble(expectedValue);
-            case "GREATER_THAN_EQUALS":
-                return Double.parseDouble(contextValue.toString()) >= Double.parseDouble(expectedValue);
-            case "LESS_THAN_EQUALS":
-                return Double.parseDouble(contextValue.toString()) <= Double.parseDouble(expectedValue);
+            case "GREATER_THAN": {
+                Integer c = numericCompare(contextValue, expectedValue);
+                return c != null && c > 0;
+            }
+            case "LESS_THAN": {
+                Integer c = numericCompare(contextValue, expectedValue);
+                return c != null && c < 0;
+            }
+            case "GREATER_THAN_EQUALS": {
+                Integer c = numericCompare(contextValue, expectedValue);
+                return c != null && c >= 0;
+            }
+            case "LESS_THAN_EQUALS": {
+                Integer c = numericCompare(contextValue, expectedValue);
+                return c != null && c <= 0;
+            }
             case "CONTAINS":
                 return contextValue.toString().contains(expectedValue);
             default:
                 return false;
+        }
+    }
+
+    /**
+     * Numeric comparison of two operands, or {@code null} if either is non-numeric.
+     * A non-numeric operand makes a numeric condition simply not match, instead of
+     * throwing NumberFormatException and 500-ing the whole rule execution.
+     */
+    private static Integer numericCompare(Object contextValue, String expectedValue) {
+        try {
+            return Double.compare(
+                    Double.parseDouble(contextValue.toString()),
+                    Double.parseDouble(expectedValue));
+        } catch (NumberFormatException | NullPointerException e) {
+            return null;
         }
     }
     
