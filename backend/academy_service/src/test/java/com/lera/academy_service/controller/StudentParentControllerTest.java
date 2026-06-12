@@ -29,6 +29,7 @@ class StudentParentControllerTest {
 
     @Mock private StudentParentRepository studentParentRepository;
     @Mock private StudentParentAccessPolicy studentParentAccessPolicy;
+    @Mock private com.lera.academy_service.security.AcademyAuthorizationService authz;
 
     @InjectMocks private StudentParentController controller;
 
@@ -49,6 +50,7 @@ class StudentParentControllerTest {
     @Test
     void getAll_unfiltered_staff_ok() {
         login("TEACHER", UUID.randomUUID());
+        when(authz.isOrgWide()).thenReturn(true); // unfiltered listing now requires an org-wide role
         when(studentParentRepository.findAll()).thenReturn(List.of());
         assertThat(controller.getAll(null, null).getBody()).isEmpty();
         verify(studentParentRepository).findAll();

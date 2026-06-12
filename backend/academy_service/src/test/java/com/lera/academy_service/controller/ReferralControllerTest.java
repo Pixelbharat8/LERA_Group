@@ -37,6 +37,7 @@ class ReferralControllerTest {
     @Mock private ReferralService referralService;
     @Mock private StudentParentRepository studentParentRepository;
     @Mock private StudentRepository studentRepository;
+    @Mock private com.lera.academy_service.security.AcademyAuthorizationService authz;
 
     @InjectMocks private ReferralController controller;
 
@@ -57,6 +58,7 @@ class ReferralControllerTest {
     @Test
     void list_unfiltered_staff_callsFindAll() {
         login("TEACHER", UUID.randomUUID());
+        when(authz.isOrgWide()).thenReturn(true); // unfiltered listing now requires an org-wide role
         when(referralService.findAll()).thenReturn(List.of());
         assertThat(controller.listReferrals(null, null, null, null).getBody()).isEmpty();
         verify(referralService).findAll();

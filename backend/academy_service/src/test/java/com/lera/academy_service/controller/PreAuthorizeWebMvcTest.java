@@ -46,6 +46,8 @@ class PreAuthorizeWebMvcTest {
     private StudentRepository studentRepository;
     @MockBean
     private StudentParentAccessPolicy studentParentAccessPolicy;
+    @MockBean
+    private com.lera.academy_service.security.AcademyAuthorizationService academyAuthorizationService;
 
     @Test
     @WithMockUser(roles = "PARENT")

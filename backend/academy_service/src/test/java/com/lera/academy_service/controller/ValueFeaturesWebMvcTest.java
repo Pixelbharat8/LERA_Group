@@ -45,6 +45,7 @@ class ValueFeaturesWebMvcTest {
     @MockBean private ExamRepository examRepository;
     @MockBean private EnrollmentRepository enrollmentRepository;
     @MockBean private StudentRepository studentRepository;
+    @MockBean private com.lera.academy_service.client.NotificationClient notificationClient;
 
     // --- Report card: only people who can view the student ---
 
