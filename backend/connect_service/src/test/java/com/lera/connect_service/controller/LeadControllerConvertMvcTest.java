@@ -71,6 +71,8 @@ class LeadControllerConvertMvcTest {
     private LeadPlacementSyncService leadPlacementSyncService;
     @MockBean
     private NotificationService notificationService;
+    @MockBean
+    private com.lera.connect_service.service.LeadScoringService leadScoringService;
 
     @Test
     void convert_put_json_includes_placement_sync() throws Exception {
