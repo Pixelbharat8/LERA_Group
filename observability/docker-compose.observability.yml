@@ -1,0 +1,29 @@
+# Observability overlay — run the OpenTelemetry Collector alongside the stack to ship container
+# logs to your sink. Separate file so it never interferes with the main compose.
+#
+#   # 1. point it at your sink (Axiom shown):
+#   export OTEL_EXPORTER_OTLP_ENDPOINT=https://api.axiom.co
+#   export OTLP_AUTH_HEADER="Bearer xaat-your-axiom-token"
+#   export OTLP_DATASET=lera-prod
+#   export LERA_ENV=prod
+#   # 2. run it:
+#   docker compose -f docker-compose.observability.yml up -d
+#
+# If the env vars are unset the collector still runs and prints logs locally (debug exporter),
+# so it's safe to start before a sink is configured.
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.116.1
+    container_name: lera-otel-collector
+    restart: unless-stopped
+    command: [ "--config=/etc/otelcol/config.yaml" ]
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTLP_AUTH_HEADER: ${OTLP_AUTH_HEADER:-}
+      OTLP_DATASET: ${OTLP_DATASET:-}
+      LERA_ENV: ${LERA_ENV:-dev}
+    volumes:
+      - ./otelcol-config.yaml:/etc/otelcol/config.yaml:ro
+      # Read the Docker container logs (already traceId-tagged) — no app change needed.
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro

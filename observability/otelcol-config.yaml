@@ -1,0 +1,60 @@
+# OpenTelemetry Collector — ships the LERA container logs to any OTLP sink (Axiom, Grafana,
+# Datadog, CloudWatch, …). Vendor-neutral: only the exporter endpoint/headers change.
+# The 9 services already log JSON-ish lines tagged with [traceId=...] to stdout, so NO app
+# code change is needed — the collector reads Docker's container log files and forwards them.
+#
+# Configure via env (see docker-compose.observability.yml / README):
+#   OTEL_EXPORTER_OTLP_ENDPOINT   e.g. https://api.axiom.co   (Axiom) or your collector
+#   OTLP_AUTH_HEADER              e.g. "Bearer xaat-..."      (Axiom API token)
+#   OTLP_DATASET                  e.g. lera-prod              (Axiom dataset; ignored by others)
+
+receivers:
+  filelog:
+    include: [ /var/lib/docker/containers/*/*-json.log ]
+    start_at: end
+    operators:
+      # Docker writes each line as {"log":"...","stream":"stdout","time":"..."}
+      - type: json_parser
+        timestamp:
+          parse_from: attributes.time
+          layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+      - type: move
+        from: attributes.log
+        to: body
+      # Pull the traceId the services emit ([traceId=xxxx]) into a structured attribute.
+      - type: regex_parser
+        regex: 'traceId=(?P<trace_id>[0-9a-f]+)'
+        parse_from: body
+        if: 'body matches "traceId="'
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+  resource:
+    attributes:
+      - key: service.namespace
+        value: lera
+        action: upsert
+      - key: deployment.environment
+        value: ${env:LERA_ENV}
+        action: upsert
+
+exporters:
+  # Vendor-neutral OTLP/HTTP. For Axiom: endpoint=https://api.axiom.co, path /v1/logs,
+  # Authorization: Bearer <token>, X-Axiom-Dataset: <dataset>.
+  otlphttp:
+    endpoint: ${env:OTEL_EXPORTER_OTLP_ENDPOINT}
+    headers:
+      authorization: ${env:OTLP_AUTH_HEADER}
+      x-axiom-dataset: ${env:OTLP_DATASET}
+  # Local fallback so the collector is useful even before a sink is configured.
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    logs:
+      receivers: [filelog]
+      processors: [resource, batch]
+      exporters: [otlphttp, debug]
