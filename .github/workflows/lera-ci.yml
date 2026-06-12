@@ -125,6 +125,15 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+      - name: Upload JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-${{ matrix.service }}
+          path: backend/${{ matrix.service }}/target/site/jacoco/
+          retention-days: 7
+          if-no-files-found: ignore
+
   ###########################################################
   # 2. Build all backend microservices (no tests — same services already tested in job 1).
   ###########################################################
