@@ -38,6 +38,7 @@ public class GradeController {
     private final EnrollmentRepository enrollmentRepository;
     private final StudentRepository studentRepository;
     private final AcademyAuthorizationService authz;
+    private final com.lera.academy_service.client.NotificationClient notificationClient;
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getGrades(
@@ -150,6 +151,7 @@ public class GradeController {
         BigDecimal passing = exam.getPassingScore();
         List<Map<String, Object>> grades = (List<Map<String, Object>>) body.getOrDefault("grades", List.of());
         int saved = 0;
+        java.util.Set<UUID> gradedStudentIds = new java.util.HashSet<>();
         for (Map<String, Object> g : grades) {
             if (g.get("studentId") == null || g.get("score") == null || g.get("score").toString().isBlank()) continue;
             UUID sid;
@@ -170,6 +172,16 @@ public class GradeController {
             r.setGradedAt(LocalDateTime.now());
             examResultRepository.save(r);
             saved++;
+            gradedStudentIds.add(sid);
+        }
+        // Notify parents that grades were posted (skips students with no linked parent).
+        String examName = exam.getName() != null ? exam.getName() : "an assessment";
+        for (Student st : studentRepository.findAllById(gradedStudentIds)) {
+            if (st.getParentId() != null) {
+                try {
+                    notificationClient.notifyExamResults(st.getParentId(), st.getFullname(), examName, examId);
+                } catch (Exception ignored) { /* non-blocking */ }
+            }
         }
         return ResponseEntity.ok(Map.of("saved", saved));
     }
