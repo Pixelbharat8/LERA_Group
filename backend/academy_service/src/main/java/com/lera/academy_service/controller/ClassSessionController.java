@@ -35,6 +35,7 @@ public class ClassSessionController {
     private final ClassSessionPayrollBridgeService classSessionPayrollBridgeService;
     private final AcademyAuthorizationService authz;
     private final com.lera.academy_service.client.NotificationClient notificationClient;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @GetMapping
     public ResponseEntity<List<ClassSession>> getAllSessions(
@@ -144,6 +145,38 @@ public class ClassSessionController {
             session.setSubstituteTeacherId(null);
             return ResponseEntity.ok(classSessionRepository.save(session));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Session IDs on a date that need cover: the assigned teacher is on APPROVED leave that day
+     * and no substitute is assigned yet. Reads teacher_staff_leaves on the shared DB.
+     */
+    @GetMapping("/needs-cover")
+    @PreAuthorize(AcademyRoles.STAFF)
+    public ResponseEntity<List<UUID>> needsCover(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) UUID centerId) {
+        UUID eff = (authz.isOrgWide() && centerId == null) ? null : authz.effectiveListCenterId(centerId);
+        StringBuilder sql = new StringBuilder(
+                "SELECT DISTINCT cs.id FROM class_sessions cs "
+              + "JOIN teachers t ON t.id = cs.teacher_id "
+              + "JOIN teacher_staff_leaves l ON l.user_id = t.user_id "
+              + "WHERE cs.session_date = ? AND cs.substitute_teacher_id IS NULL "
+              + "AND l.status = 'APPROVED' AND l.leave_date <= cs.session_date "
+              + "AND COALESCE(l.end_date, l.leave_date) >= cs.session_date ");
+        List<Object> args = new java.util.ArrayList<>();
+        args.add(date);
+        if (eff != null) {
+            sql.append("AND cs.class_id IN (SELECT id FROM classes WHERE center_id = ?) ");
+            args.add(eff);
+        }
+        try {
+            List<UUID> ids = jdbcTemplate.query(sql.toString(),
+                    (rs, i) -> (UUID) rs.getObject("id"), args.toArray());
+            return ResponseEntity.ok(ids);
+        } catch (Exception e) {
+            return ResponseEntity.ok(List.of()); // degrade gracefully if leave table differs
+        }
     }
 
     @PostMapping

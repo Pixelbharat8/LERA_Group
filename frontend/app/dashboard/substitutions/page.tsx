@@ -18,6 +18,7 @@ export default function SubstitutionsPage() {
   const [classNames, setClassNames] = useState<Record<string, string>>({});
   const [teacherNames, setTeacherNames] = useState<Record<string, string>>({});
   const [teachers, setTeachers] = useState<{ id: string; name: string }[]>([]);
+  const [needsCover, setNeedsCover] = useState<Set<string>>(new Set());
   const [pick, setPick] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -29,12 +30,14 @@ export default function SubstitutionsPage() {
     setLoading(true); setMsg(null);
     try {
       const cid = shouldFilterByCenter ? centerId : null;
-      const [sess, classes, tList, users] = await Promise.all([
+      const [sess, classes, tList, users, nc] = await Promise.all([
         apiFetch(buildCenterFilterUrl(`/api/class-sessions/date/${date}`, cid)).catch(() => []),
         apiFetch("/api/classes").catch(() => []),
         apiFetch("/api/teachers").catch(() => []),
         apiFetch("/api/users").catch(() => []),
+        apiFetch(buildCenterFilterUrl(`/api/class-sessions/needs-cover?date=${date}`, cid)).catch(() => []),
       ]);
+      setNeedsCover(new Set(Array.isArray(nc) ? nc : []));
       setSessions(Array.isArray(sess) ? sess : []);
       const cmap: Record<string, string> = {};
       (Array.isArray(classes) ? classes : []).forEach((c: any) => { cmap[c.id] = c.name; });
@@ -88,6 +91,7 @@ export default function SubstitutionsPage() {
         <div className="flex items-center gap-3">
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-10 rounded-md border border-gray-300 px-3 text-sm" />
           <span className="text-sm text-gray-500">{covered}/{sessions.length} covered</span>
+          {needsCover.size > 0 && <span className="text-sm font-medium text-red-600">⚠️ {needsCover.size} need cover</span>}
         </div>
       </div>
 
@@ -105,14 +109,17 @@ export default function SubstitutionsPage() {
             <tbody className="divide-y divide-gray-200">
               {sessions.length === 0 ? (
                 <tr><td colSpan={4} className="px-6 py-10 text-center text-gray-500">No classes scheduled on this date.</td></tr>
-              ) : sessions.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50">
+              ) : [...sessions].sort((a, b) => (needsCover.has(b.id) ? 1 : 0) - (needsCover.has(a.id) ? 1 : 0)).map((s) => (
+                <tr key={s.id} className={needsCover.has(s.id) ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-50"}>
                   <td className="px-6 py-4">
                     <div className="font-medium">{classNames[s.classId] || "Class"}</div>
                     <div className="text-sm text-gray-500">{s.topic}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">{(s.startTime || "").slice(0, 5)}–{(s.endTime || "").slice(0, 5)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{teacherNames[s.teacherId] || "—"}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {teacherNames[s.teacherId] || "—"}
+                    {needsCover.has(s.id) && <div className="text-xs text-red-600 mt-0.5">⚠️ On approved leave — needs cover</div>}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {s.substituteTeacherId ? (
                       <span className="flex items-center gap-3">
