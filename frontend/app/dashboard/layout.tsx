@@ -549,6 +549,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         { name: `🔁 ${language === "VI" ? "Tái ghi danh" : "Renewals"}`, href: "/dashboard/crm/renewals" },
         { name: `📅 ${language === "VI" ? "Lịch" : "Calendar"}`, href: "/dashboard/calendar" },
         { name: `📚 ${language === "VI" ? "Thời khóa biểu" : "Timetable"}`, href: "/dashboard/timetable" },
+        { name: `🔁 ${language === "VI" ? "Dạy thay" : "Substitutions"}`, href: "/dashboard/substitutions" },
         { name: `🏷️ Tags`, href: "/dashboard/crm/tags" },
         { name: `📱 Communications`, href: "/dashboard/crm/communications" },
         { name: `⚡ Automations`, href: "/dashboard/crm/automations" },
