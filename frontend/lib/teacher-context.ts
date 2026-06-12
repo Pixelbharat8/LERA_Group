@@ -225,6 +225,52 @@ export async function loadRosterStudentsForClasses(
   return Array.from(byId.values());
 }
 
+export type ParentContact = {
+  /** auth user id of the parent (for messaging) */
+  id: string;
+  name: string;
+  childName: string;
+  className?: string;
+};
+
+/**
+ * Parents of the students the logged-in teacher teaches, keyed by parent auth user id
+ * (the id used for chat). Walks: my teacher id → my classes → enrolled students →
+ * each student's linked parent(s) → the parent's user profile.
+ */
+export async function loadParentsForTeacher(): Promise<ParentContact[]> {
+  const teacherId = await resolveMyTeacherId();
+  if (!teacherId) return [];
+  const classes = await loadScopedClasses("teacher", teacherId);
+  const roster = await loadRosterStudentsForClasses(
+    classes.map((c) => ({ id: c.id, className: c.className }))
+  );
+
+  const byParentId = new Map<string, ParentContact>();
+  for (const student of roster) {
+    const links = (await apiFetch(`/api/student-parents/student/${student.id}`).catch(
+      () => []
+    )) as { parentId?: string }[];
+    if (!Array.isArray(links)) continue;
+    for (const link of links) {
+      const pid = link.parentId ? String(link.parentId) : "";
+      if (!pid || byParentId.has(pid)) continue;
+      const user = (await apiFetch(`/api/users/${pid}`).catch(() => null)) as {
+        fullname?: string;
+        name?: string;
+        email?: string;
+      } | null;
+      byParentId.set(pid, {
+        id: pid,
+        name: user?.fullname || user?.name || user?.email?.split("@")[0] || "Parent",
+        childName: student.fullname,
+        className: student.className,
+      });
+    }
+  }
+  return Array.from(byParentId.values());
+}
+
 export function mapClassFromApi(
   c: Record<string, unknown>,
   options?: { enrollmentCount?: number; programName?: string; teacherName?: string }
