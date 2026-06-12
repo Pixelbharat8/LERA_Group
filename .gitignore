@@ -62,3 +62,4 @@ docker-data/
 .lera-runtime/
 # stray symlink to personal cloud storage — never commit
 /OneDrive - LERA GROUP
+*.tsbuildinfo
