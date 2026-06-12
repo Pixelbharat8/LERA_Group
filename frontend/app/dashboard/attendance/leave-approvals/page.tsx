@@ -4,16 +4,17 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { apiFetch, hasAuthSession } from '../../../../lib/api';
+import type { LeaveRequest } from '../../../../lib/leave';
 
 export default function LeaveApprovalsPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [leaves, setLeaves] = useState([]);
-  const [filteredLeaves, setFilteredLeaves] = useState([]);
+  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
+  const [filteredLeaves, setFilteredLeaves] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('PENDING');
   const [pendingCount, setPendingCount] = useState(0);
-  const [selectedLeave, setSelectedLeave] = useState<any>(null);
+  const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   useEffect(() => {
@@ -95,7 +96,7 @@ export default function LeaveApprovalsPage() {
     }
   };
 
-  const rejectLeave = async (leaveId: string, reason?: string) => {
+  const rejectLeave = async (leaveId: string, reason?: string | null) => {
     if (!user) return;
     
     const rejectionReason = reason || prompt('Please provide a reason for rejection:');
@@ -121,22 +122,23 @@ export default function LeaveApprovalsPage() {
     }
   };
 
-  const viewDetails = (leave: any) => {
+  const viewDetails = (leave: LeaveRequest) => {
     setSelectedLeave(leave);
     setShowDetailModal(true);
   };
 
-  const getStatusBadge = (status) => {
-    const styles = {
+  const getStatusBadge = (status?: string) => {
+    const styles: Record<string, string> = {
       PENDING: 'bg-yellow-100 text-yellow-800',
       APPROVED: 'bg-green-100 text-green-800',
       REJECTED: 'bg-red-100 text-red-800',
       CANCELLED: 'bg-gray-100 text-gray-800'
     };
-    return styles[status] || 'bg-gray-100 text-gray-800';
+    return (status && styles[status]) || 'bg-gray-100 text-gray-800';
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -144,7 +146,8 @@ export default function LeaveApprovalsPage() {
     });
   };
 
-  const formatDateTime = (dateString) => {
+  const formatDateTime = (dateString?: string | null) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -154,8 +157,8 @@ export default function LeaveApprovalsPage() {
     });
   };
 
-  const getLeaveTypeColor = (type) => {
-    const colors = {
+  const getLeaveTypeColor = (type?: string) => {
+    const colors: Record<string, string> = {
       SICK_LEAVE: 'text-red-600 bg-red-50',
       CASUAL_LEAVE: 'text-blue-600 bg-blue-50',
       ANNUAL_LEAVE: 'text-green-600 bg-green-50',
@@ -164,7 +167,7 @@ export default function LeaveApprovalsPage() {
       PATERNITY: 'text-purple-600 bg-purple-50',
       BEREAVEMENT: 'text-gray-600 bg-gray-50'
     };
-    return colors[type] || 'text-gray-600 bg-gray-50';
+    return (type && colors[type]) || 'text-gray-600 bg-gray-50';
   };
 
   if (loading) {
@@ -268,12 +271,12 @@ export default function LeaveApprovalsPage() {
                   {filteredLeaves.map((leave) => (
                     <tr key={leave.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">User ID: {leave.userId.slice(0, 8)}...</div>
+                        <div className="text-sm font-medium text-gray-900">User ID: {leave.userId?.slice(0, 8)}...</div>
                         <div className="text-xs text-gray-500">{leave.userType}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 text-xs font-medium rounded ${getLeaveTypeColor(leave.leaveType)}`}>
-                          {leave.leaveType.replace(/_/g, ' ')}
+                          {leave.leaveType?.replace(/_/g, ' ')}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -345,7 +348,7 @@ export default function LeaveApprovalsPage() {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-semibold text-gray-700">Leave Type</label>
-                  <p className="text-gray-900">{selectedLeave.leaveType.replace(/_/g, ' ')}</p>
+                  <p className="text-gray-900">{selectedLeave.leaveType?.replace(/_/g, ' ')}</p>
                 </div>
                 
                 <div>

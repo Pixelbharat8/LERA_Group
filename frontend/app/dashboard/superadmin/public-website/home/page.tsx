@@ -72,7 +72,7 @@ export default function HomePageEditor() {
       if (data && Object.keys(data).length > 0) {
         // Parse stats from CMS settings
         const statsCount = parseInt(data.stats_count) || 4;
-        const loadedStats = [];
+        const loadedStats: (typeof content.stats)[number][] = [];
         for (let i = 0; i < statsCount; i++) {
           loadedStats.push({
             labelEN: data[`stat_${i}_label_en`] || content.stats[i]?.labelEN || "Label",

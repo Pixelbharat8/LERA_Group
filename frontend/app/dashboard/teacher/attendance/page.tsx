@@ -81,7 +81,7 @@ export default function TeacherAttendancePage() {
       setLoading(true);
       const enrollments = await apiFetch(`/api/enrollments?classId=${classId}`).catch(() => []);
       const studentIds = Array.isArray(enrollments)
-        ? enrollments.map((e: { studentId?: string }) => e.studentId).filter(Boolean)
+        ? enrollments.map((e: { studentId?: string }) => e.studentId).filter((id): id is string => Boolean(id))
         : [];
       const studentsData = await Promise.all(
         studentIds.map(async (id: string) => apiFetch(`/api/students/${id}`).catch(() => null))

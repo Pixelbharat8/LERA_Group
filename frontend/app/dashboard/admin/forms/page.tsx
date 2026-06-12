@@ -284,7 +284,7 @@ export default function FormConfigurationPage() {
                             variant="ghost"
                             size="sm"
                             className="text-red-500 hover:text-red-700"
-                            onClick={() => setDeleteConfirmId(config.id)}
+                            onClick={() => setDeleteConfirmId(config.id ?? null)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

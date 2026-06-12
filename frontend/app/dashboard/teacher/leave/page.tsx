@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { apiFetch, hasAuthSession } from '../../../../lib/api';
+import type { LeaveRequest } from '../../../../lib/leave';
 
 export default function TeacherLeavePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [leaves, setLeaves] = useState([]);
+  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [leaveBalance, setLeaveBalance] = useState({ remainingLeaves: 12, totalLeaves: 12, usedLeaves: 0 });
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -141,17 +142,18 @@ export default function TeacherLeavePage() {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const styles = {
+  const getStatusBadge = (status?: string) => {
+    const styles: Record<string, string> = {
       PENDING: 'bg-yellow-100 text-yellow-800',
       APPROVED: 'bg-green-100 text-green-800',
       REJECTED: 'bg-red-100 text-red-800',
       CANCELLED: 'bg-gray-100 text-gray-800'
     };
-    return styles[status] || 'bg-gray-100 text-gray-800';
+    return (status && styles[status]) || 'bg-gray-100 text-gray-800';
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -375,7 +377,7 @@ export default function TeacherLeavePage() {
                   {leaves.map((leave) => (
                     <tr key={leave.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {leave.leaveType.replace(/_/g, ' ')}
+                        {leave.leaveType?.replace(/_/g, ' ')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDate(leave.leaveDate)}

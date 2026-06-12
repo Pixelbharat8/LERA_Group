@@ -380,8 +380,8 @@ export default function LeraConnectPage() {
     ((conversationId: string, payload: Record<string, unknown>) => void) | null
   >(null);
   const fetchMessagesRef = useRef<
-    (conversationId: string, conversationCtx?: Conversation | null) => Promise<void>
-  | null>(null);
+    ((conversationId: string, conversationCtx?: Conversation | null) => Promise<void>) | null
+  >(null);
 
   const startCallTimer = () => {
     setCallDuration(0);

@@ -13,7 +13,7 @@ interface FormField {
 }
 
 interface FormConfiguration {
-  id: string;
+  id?: string;
   formName: string;
   entityType: string;
   description?: string;

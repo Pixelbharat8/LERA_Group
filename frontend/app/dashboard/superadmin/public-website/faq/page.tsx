@@ -310,7 +310,7 @@ export default function FAQManagementPage() {
           ) : (
             filteredFaqs.map((faq) => (
               <div key={faq.id} className="p-4">
-                {editingFaq?.id === faq.id ? (
+                {editingFaq && editingFaq.id === faq.id ? (
                   <FAQForm 
                     faq={editingFaq} 
                     onSave={handleSaveFaq} 
