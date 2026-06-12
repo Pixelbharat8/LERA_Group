@@ -20,6 +20,38 @@ public class ReportsController {
 
     private final CentreSummaryService centreSummaryService;
     private final com.lera.academy_service.security.AcademyAuthorizationService authz;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    /**
+     * Enrolment cohort retention: groups enrolments by start month and reports how many are still
+     * active vs completed vs churned, with a retention rate. Centre-scoped.
+     */
+    @GetMapping("/cohorts")
+    public ResponseEntity<List<Map<String, Object>>> cohortRetention(@RequestParam(required = false) UUID centerId) {
+        UUID eff = (authz.isOrgWide() && centerId == null) ? null : authz.effectiveListCenterId(centerId);
+        StringBuilder sql = new StringBuilder(
+                "SELECT to_char(date_trunc('month', e.start_date), 'YYYY-MM') AS cohort, "
+              + "count(*) AS total, "
+              + "count(*) FILTER (WHERE e.status = 'ACTIVE') AS active, "
+              + "count(*) FILTER (WHERE e.status IN ('COMPLETED','GRADUATED')) AS completed, "
+              + "count(*) FILTER (WHERE e.status IN ('WITHDRAWN','DROPPED','CANCELLED')) AS churned "
+              + "FROM enrollments e ");
+        List<Object> args = new java.util.ArrayList<>();
+        if (eff != null) {
+            sql.append("JOIN classes c ON c.id = e.class_id WHERE e.start_date IS NOT NULL AND c.center_id = ? ");
+            args.add(eff);
+        } else {
+            sql.append("WHERE e.start_date IS NOT NULL ");
+        }
+        sql.append("GROUP BY date_trunc('month', e.start_date) ORDER BY date_trunc('month', e.start_date)");
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql.toString(), args.toArray());
+        for (Map<String, Object> r : rows) {
+            long total = ((Number) r.get("total")).longValue();
+            long active = ((Number) r.get("active")).longValue();
+            r.put("retentionRate", total > 0 ? Math.round(active * 1000.0 / total) / 10.0 : 0);
+        }
+        return ResponseEntity.ok(rows);
+    }
 
     /**
      * Live aggregates for a centre (students, classes, revenue, attendance) — JSON pack for dashboards / exports.

@@ -596,6 +596,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         { name: `🤖 ${language === "VI" ? "Trợ lý AI" : "AI Tutor"}`, href: "/dashboard/ai-tutor" },
         { name: `🌐 ${language === "VI" ? "Cộng đồng" : "Social"}`, href: "/dashboard/social" },
         { name: `📊 ${language === "VI" ? "Báo cáo" : "Reports"}`, href: "/dashboard/reports" },
+        { name: `📉 ${language === "VI" ? "Giữ chân theo nhóm" : "Cohort Retention"}`, href: "/dashboard/reports/cohorts" },
         { name: `⚙️ ${language === "VI" ? "Cài đặt" : "Settings"}`, href: "/dashboard/settings" },
         { name: `❓ ${language === "VI" ? "Trợ giúp" : "Help"}`, href: "/dashboard/help" },
       ],
