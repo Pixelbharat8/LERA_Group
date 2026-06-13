@@ -1,0 +1,37 @@
+# Production HTTPS overlay — puts Caddy in front of the gateway and gets a free
+# Let's Encrypt certificate automatically. Use ALONGSIDE the base compose:
+#
+#   DOMAIN=app.your-domain.com docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build
+#
+# Requirements: the server's public IP must have ports 80 + 443 open and DOMAIN's
+# DNS A-record must point at it (Caddy needs :80 reachable to solve the ACME challenge).
+#
+# Prefer not to manage certs yourself? Skip this file and put the domain behind
+# Cloudflare (orange-cloud) pointing at the server — the base gateway on :80 is enough.
+
+services:
+  # The gateway no longer needs a host port; Caddy fronts it on the internal network.
+  gateway:
+    ports: !reset []
+
+  caddy:
+    image: caddy:2
+    container_name: lera-caddy
+    restart: unless-stopped
+    depends_on:
+      - gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN to your app hostname}
+    volumes:
+      - ./gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - lera-net
+
+volumes:
+  caddy_data:
+  caddy_config:

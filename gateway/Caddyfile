@@ -1,0 +1,8 @@
+# Caddy terminates TLS for the LERA app and proxies everything to the existing nginx
+# gateway, which routes /api/* to the right service and / to the Next.js frontend.
+# Caddy provisions + renews a Let's Encrypt certificate for {$DOMAIN} automatically.
+
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy gateway:8080
+}

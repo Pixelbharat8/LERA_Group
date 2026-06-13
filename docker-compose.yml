@@ -129,6 +129,7 @@ services:
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       DB_NAME: lera
       LERA_STORAGE_BACKEND: ${LERA_STORAGE_BACKEND:-local}
       LERA_UPLOAD_DIR: /var/lera/uploads/
@@ -156,6 +157,7 @@ services:
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       DB_NAME: lera
     ports:
       - "8085:8085"   # attendance_service runs on port 8085
@@ -178,6 +180,7 @@ services:
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       DB_NAME: lera
       LERA_ATTACHMENTS_DIR: /var/lera/uploads/
     volumes:
@@ -203,6 +206,7 @@ services:
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       DB_NAME: lera
     ports:
       - "8081:8081"   # identity_service runs on port 8081
@@ -225,6 +229,7 @@ services:
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       DB_NAME: lera
     ports:
       - "8083:8083"   # payment_service runs on port 8083
@@ -247,6 +252,7 @@ services:
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       DB_NAME: lera
     ports:
       - "8084:8084"   # payroll_service runs on port 8084
@@ -269,6 +275,7 @@ services:
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       DB_NAME: lera
     ports:
       - "8088:8088"   # rule_engine runs on port 8088
@@ -291,6 +298,7 @@ services:
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       DB_NAME: lera
     ports:
       - "8087:8087"   # ai_gateway runs on port 8087
@@ -313,6 +321,7 @@ services:
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       DB_NAME: lera
     ports:
       - "8089:8089"   # social_media_service runs on port 8089
