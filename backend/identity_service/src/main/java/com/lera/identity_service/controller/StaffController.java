@@ -85,12 +85,15 @@ public class StaffController {
             .orElse(ResponseEntity.notFound().build());
     }
     
+    // Creating/editing/deleting staff (= user records) is admin-only.
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @PostMapping
     public ResponseEntity<User> createStaff(@Valid @RequestBody User staff) {
         staff.setStatus("ACTIVE");
         return ResponseEntity.ok(userRepository.save(staff));
     }
     
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<User> updateStaff(@PathVariable UUID id, @Valid @RequestBody User staffDetails) {
         return userRepository.findById(id)
@@ -107,6 +110,7 @@ public class StaffController {
             .orElse(ResponseEntity.notFound().build());
     }
     
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteStaff(@PathVariable UUID id) {
         if (userRepository.existsById(id)) {

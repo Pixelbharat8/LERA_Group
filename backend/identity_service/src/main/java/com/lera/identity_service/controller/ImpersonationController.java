@@ -25,7 +25,9 @@ import java.util.UUID;
 @RequestMapping("/api/impersonation")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF','STUDENT','PARENT')")
+// Impersonation = logging in AS another user. Org-wide admins only — never
+// teachers/staff/students/parents (a non-admin could otherwise take over the chairman's account).
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR')")
 public class ImpersonationController {
 
     private final AccessGuard accessGuard;

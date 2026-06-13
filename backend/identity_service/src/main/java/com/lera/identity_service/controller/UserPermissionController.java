@@ -57,6 +57,8 @@ public class UserPermissionController {
         return ResponseEntity.ok(defaultPermissions);
     }
 
+    // Granting/revoking permissions is privilege management — admins only.
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @PostMapping("/user/{userId}")
     public ResponseEntity<UserPermissionDTO> setUserPermissions(
             @PathVariable UUID userId,
@@ -99,6 +101,7 @@ public class UserPermissionController {
         return ResponseEntity.ok(convertToDTO(saved));
     }
 
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @PutMapping("/user/{userId}")
     public ResponseEntity<UserPermissionDTO> updateUserPermissions(
             @PathVariable UUID userId,
@@ -141,6 +144,7 @@ public class UserPermissionController {
         return ResponseEntity.ok(convertToDTO(saved));
     }
 
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @DeleteMapping("/user/{userId}/reset")
     public ResponseEntity<Map<String, String>> resetUserPermissions(@PathVariable UUID userId) {
         Optional<UserPermission> permission = userPermissionRepository.findByUserId(userId);
@@ -156,6 +160,8 @@ public class UserPermissionController {
         return ResponseEntity.ok(response);
     }
 
+    // Listing every user's permissions is admin-only (avoid org-wide permission disclosure).
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<List<UserPermissionDTO>> getAllPermissions(Pageable pageable) {
         List<UserPermission> permissions = userPermissionRepository.findAll(pageable).getContent();

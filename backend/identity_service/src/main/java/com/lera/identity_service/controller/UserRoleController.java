@@ -22,6 +22,8 @@ public class UserRoleController {
         this.userRoleService = userRoleService;
     }
 
+    // Assigning roles is privilege management — admins only (overrides the broader class rule).
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<UserRole>> assignRole(
             @RequestParam UUID userId,
@@ -53,6 +55,7 @@ public class UserRoleController {
         return ResponseEntity.ok(ApiResponse.success(users));
     }
 
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @DeleteMapping
     public ResponseEntity<ApiResponse<Void>> removeRole(
             @RequestParam UUID userId,
