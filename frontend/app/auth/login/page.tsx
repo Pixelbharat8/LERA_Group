@@ -6,6 +6,7 @@ import Cookies from "js-cookie";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { apiUrl } from "../../../lib/api";
+import { saveNativeAuthToken } from "../../../lib/native/token-store";
 import { useLanguage } from "../../context/LanguageContext";
 
 export default function LoginPage() {
@@ -46,6 +47,10 @@ export default function LoginPage() {
       // `refreshToken`. We drop a non-HttpOnly `tokenSet` flag so the SPA
       // can tell whether a session exists without ever touching the JWT.
       Cookies.set("tokenSet", "1", { expires: 1 });
+
+      // On native (Capacitor) shells the HttpOnly cookie can't be relied on inside
+      // the WebView, so persist the JWT for Bearer-header auth. No-op on web.
+      void saveNativeAuthToken(res.data.token);
 
       // Store user data for dashboard rendering (role, name, avatar). This
       // does not contain the JWT — only display fields.

@@ -1,5 +1,6 @@
 import Cookies from "js-cookie";
 import { apiUrl } from "./api";
+import { clearNativeAuthToken } from "./native/token-store";
 
 /**
  * End the user's session.
@@ -28,6 +29,7 @@ export async function logoutSession(redirectTo: string = "/auth/login") {
   Cookies.remove("actualRole");
   Cookies.remove("userData");
   Cookies.remove("userPermissions");
+  void clearNativeAuthToken(); // native shells: drop the persisted JWT
 
   if (typeof window !== "undefined") {
     window.location.href = redirectTo;

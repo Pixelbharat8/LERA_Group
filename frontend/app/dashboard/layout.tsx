@@ -7,6 +7,7 @@ import Cookies from "js-cookie";
 import { PermissionProvider, usePermissions } from "../context/PermissionContext";
 import { useLanguage } from "../context/LanguageContext";
 import { apiFetch, hasAuthSession } from "../../lib/api";
+import { hydrateNativeAuthToken } from "../../lib/native/token-store";
 import { logoutSession } from "../../lib/auth";
 import { registerNativePushIfPossible } from "../../lib/native-push";
 import { registerWebPushIfPossible } from "../../lib/web-push";
@@ -40,30 +41,49 @@ const useAuth = () => {
   const router = useRouter();
   
   useEffect(() => {
-    const actualRole = Cookies.get("actualRole");
-    const userDataStr = Cookies.get("userData");
+    let cancelled = false;
+    void (async () => {
+      // Native shells: hydrate any persisted JWT before the auth check and the first
+      // authenticated request — the HttpOnly cookie may not survive a WebView cold start.
+      // No-op on web (resolves immediately).
+      await hydrateNativeAuthToken();
+      if (cancelled) return;
 
-    // HttpOnly JWT is not visible to JS — use tokenSet / legacy token (see lib/api)
-    if (!hasAuthSession()) {
-      router.push("/auth/login");
-      setIsLoading(false);
-      return;
-    }
-    
-    // Use stored user data from login
-    if (userDataStr) {
-      try {
-        const userData = JSON.parse(userDataStr);
-        setUser({
-          id: userData.id,
-          name: userData.fullname || userData.name || "User",
-          email: userData.email,
-          role: userData.roleName || actualRole || "USER",
-          centerId: userData.centerId,
-          avatar: userData.avatarUrl,
-        });
-      } catch (e) {
-        // Fallback
+      const actualRole = Cookies.get("actualRole");
+      const userDataStr = Cookies.get("userData");
+
+      // HttpOnly JWT is not visible to JS — use tokenSet / legacy token / native token (see lib/api)
+      if (!hasAuthSession()) {
+        router.push("/auth/login");
+        setIsLoading(false);
+        return;
+      }
+
+      // Use stored user data from login
+      if (userDataStr) {
+        try {
+          const userData = JSON.parse(userDataStr);
+          setUser({
+            id: userData.id,
+            name: userData.fullname || userData.name || "User",
+            email: userData.email,
+            role: userData.roleName || actualRole || "USER",
+            centerId: userData.centerId,
+            avatar: userData.avatarUrl,
+          });
+        } catch (e) {
+          // Fallback
+          setUser({
+            id: null,
+            name: actualRole || "User",
+            email: "",
+            role: actualRole || "USER",
+            centerId: null,
+            avatar: null,
+          });
+        }
+      } else {
+        // Fallback to role from cookie
         setUser({
           id: null,
           name: actualRole || "User",
@@ -73,19 +93,12 @@ const useAuth = () => {
           avatar: null,
         });
       }
-    } else {
-      // Fallback to role from cookie
-      setUser({
-        id: null,
-        name: actualRole || "User",
-        email: "",
-        role: actualRole || "USER",
-        centerId: null,
-        avatar: null,
-      });
-    }
-    
-    setIsLoading(false);
+
+      setIsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
   
   return { user, isLoading };

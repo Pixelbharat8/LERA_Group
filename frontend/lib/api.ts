@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+import { getNativeAuthToken } from "./native/token-store";
 
 /**
  * Central API helper for the LERA frontend.
@@ -106,6 +107,12 @@ async function doFetch(path: string, init: RequestInit): Promise<Response> {
   if (legacyToken && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${legacyToken}`);
   }
+  // Native (Capacitor) shells can't rely on the HttpOnly cookie persisting in the
+  // WebView, so use the stored JWT as the Bearer token. No-op on web (returns null).
+  if (!headers.has("Authorization")) {
+    const nativeToken = getNativeAuthToken();
+    if (nativeToken) headers.set("Authorization", `Bearer ${nativeToken}`);
+  }
   const url = apiUrl(path);
 
   const res = await fetch(url, {
@@ -119,13 +126,14 @@ async function doFetch(path: string, init: RequestInit): Promise<Response> {
 }
 
 /**
- * Returns `true` if the user appears to be authenticated. Checks both the
- * legacy `token` cookie (bearer mode) and the `tokenSet` hint that the
- * cookie-mode login flow drops as a JS-readable flag.
+ * Returns `true` if the user appears to be authenticated. Checks the legacy
+ * `token` cookie (bearer mode), the `tokenSet` hint the cookie-mode login flow
+ * drops as a JS-readable flag, and a persisted native JWT (mobile shells, where
+ * the HttpOnly cookie can be unreliable).
  */
 export function hasAuthSession(): boolean {
   if (typeof window === "undefined") return false;
-  return Boolean(Cookies.get("token") || Cookies.get("tokenSet"));
+  return Boolean(Cookies.get("token") || Cookies.get("tokenSet") || getNativeAuthToken());
 }
 
 export async function apiFetch(path: string, init: RequestInit = {}) {
