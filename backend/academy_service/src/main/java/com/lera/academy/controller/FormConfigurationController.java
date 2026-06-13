@@ -41,6 +41,7 @@ public class FormConfigurationController {
     }
     
     // Create new form configuration
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
     @PostMapping
     public ResponseEntity<?> createFormConfig(@Valid @RequestBody FormConfiguration formConfig) {
         if (formConfigurationRepository.existsByFormName(formConfig.getFormName())) {
@@ -53,6 +54,7 @@ public class FormConfigurationController {
     }
     
     // Update form configuration
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
     @PutMapping("/{id}")
     public ResponseEntity<FormConfiguration> updateFormConfig(@PathVariable UUID id, @Valid @RequestBody FormConfiguration formConfig) {
         return formConfigurationRepository.findById(id)
@@ -70,6 +72,7 @@ public class FormConfigurationController {
     }
     
     // Add a field to form configuration
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
     @PostMapping("/{id}/fields")
     public ResponseEntity<FormConfiguration> addField(@PathVariable UUID id, @Valid @RequestBody Map<String, Object> newField) {
         return formConfigurationRepository.findById(id)
@@ -92,6 +95,7 @@ public class FormConfigurationController {
     }
     
     // Update a field in form configuration
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
     @PutMapping("/{id}/fields/{fieldName}")
     public ResponseEntity<FormConfiguration> updateField(
             @PathVariable UUID id, 
@@ -119,6 +123,7 @@ public class FormConfigurationController {
     }
     
     // Remove a field from form configuration
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
     @DeleteMapping("/{id}/fields/{fieldName}")
     public ResponseEntity<FormConfiguration> removeField(@PathVariable UUID id, @PathVariable String fieldName) {
         return formConfigurationRepository.findById(id)
@@ -137,6 +142,7 @@ public class FormConfigurationController {
     }
     
     // Reorder fields
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
     @PutMapping("/{id}/fields/reorder")
     public ResponseEntity<FormConfiguration> reorderFields(@PathVariable UUID id, @Valid @RequestBody List<String> fieldOrder) {
         return formConfigurationRepository.findById(id)
@@ -169,6 +175,7 @@ public class FormConfigurationController {
     }
     
     // Delete form configuration
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteFormConfig(@PathVariable UUID id) {
         return formConfigurationRepository.findById(id)
@@ -181,6 +188,7 @@ public class FormConfigurationController {
     }
     
     // Deactivate form configuration (soft delete)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
     @PutMapping("/{id}/deactivate")
     public ResponseEntity<FormConfiguration> deactivateFormConfig(@PathVariable UUID id) {
         return formConfigurationRepository.findById(id)

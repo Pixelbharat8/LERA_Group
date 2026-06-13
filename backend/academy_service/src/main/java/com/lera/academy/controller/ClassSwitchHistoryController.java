@@ -53,7 +53,8 @@ public class ClassSwitchHistoryController {
         return ResponseEntity.ok(classSwitchHistoryRepository.findByStudentIdAndDateRange(studentId, start, end));
     }
     
-    // Record a class switch
+    // Record a class switch — an academic-management action, not student/parent self-service.
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PostMapping
     public ResponseEntity<ClassSwitchHistory> recordClassSwitch(@Valid @RequestBody ClassSwitchHistory classSwitchHistory) {
         ClassSwitchHistory saved = classSwitchHistoryRepository.save(classSwitchHistory);
