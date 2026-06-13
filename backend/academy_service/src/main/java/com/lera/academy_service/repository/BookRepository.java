@@ -1,0 +1,16 @@
+package com.lera.academy_service.repository;
+
+import com.lera.academy_service.entity.Book;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface BookRepository extends JpaRepository<Book, String> {
+    Optional<Book> findByIsbn(String isbn);
+    List<Book> findByCategoryId(String categoryId);
+    List<Book> findByAuthorId(String authorId);
+    List<Book> findByIsActive(Boolean isActive);
+    List<Book> findByTitleContainingIgnoreCase(String title);
+}

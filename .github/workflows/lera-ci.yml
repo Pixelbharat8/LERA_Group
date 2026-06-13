@@ -5,16 +5,86 @@ on:
     branches: [ main ]
   pull_request:
 
+# Cancel superseded runs on the same branch — saves Actions minutes when
+# someone force-pushes during a long CI cycle.
+concurrency:
+  group: lera-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
 
   ###########################################################
-  # 1. Build Backend Microservices
+  # 0. Secret scan — fail fast if a credential is committed.
+  #    Runs before everything so a leaked secret blocks the
+  #    whole pipeline (and is visible on every PR).
   ###########################################################
-  build-backend:
-    name: Build Backend Microservices
+  secret-scan:
+    name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so gitleaks can scan past commits
 
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  ###########################################################
+  # 0b. Dependency & misconfiguration scanning (Trivy).
+  #     - fs vuln scan: HIGH/CRITICAL in Maven/npm deps (fixable only).
+  #     - config scan: Dockerfile / compose / CloudFormation misconfig
+  #       (non-root user, open security groups, etc.).
+  #     Results also uploaded as SARIF to the Security tab.
+  ###########################################################
+  vuln-scan:
+    name: Dependency & config scan (Trivy)
+    runs-on: ubuntu-latest
+    needs: secret-scan
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy filesystem (dependency CVEs)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
+      - name: Trivy config (IaC / Dockerfile misconfig)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          # Misconfig findings are reported but do not block yet — flip exit-code
+          # to '1' once the existing findings are triaged.
+          exit-code: '0'
+          format: table
+
+  ###########################################################
+  # 1. Backend tests (JUnit) — runs first so a red unit test
+  #    short-circuits the rest of the pipeline.
+  #
+  # Tier-1 decision (all run mvn test): every Spring Boot service in this repo
+  # that ships JUnit under backend/*/src/test and backs routed UI/API flows:
+  #   • identity, academy, connect — auth + LMS + CRM core
+  #   • attendance, payment, payroll — operations / money paths
+  #   • rule_engine, ai_gateway — next.config.js rewrites (8088/8087)
+  #   • social_media_service — /api/social* rewrites when enabled
+  # Compile-only (no separate tier) would miss regressions in those domains.
+  ###########################################################
+  test-backend:
+    name: Backend tests (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: secret-scan
     strategy:
+      fail-fast: false
       matrix:
         service: [
           academy_service,
@@ -24,91 +94,235 @@ jobs:
           payment_service,
           payroll_service,
           rule_engine,
-          ai_gateway
+          ai_gateway,
+          social_media_service
         ]
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      - name: Reject nested workspace
+        run: '! test -d LERA_Group'
 
       - name: Setup Java 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: maven
 
-      - name: Build Maven Service
+      - name: Run unit tests
         run: |
           cd backend/${{ matrix.service }}
-          mvn -q -DskipTests clean package
+          mvn -B -ntp test
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ matrix.service }}
+          path: backend/${{ matrix.service }}/target/surefire-reports/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-${{ matrix.service }}
+          path: backend/${{ matrix.service }}/target/site/jacoco/
+          retention-days: 7
+          if-no-files-found: ignore
 
   ###########################################################
-  # 2. Build Next.js Frontend
+  # 2. Build all backend microservices (no tests — same services already tested in job 1).
+  ###########################################################
+  build-backend:
+    name: Build Backend (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: test-backend
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [
+          academy_service,
+          attendance_service,
+          connect_service,
+          identity_service,
+          payment_service,
+          payroll_service,
+          rule_engine,
+          ai_gateway,
+          social_media_service
+        ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: maven
+
+      - name: Build (skip tests — already run in job 1)
+        run: |
+          if [ -d "backend/${{ matrix.service }}" ]; then
+            cd backend/${{ matrix.service }}
+            mvn -B -ntp -DskipTests clean package
+          else
+            echo "Service ${{ matrix.service }} not present — skipping."
+          fi
+
+  ###########################################################
+  # 3. Frontend lint + build.
   ###########################################################
   build-frontend:
     name: Build Next.js Frontend
     runs-on: ubuntu-latest
-    needs: build-backend
+    needs: test-backend
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Setup Node 18
-        uses: actions/setup-node@v3
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Dependencies
-        run: |
-          cd frontend
-          npm install
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
 
-      - name: Build Next.js App
-        run: |
-          cd frontend
-          NEXT_TELEMETRY_DISABLED=1 npm run build
+      # Security gate: fail on HIGH/CRITICAL vulnerabilities in PRODUCTION deps
+      # (--omit=dev focuses on what actually ships). Tighten/relax the level as needed.
+      - name: Audit production dependencies
+        working-directory: frontend
+        run: npm audit --audit-level=high --omit=dev
+
+      - name: Unit tests (Vitest)
+        working-directory: frontend
+        run: npm run test
+
+      - name: Build Next.js
+        working-directory: frontend
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: npm run build
+
+      - name: Install Playwright (Chromium)
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E smoke (Playwright)
+        working-directory: frontend
+        env:
+          CI: 'true'
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: npx playwright test
 
   ###########################################################
-  # 3. Build & Push Docker Images
+  # 4. Build & push Docker images. Only on `main` — PR builds
+  #    don't push, which keeps the registry clean and avoids
+  #    leaking ephemeral images.
   ###########################################################
   docker-build:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
     needs: [build-backend, build-frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Login to DockerHub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Backend Docker Images
+      - name: Install Trivy (image scanner)
         run: |
-          for svc in academy_service attendance_service connect_service identity_service payment_service payroll_service rule_engine ai_gateway
-          do
-            echo "Building image for $svc..."
-            docker build -t ${{ secrets.DOCKER_USERNAME }}/$svc:latest backend/$svc
-            docker push ${{ secrets.DOCKER_USERNAME }}/$svc:latest
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.58.1
+
+      - name: Build, scan & push backend images
+        run: |
+          set -euo pipefail
+          for svc in academy_service attendance_service connect_service identity_service payment_service payroll_service rule_engine ai_gateway social_media_service; do
+            if [ -f "backend/$svc/Dockerfile" ]; then
+              echo "Building image for $svc..."
+              docker build -t ${{ secrets.DOCKER_USERNAME }}/$svc:latest backend/$svc
+              echo "Scanning $svc image for HIGH/CRITICAL vulns..."
+              trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ${{ secrets.DOCKER_USERNAME }}/$svc:latest
+              docker push ${{ secrets.DOCKER_USERNAME }}/$svc:latest
+            else
+              echo "Skipping $svc — no Dockerfile."
+            fi
           done
 
-      - name: Build Frontend Docker Image
+      - name: Build, scan & push frontend image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/lera_frontend:latest frontend
-          docker push ${{ secrets.DOCKER_USERNAME }}/lera_frontend:latest
+          if [ -f frontend/Dockerfile ]; then
+            docker build -t ${{ secrets.DOCKER_USERNAME }}/lera_frontend:latest frontend
+            trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ${{ secrets.DOCKER_USERNAME }}/lera_frontend:latest
+            docker push ${{ secrets.DOCKER_USERNAME }}/lera_frontend:latest
+          fi
 
   ###########################################################
-  # 4. Deployment Disabled (NO VPS CONFIGURED)
+  # 5. Deploy the hardened AWS infrastructure (CloudFormation).
+  #    Self-gating: runs on push to main, but no-ops (success) until the
+  #    AWS_* / DB_PASSWORD / JWT_SECRET repo secrets are configured — so it
+  #    is safe to merge now and "turns on" the moment you add the secrets.
   ###########################################################
   deploy:
-    if: false   # Deployment OFF until you add SERVER_IP + VPS
-    name: Deployment Disabled
+    name: Deploy (AWS CloudFormation)
     runs-on: ubuntu-latest
     needs: docker-build
-
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - run: echo "Deployment skipped — no VPS configured."
+      - name: Check deploy is configured
+        id: gate
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ] \
+             || [ -z "${{ secrets.DB_PASSWORD }}" ] || [ -z "${{ secrets.JWT_SECRET }}" ]; then
+            echo "::notice::Deploy skipped — add repo secrets AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, DB_PASSWORD, JWT_SECRET to enable."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+
+      - name: Configure AWS credentials
+        if: steps.gate.outputs.enabled == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # WAFv2 WebACL is Scope=CLOUDFRONT, which AWS only allows in us-east-1.
+          aws-region: us-east-1
+
+      - name: Deploy CloudFormation stack (Multi-AZ RDS + WAF + VPC)
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          aws cloudformation deploy \
+            --template-file aws/cloudformation-template.yaml \
+            --stack-name lera-prod \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              Environment=prod \
+              DBPassword='${{ secrets.DB_PASSWORD }}' \
+              JWTSecret='${{ secrets.JWT_SECRET }}'
+
+      - name: Report stack status
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          aws cloudformation describe-stacks --stack-name lera-prod \
+            --query "Stacks[0].StackStatus" --output text
+          echo "::notice::Infra deployed. Next: run Flyway migrations against the RDS and roll out the pushed images on your compute layer (ECS/EC2/k8s)."

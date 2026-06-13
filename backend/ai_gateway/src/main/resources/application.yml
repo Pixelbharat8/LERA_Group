@@ -1,14 +1,14 @@
 server:
-  port: 0
+  port: 8087
 
 spring:
   application:
     name: ai_gateway
 
   datasource:
-    url: jdbc:postgresql://postgres:5432/lera
+    url: jdbc:postgresql://localhost:5432/lera
     username: lera
-    password: lera123
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:

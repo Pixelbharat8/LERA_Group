@@ -7,7 +7,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: lera
-      POSTGRES_PASSWORD: lera123
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
       POSTGRES_DB: lera
     ports:
       - "5432:5432"

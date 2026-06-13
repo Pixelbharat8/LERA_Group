@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.lera</groupId>
+    <artifactId>lera-backend</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>LERA Backend Services</name>
+    <description>Parent POM for all LERA backend microservices</description>
+
+    <modules>
+        <module>identity_service</module>
+        <module>academy_service</module>
+        <module>payment_service</module>
+        <module>payroll_service</module>
+        <module>attendance_service</module>
+        <module>connect_service</module>
+        <module>social_media_service</module>
+        <module>ai_gateway</module>
+        <module>rule_engine</module>
+    </modules>
+
+</project>

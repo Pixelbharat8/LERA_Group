@@ -1,0 +1,54 @@
+---
+description: Keep changes compatible with shipping the LERA frontend as iOS / Android mobile apps
+alwaysApply: true
+---
+
+# Mobile shipability (Apple App Store + Samsung / Google Play)
+
+LERA is planned to ship as a mobile app on **both iOS (Apple App Store) and Android (Google Play, Samsung Galaxy Store)** in addition to the web `frontend/` (Next.js). Until that work starts, every merge MUST keep the codebase compatible with that future packaging — typically via **Capacitor** or **React Native (Expo)** wrapping the existing Next.js / React UI.
+
+## Hard rules
+
+- **Do not break the frontend's static-export / SSR-optional path.** Avoid features that require Node-only APIs at runtime in pages that need to render inside a WebView (Capacitor) or a React Native bridge.
+- **All client API access goes through `frontend/next.config.js` rewrites or relative `/api/...` URLs.** Never hard-code `http://localhost:8081` (or any specific host) in components — mobile builds will hit a different base URL.
+- **Auth must work without third-party cookies.** Tokens go in `Authorization: Bearer ...` headers, not cross-site cookies. WebViews on iOS routinely block 3p cookies.
+- **No `window`/`document`/`navigator` references at module top level.** Wrap in `useEffect` or `typeof window !== 'undefined'` guards. Server render and native shells will both crash on top-level browser globals.
+- **File pickers, camera, push, geolocation:** prefer the **HTML5 / Web API** form first; if the feature really needs native, isolate it behind an interface (e.g. `lib/native/<feature>.ts`) so a Capacitor/RN implementation can swap in without touching pages.
+- **Bundle size matters.** Avoid heavy server-only deps creeping into the client bundle. Mobile users pay for every kilobyte.
+
+## Backend rules
+
+- **CORS must keep allowing the future mobile origins.** When editing any `SecurityConfig.java`, retain `allowedOriginPatterns` of `http://localhost:3000`, `capacitor://localhost`, `ionic://localhost`, and the production domain. Don't lock CORS to web-only.
+- Public endpoints used by the mobile app (auth, public website data, health) must not require browser-only auth schemes.
+
+## Capacitor wiring (current state)
+
+The frontend already has Capacitor scaffolded and the backend has real APNs / FCM clients:
+
+- `frontend/capacitor.config.ts` — appId `com.lera.app`, points the mobile WebView at `LERA_MOBILE_URL` (defaults to `http://localhost:3000`). `cleartext` is automatically disabled when the URL is `https://...`; set `LERA_MOBILE_INSECURE=true` to opt back in.
+- `frontend/lib/native-push.ts` — registers for APNs / FCM, posts the token to `POST /api/device-tokens` (connect_service). No-op on web. The backend derives `userId` from the JWT, so the request body never includes one.
+- `frontend/app/dashboard/layout.tsx` calls `registerNativePushIfPossible()` after the user is loaded, so any future feature in the dashboard automatically gets a registered device on first mobile launch.
+- `scripts/mobile-bootstrap.sh` (or `npm run mobile:bootstrap`) — probes Xcode / CocoaPods / Android SDK and runs `cap add` for whatever's available, then prints a precise checklist for the rest.
+- `npm run mobile:add:ios` / `mobile:add:android` to scaffold a single platform manually.
+- `npm run mobile:sync` after web changes to push them into the native projects.
+
+When you add a feature that touches notifications, you don't need to do anything mobile-specific — `connect_service` pipes every `NotificationService.createNotification(...)` through `PushDispatcher`, which routes by platform: iOS tokens → `ApnsClient` (HTTP/2 + ES256), Android / Web tokens → `FcmClient` (HTTP v1 + service-account OAuth). To enable real delivery:
+
+```sh
+export LERA_PUSH_ENABLED=true
+# APNs (iOS)
+export APNS_TEAM_ID=ABCDE12345
+export APNS_KEY_ID=XYZ1234567
+export APNS_BUNDLE_ID=com.lera.app
+export APNS_KEY_PATH=/path/to/AuthKey_XYZ1234567.p8
+export APNS_SANDBOX=true                  # false for App Store / TestFlight
+# FCM (Android / Web)
+export FCM_PROJECT_ID=lera-mobile
+export FCM_SERVICE_ACCOUNT_PATH=/path/to/lera-mobile-fcm.json
+```
+
+If a provider's env vars aren't set, that platform is silently skipped — you can roll out APNs first then add FCM without touching code.
+
+## When in doubt
+
+Ask: "would this still work if `frontend/` were running inside a WebView on a phone, talking to the same backend?" If the answer is no, refactor or feature-flag.

@@ -1,0 +1,127 @@
+╔══════════════════════════════════════════════════════════════╗
+║          🗄️  LERA ACADEMY - DATABASE QUICK START            ║
+║                  All 107 Tables on Localhost                 ║
+╚══════════════════════════════════════════════════════════════╝
+
+📦 INSTALLATION
+─────────────────────────────────────────────────────────────────
+1. Run the setup script:
+   ./setup-local-postgres.sh
+
+2. Verify everything is working:
+   ./verify-schema.sh
+
+3. That's it! You now have all 107 tables on localhost.
+
+
+🔌 CONNECTION DETAILS
+─────────────────────────────────────────────────────────────────
+Host:     localhost
+Port:     5432
+Database: lera
+Username: lera
+Password: lera123
+
+
+💻 CONNECT VIA TERMINAL
+─────────────────────────────────────────────────────────────────
+psql -h localhost -U lera -d lera
+
+
+☕ CONNECT FROM SPRING BOOT
+─────────────────────────────────────────────────────────────────
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/lera
+    username: lera
+    password: lera123
+
+
+🎯 USEFUL COMMANDS
+─────────────────────────────────────────────────────────────────
+# List all tables
+psql -h localhost -U lera -d lera -c '\dt'
+
+# Count tables
+psql -h localhost -U lera -d lera -c \
+  "SELECT COUNT(*) FROM information_schema.tables 
+   WHERE table_schema = 'public' AND table_type = 'BASE TABLE';"
+
+# Start PostgreSQL
+brew services start postgresql@15
+
+# Stop PostgreSQL
+brew services stop postgresql@15
+
+# Check status
+brew services list
+
+
+📊 DATABASE SCHEMA (107 TABLES)
+─────────────────────────────────────────────────────────────────
+Module                         Tables
+───────────────────────────────────────────────────────────────
+A. Multi-tenant + Auth + RBAC    9
+B. Students & Parents            5
+C. Teachers                      3
+D. Courses                       3
+E. Classes & Attendance          3
+F. Assignments & Exams           2
+G. Certificates                  2
+H. CRM Extensions               14
+I. Payments                      6
+J. Payroll                       7
+K. AI Gateway                    6
+L. Website                       4
+M. Sports/PlayCircle             6
+N. Notifications                 2
+O. Storage/Media                 1
+P. Transport & Bookstore         4
+Q. Internal Ops                  5
+Base Schema                    ~31
+───────────────────────────────────────────────────────────────
+TOTAL                          107 ✅
+
+
+🛠️  TROUBLESHOOTING
+─────────────────────────────────────────────────────────────────
+Problem: PostgreSQL won't start
+Solution: brew services restart postgresql@15
+
+Problem: Tables not created
+Solution: Re-run ./setup-local-postgres.sh
+
+Problem: Connection refused
+Solution: Check if PostgreSQL is running with 'brew services list'
+
+
+📚 DOCUMENTATION
+─────────────────────────────────────────────────────────────────
+Full Setup Guide:        DATABASE_LOCALHOST_SETUP.md
+Migration Fix Summary:   DATABASE_MIGRATION_FIX_SUMMARY.md
+Schema Verification:     ./verify-schema.sh
+
+
+✅ WHAT HAPPENS WHEN YOU RUN setup-local-postgres.sh
+─────────────────────────────────────────────────────────────────
+1. Installs PostgreSQL 15 (if needed)
+2. Starts PostgreSQL service
+3. Creates database 'lera' and user 'lera'
+4. Runs database/init/init.sql (base schema)
+5. Runs database/migrations/V2__add_missing_66_tables.sql
+6. Verifies all 107 tables were created
+7. Shows connection details and status
+
+
+🚀 NEXT STEPS
+─────────────────────────────────────────────────────────────────
+1. ✅ Run ./setup-local-postgres.sh
+2. ✅ Verify with ./verify-schema.sh
+3. ✅ Update your Spring Boot services to use localhost:5432
+4. ✅ Start developing!
+
+
+╔══════════════════════════════════════════════════════════════╗
+║              Everything runs on localhost:5432               ║
+║                No Docker, No Cloud, Just Local               ║
+╚══════════════════════════════════════════════════════════════╝

@@ -1,0 +1,205 @@
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│             🗄️  LERA ACADEMY DATABASE - LOCALHOST SETUP                   │
+│                     All 107 Tables Ready!                                  │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ STEP 1: RUN SETUP ──────────────────────────────────────────────────────┐
+│                                                                            │
+│  $ cd /Users/rahulsharma/LERA_Group                                       │
+│  $ ./setup-local-postgres.sh                                              │
+│                                                                            │
+│  This will:                                                                │
+│  ✓ Install PostgreSQL 15 (if needed)                                      │
+│  ✓ Start the service                                                       │
+│  ✓ Create database 'lera'                                                  │
+│  ✓ Run init.sql (base schema)                                              │
+│  ✓ Run migration (66 missing tables)                                       │
+│  ✓ Verify all 107 tables                                                   │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ EXPECTED OUTPUT ────────────────────────────────────────────────────────┐
+│                                                                            │
+│  🚀 LERA Academy - Local PostgreSQL Setup                                 │
+│  =========================================                                 │
+│                                                                            │
+│  📦 Installing PostgreSQL...                                              │
+│  🔄 Starting PostgreSQL service...                                        │
+│  📊 Creating LERA database and user...                                    │
+│  🗄️  Running database schema initialization...                           │
+│     → Applying init.sql...                                                │
+│     ✓ Base schema applied                                                 │
+│     → Applying V2 migration (66 missing tables)...                        │
+│     ✓ Migration applied                                                   │
+│                                                                            │
+│  📊 Verifying database schema...                                          │
+│                                                                            │
+│  ✅ PostgreSQL is now running locally on localhost!                       │
+│                                                                            │
+│  📋 Connection Details:                                                   │
+│     Host: localhost                                                        │
+│     Port: 5432                                                             │
+│     Database: lera                                                         │
+│     Username: lera                                                         │
+│     Password: lera123                                                      │
+│                                                                            │
+│  📊 Database Status:                                                      │
+│     Tables: 107/107                                                        │
+│     Status: ✅ All 107 tables created successfully!                       │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ STEP 2: VERIFY (OPTIONAL) ──────────────────────────────────────────────┐
+│                                                                            │
+│  $ ./verify-schema.sh                                                     │
+│                                                                            │
+│  Expected output:                                                          │
+│  ✅ SUCCESS! All 107 tables are present!                                  │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ STEP 3: CONNECT AND TEST ───────────────────────────────────────────────┐
+│                                                                            │
+│  $ psql -h localhost -U lera -d lera                                      │
+│                                                                            │
+│  lera=# SELECT COUNT(*) FROM information_schema.tables                    │
+│         WHERE table_schema = 'public' AND table_type = 'BASE TABLE';      │
+│                                                                            │
+│   count                                                                    │
+│  -------                                                                   │
+│     107                                                                    │
+│                                                                            │
+│  lera=# \dt                      -- List all tables                       │
+│  lera=# SELECT * FROM tenants;   -- Test a table                          │
+│  lera=# \q                       -- Exit                                  │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ THE 107 TABLES BREAKDOWN ───────────────────────────────────────────────┐
+│                                                                            │
+│  Module                              Tables      Status                   │
+│  ───────────────────────────────────────────────────────────────────────  │
+│  A. Multi-tenant + Auth + RBAC         9          ✅                      │
+│  B. Students & Parents                 5          ✅                      │
+│  C. Teachers                           3          ✅                      │
+│  D. Courses                            3          ✅                      │
+│  E. Classes & Attendance               3          ✅                      │
+│  F. Assignments & Exams                2          ✅                      │
+│  G. Certificates                       2          ✅                      │
+│  H. CRM Extensions                    14          ✅                      │
+│  I. Payments                           6          ✅                      │
+│  J. Payroll                            7          ✅                      │
+│  K. AI Gateway                         6          ✅                      │
+│  L. Website                            4          ✅                      │
+│  M. Sports/PlayCircle                  6          ✅                      │
+│  N. Notifications                      2          ✅                      │
+│  O. Storage/Media                      1          ✅                      │
+│  P. Transport & Bookstore              4          ✅                      │
+│  Q. Internal Ops                       5          ✅                      │
+│  Base Schema (init.sql)              ~31          ✅                      │
+│  ───────────────────────────────────────────────────────────────────────  │
+│  TOTAL                                107          ✅                      │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ UPDATE SPRING BOOT SERVICES ────────────────────────────────────────────┐
+│                                                                            │
+│  For each service, update application.yml:                                │
+│                                                                            │
+│  spring:                                                                   │
+│    datasource:                                                             │
+│      url: jdbc:postgresql://localhost:5432/lera                           │
+│      username: lera                                                        │
+│      password: lera123                                                     │
+│      driver-class-name: org.postgresql.Driver                             │
+│    jpa:                                                                    │
+│      hibernate:                                                            │
+│        ddl-auto: validate    # Important!                                 │
+│      properties:                                                           │
+│        hibernate:                                                          │
+│          dialect: org.hibernate.dialect.PostgreSQLDialect                 │
+│                                                                            │
+│  Services to update:                                                       │
+│  ☐ identity_service                                                        │
+│  ☐ academy_service                                                         │
+│  ☐ connect_service                                                         │
+│  ☐ payment_service                                                         │
+│  ☐ payroll_service                                                         │
+│  ☐ attendance_service                                                      │
+│  ☐ ai_gateway                                                              │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ USEFUL COMMANDS ────────────────────────────────────────────────────────┐
+│                                                                            │
+│  # Start PostgreSQL                                                        │
+│  $ brew services start postgresql@15                                      │
+│                                                                            │
+│  # Stop PostgreSQL                                                         │
+│  $ brew services stop postgresql@15                                       │
+│                                                                            │
+│  # Check status                                                            │
+│  $ brew services list                                                     │
+│                                                                            │
+│  # Connect to database                                                     │
+│  $ psql -h localhost -U lera -d lera                                      │
+│                                                                            │
+│  # Verify schema                                                           │
+│  $ ./verify-schema.sh                                                     │
+│                                                                            │
+│  # Backup database                                                         │
+│  $ pg_dump -h localhost -U lera lera > backup.sql                         │
+│                                                                            │
+│  # Restore database                                                        │
+│  $ psql -h localhost -U lera -d lera < backup.sql                         │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ TROUBLESHOOTING ────────────────────────────────────────────────────────┐
+│                                                                            │
+│  Problem: PostgreSQL won't start                                          │
+│  Solution: $ brew services restart postgresql@15                          │
+│                                                                            │
+│  Problem: Connection refused                                              │
+│  Solution: Check if running with 'brew services list'                     │
+│                                                                            │
+│  Problem: Wrong number of tables                                          │
+│  Solution: Re-run ./setup-local-postgres.sh                               │
+│                                                                            │
+│  Problem: Service can't connect                                           │
+│  Solution: Verify application.yml has localhost:5432                      │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ DOCUMENTATION QUICK LINKS ──────────────────────────────────────────────┐
+│                                                                            │
+│  📖 DATABASE_LOCALHOST_SETUP.md     - Complete setup guide               │
+│  📖 DATABASE_SETUP_CHECKLIST.md     - Step-by-step checklist             │
+│  📖 DATABASE_MIGRATION_FIX_SUMMARY.md - Technical details                │
+│  📖 QUICK_START_DATABASE.txt        - Quick reference                    │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│                         ✅ YOU'RE ALL SET!                                │
+│                                                                            │
+│              Run: ./setup-local-postgres.sh to begin                      │
+│                                                                            │
+│          Everything runs on localhost - No cloud, No Docker               │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+

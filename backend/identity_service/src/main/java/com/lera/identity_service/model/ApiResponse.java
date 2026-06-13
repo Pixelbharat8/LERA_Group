@@ -13,8 +13,18 @@ public class ApiResponse<T> {
         this.data = data;
     }
 
+    // Backwards-compatible factory
     public static <T> ApiResponse<T> ok(T data) {
         return new ApiResponse<>(true, "Success", data);
+    }
+
+    // Controllers expect these overloads
+    public static <T> ApiResponse<T> success(T data) {
+        return new ApiResponse<>(true, "Success", data);
+    }
+
+    public static <T> ApiResponse<T> success(T data, String message) {
+        return new ApiResponse<>(true, message, data);
     }
 
     public static ApiResponse<?> error(String msg) {

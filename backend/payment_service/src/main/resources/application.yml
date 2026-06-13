@@ -1,16 +1,35 @@
 server:
-  port: 0
+  port: 8083
 
 spring:
   application:
     name: payment_service
 
+  # Optional — payment receipts via InvoicePaidMailService (same as identity mail).
+  # mail:
+  #   host: smtp.example.com
+  #   port: 587
+  #   username: ${SMTP_USER}
+  #   password: ${SMTP_PASS}
+  #   properties.mail.smtp.auth: true
+  #   properties.mail.smtp.starttls.enable: true
+
   datasource:
-    url: jdbc:postgresql://postgres:5432/lera
+    url: jdbc:postgresql://localhost:5432/lera
     username: lera
-    password: lera123
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
+
+connect:
+  service:
+    url: ${CONNECT_SERVICE_URL:http://localhost:8086}
+
+lera:
+  internal:
+    api-key: ${LERA_INTERNAL_API_KEY:}
+  mail:
+    from: ${LERA_MAIL_FROM:}

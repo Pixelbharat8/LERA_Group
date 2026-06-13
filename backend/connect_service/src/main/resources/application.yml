@@ -1,16 +1,35 @@
 server:
-  port: 0
+  port: 8086
+
+# Comma-separated user UUIDs to receive in-app + push when /api/public/leads fires.
+# Set PUBLIC_LEAD_NOTIFY_USER_IDS in production (e.g. center manager account ids).
+connect:
+  public-lead:
+    notify-user-ids: ${PUBLIC_LEAD_NOTIFY_USER_IDS:}
 
 spring:
   application:
     name: connect_service
 
   datasource:
-    url: jdbc:postgresql://postgres:5432/lera
+    url: jdbc:postgresql://localhost:5432/lera
     username: lera
-    password: lera123
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
+    defer-datasource-initialization: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    table: flyway_connect_history
+
+# Backend services send this value as header X-Internal-Key on POST /api/notifications/trigger (required in prod).
+lera:
+  internal:
+    api-key: ${LERA_INTERNAL_API_KEY:}
