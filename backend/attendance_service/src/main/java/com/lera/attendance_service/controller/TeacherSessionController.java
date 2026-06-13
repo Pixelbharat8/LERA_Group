@@ -61,11 +61,13 @@ public class TeacherSessionController {
         return ResponseEntity.ok(result);
     }
     
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PostMapping
     public ResponseEntity<TeacherSession> createSession(@Valid @RequestBody TeacherSession session) {
         return ResponseEntity.ok(teacherSessionService.createSession(session));
     }
     
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PutMapping("/{id}")
     public ResponseEntity<TeacherSession> updateSession(
             @PathVariable UUID id,

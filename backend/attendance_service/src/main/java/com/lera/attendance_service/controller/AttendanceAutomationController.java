@@ -39,6 +39,7 @@ public class AttendanceAutomationController {
     /**
      * Manually trigger absent marking for a specific date
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PostMapping("/mark-absent")
     public ResponseEntity<ApiResponse<Map<String, Object>>> markAbsent(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
@@ -63,6 +64,7 @@ public class AttendanceAutomationController {
     /**
      * Manually trigger all daily automation tasks
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PostMapping("/run-daily-tasks")
     public ResponseEntity<ApiResponse<Map<String, Object>>> runDailyTasks() {
         log.info("Manual trigger of all daily automation tasks");
@@ -97,6 +99,7 @@ public class AttendanceAutomationController {
     /**
      * Manually trigger weekly stats calculation
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PostMapping("/calculate-weekly-stats")
     public ResponseEntity<ApiResponse<String>> calculateWeeklyStats() {
         log.info("Manual trigger of weekly stats calculation");
@@ -114,6 +117,7 @@ public class AttendanceAutomationController {
     /**
      * Manually trigger monthly reports generation
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PostMapping("/generate-monthly-reports")
     public ResponseEntity<ApiResponse<String>> generateMonthlyReports() {
         log.info("Manual trigger of monthly reports generation");
