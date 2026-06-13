@@ -33,7 +33,10 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     
     @Query("SELECT SUM(p.amount) FROM Payment p WHERE p.status = 'COMPLETED'")
     BigDecimal getTotalRevenue();
-    
+
+    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = :status")
+    BigDecimal sumAmountByStatus(String status);
+
     @Query("SELECT COUNT(p) FROM Payment p WHERE p.status = :status")
     long countByStatus(String status);
     

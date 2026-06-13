@@ -92,14 +92,33 @@ class PaymentServiceTest {
     }
 
     @Test
-    void getSummary_shouldCalculateCorrectly() {
+    void getSummary_orgWide_usesDbAggregatesNotFullScan() {
+        when(paymentRepository.countByStatus("COMPLETED")).thenReturn(1L);
+        when(paymentRepository.countByStatus("PENDING")).thenReturn(1L);
+        when(paymentRepository.getTotalRevenue()).thenReturn(new BigDecimal("5000000"));
+        when(paymentRepository.sumAmountByStatus("PENDING")).thenReturn(new BigDecimal("2000000"));
+        when(paymentRepository.count()).thenReturn(2L);
+
+        Map<String, Object> summary = paymentService.getSummary(null);
+
+        assertEquals(new BigDecimal("5000000"), summary.get("totalRevenue"));
+        assertEquals(new BigDecimal("2000000"), summary.get("pendingAmount"));
+        assertEquals(1L, summary.get("completedCount"));
+        assertEquals(1L, summary.get("pendingCount"));
+        assertEquals(2, summary.get("totalCount"));
+        // The org-wide summary must never materialize the whole payments table.
+        verify(paymentRepository, never()).findAll();
+    }
+
+    @Test
+    void getSummary_centreScoped_aggregatesBoundedList() {
         Payment pendingPayment = new Payment();
         pendingPayment.setStatus("PENDING");
         pendingPayment.setAmount(new BigDecimal("2000000"));
+        when(paymentRepository.findByCenterId(centerId)).thenReturn(List.of(testPayment, pendingPayment));
 
-        when(paymentRepository.findAll()).thenReturn(List.of(testPayment, pendingPayment));
+        Map<String, Object> summary = paymentService.getSummary(centerId);
 
-        Map<String, Object> summary = paymentService.getSummary(null);
         assertEquals(new BigDecimal("5000000"), summary.get("totalRevenue"));
         assertEquals(new BigDecimal("2000000"), summary.get("pendingAmount"));
         assertEquals(1L, summary.get("completedCount"));

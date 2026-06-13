@@ -71,33 +71,46 @@ public class PaymentService {
     }
 
     public Map<String, Object> getSummary(UUID centerId) {
-        List<Payment> payments = centerId != null
-                ? paymentRepository.findByCenterId(centerId)
-                : paymentRepository.findAll();
+        // Centre-scoped summaries hit a bounded result set, so aggregate in memory.
+        // The org-wide summary (no centre) must NOT load every payment row — that would
+        // OOM/time out as volume grows — so compute it from DB aggregates instead.
+        if (centerId != null) {
+            return summarize(paymentRepository.findByCenterId(centerId));
+        }
 
         Map<String, Object> summary = new HashMap<>();
-        long completedCount = payments.stream().filter(p -> "COMPLETED".equals(p.getStatus())).count();
-        long pendingCount = payments.stream().filter(p -> "PENDING".equals(p.getStatus())).count();
-        long failedCount = payments.stream().filter(p -> "FAILED".equals(p.getStatus())).count();
-        long refundedCount = payments.stream().filter(p -> "REFUNDED".equals(p.getStatus())).count();
+        summary.put("totalRevenue", nz(paymentRepository.getTotalRevenue()));
+        summary.put("pendingAmount", nz(paymentRepository.sumAmountByStatus("PENDING")));
+        summary.put("completedCount", paymentRepository.countByStatus("COMPLETED"));
+        summary.put("pendingCount", paymentRepository.countByStatus("PENDING"));
+        summary.put("failedCount", paymentRepository.countByStatus("FAILED"));
+        summary.put("refundedCount", paymentRepository.countByStatus("REFUNDED"));
+        summary.put("totalCount", (int) paymentRepository.count());
+        return summary;
+    }
 
-        BigDecimal totalRevenue = payments.stream()
-                .filter(p -> "COMPLETED".equals(p.getStatus()))
-                .map(Payment::getAmount).filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal pendingAmount = payments.stream()
-                .filter(p -> "PENDING".equals(p.getStatus()))
-                .map(Payment::getAmount).filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        summary.put("totalRevenue", totalRevenue);
-        summary.put("pendingAmount", pendingAmount);
-        summary.put("completedCount", completedCount);
-        summary.put("pendingCount", pendingCount);
-        summary.put("failedCount", failedCount);
-        summary.put("refundedCount", refundedCount);
+    /** In-memory aggregation for a bounded payment list (e.g. one centre). */
+    private Map<String, Object> summarize(List<Payment> payments) {
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("completedCount", payments.stream().filter(p -> "COMPLETED".equals(p.getStatus())).count());
+        summary.put("pendingCount", payments.stream().filter(p -> "PENDING".equals(p.getStatus())).count());
+        summary.put("failedCount", payments.stream().filter(p -> "FAILED".equals(p.getStatus())).count());
+        summary.put("refundedCount", payments.stream().filter(p -> "REFUNDED".equals(p.getStatus())).count());
+        summary.put("totalRevenue", sumAmount(payments, "COMPLETED"));
+        summary.put("pendingAmount", sumAmount(payments, "PENDING"));
         summary.put("totalCount", payments.size());
         return summary;
+    }
+
+    private static BigDecimal sumAmount(List<Payment> payments, String status) {
+        return payments.stream()
+                .filter(p -> status.equals(p.getStatus()))
+                .map(Payment::getAmount).filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private static BigDecimal nz(BigDecimal v) {
+        return v != null ? v : BigDecimal.ZERO;
     }
 
     public Map<String, Object> getCenterSummary(UUID centerId) {
