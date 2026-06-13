@@ -47,11 +47,14 @@ public class TenantSettingsController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
+    // Tenant/system settings are admin-only to mutate.
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @PostMapping
     public ResponseEntity<TenantSettings> createSetting(@Valid @RequestBody TenantSettings setting) {
         return ResponseEntity.ok(tenantSettingsRepository.save(setting));
     }
-    
+
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<TenantSettings> updateSetting(
             @PathVariable UUID id, 
@@ -63,6 +66,7 @@ public class TenantSettingsController {
         }).orElse(ResponseEntity.notFound().build());
     }
     
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSetting(@PathVariable UUID id) {
         if (tenantSettingsRepository.existsById(id)) {

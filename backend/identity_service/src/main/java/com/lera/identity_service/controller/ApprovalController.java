@@ -105,6 +105,8 @@ public class ApprovalController {
         return ResponseEntity.ok(body);
     }
 
+    // Approving/rejecting is a management decision — not the requester's own roles.
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER')")
     @PostMapping("/{id}/approve")
     public ResponseEntity<Map<String, Object>> approveRequest(
             @PathVariable String id,
@@ -128,6 +130,7 @@ public class ApprovalController {
         return ResponseEntity.ok(request);
     }
 
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER')")
     @PostMapping("/{id}/reject")
     public ResponseEntity<Map<String, Object>> rejectRequest(
             @PathVariable String id,
