@@ -23,6 +23,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,7 +33,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * admin-only. If anyone ever re-broadens those @PreAuthorize role lists to include
  * STUDENT/PARENT/TEACHER, these tests fail.
  */
-@WebMvcTest(controllers = { ImpersonationController.class, UserRoleController.class })
+@WebMvcTest(controllers = {
+        ImpersonationController.class, UserRoleController.class,
+        UserPermissionController.class, StaffController.class, TenantSettingsController.class })
 @Import({ WebMvcMethodSecurityTestConfig.class, GlobalExceptionHandler.class })
 class CriticalAuthzWebMvcTest {
 
@@ -44,6 +47,8 @@ class CriticalAuthzWebMvcTest {
     @MockBean private AuditService auditService;
     @MockBean private AuthCookies authCookies;
     @MockBean private UserRoleService userRoleService;
+    @MockBean private com.lera.identity_service.repository.UserPermissionRepository userPermissionRepository;
+    @MockBean private com.lera.identity_service.repository.TenantSettingsRepository tenantSettingsRepository;
     // The production JwtAuthenticationFilter (a @Component) is picked up by the slice; satisfy its dep.
     @MockBean private com.lera.identity_service.repository.UserRepository userRepository;
 
@@ -99,5 +104,35 @@ class CriticalAuthzWebMvcTest {
     void assignRole_chairman_allowed() throws Exception {
         when(userRoleService.assignRole(any(), any(), any())).thenReturn(new UserRole());
         mockMvc.perform(assignRole()).andExpect(status().isCreated());
+    }
+
+    // --- Destructive admin mutations: delete staff, wipe tenant settings, reset permissions.
+    //     Body-free DELETEs, so @PreAuthorize is the only gate. ---
+    private static final String DELETE_STAFF = "/api/staff/" + UUID.randomUUID();
+    private static final String DELETE_SETTING = "/api/tenant-settings/" + UUID.randomUUID();
+    private static final String RESET_PERMS = "/api/user-permissions/user/" + UUID.randomUUID() + "/reset";
+
+    @Test @WithMockUser(roles = "STUDENT")
+    void destructiveMutations_student_forbidden() throws Exception {
+        mockMvc.perform(delete(DELETE_STAFF)).andExpect(status().isForbidden());
+        mockMvc.perform(delete(DELETE_SETTING)).andExpect(status().isForbidden());
+        mockMvc.perform(delete(RESET_PERMS)).andExpect(status().isForbidden());
+    }
+
+    @Test @WithMockUser(roles = "PARENT")
+    void destructiveMutations_parent_forbidden() throws Exception {
+        mockMvc.perform(delete(DELETE_STAFF)).andExpect(status().isForbidden());
+        mockMvc.perform(delete(DELETE_SETTING)).andExpect(status().isForbidden());
+        mockMvc.perform(delete(RESET_PERMS)).andExpect(status().isForbidden());
+    }
+
+    @Test @WithMockUser(roles = "CHAIRMAN")
+    void destructiveMutations_chairman_clearTheAuthGate() throws Exception {
+        mockMvc.perform(delete(DELETE_STAFF))
+                .andExpect(r -> assertNotEquals(403, r.getResponse().getStatus()));
+        mockMvc.perform(delete(DELETE_SETTING))
+                .andExpect(r -> assertNotEquals(403, r.getResponse().getStatus()));
+        mockMvc.perform(delete(RESET_PERMS))
+                .andExpect(r -> assertNotEquals(403, r.getResponse().getStatus()));
     }
 }
