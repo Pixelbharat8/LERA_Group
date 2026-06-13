@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
+import ExportMenu from "../../../components/ExportMenu";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
 
 interface Student {
@@ -391,7 +392,22 @@ export default function StudentsPage() {
           <p className="text-gray-500">Manage all students across centers</p>
         </div>
         <div className="flex gap-2">
-          <button 
+          <ExportMenu
+            filename="students"
+            rows={students}
+            columns={[
+              { key: "studentCode", label: "Code" },
+              { key: "fullname", label: "Name" },
+              { key: "email", label: "Email" },
+              { key: "phone", label: "Phone" },
+              { key: "dateOfBirth", label: "Date of Birth" },
+              { key: "enrollmentDate", label: "Enrollment Date" },
+              { key: "status", label: "Status" },
+              { key: "centerName", label: "Centre" },
+              { key: (s) => (s.classes || []).map((c) => c.name).join("; "), label: "Classes" },
+            ]}
+          />
+          <button
             onClick={() => setShowImportModal(true)}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
           >

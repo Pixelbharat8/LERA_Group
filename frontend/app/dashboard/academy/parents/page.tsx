@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
+import ExportMenu from "../../../components/ExportMenu";
 
 interface Parent {
   id: string;
@@ -179,12 +180,29 @@ export default function ParentsPage() {
           <h1 className="text-3xl font-bold text-gray-900">👨‍👩‍👧 Parents Management</h1>
           <p className="text-gray-500">Manage parent accounts and guardian information</p>
         </div>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-        >
-          ➕ Add New Parent
-        </button>
+        <div className="flex gap-2">
+          <ExportMenu
+            filename="parents"
+            rows={parents}
+            columns={[
+              { key: "parentCode", label: "Code" },
+              { key: "fullName", label: "Name" },
+              { key: "email", label: "Email" },
+              { key: "phone", label: "Phone" },
+              { key: "address", label: "Address" },
+              { key: "occupation", label: "Occupation" },
+              { key: "childrenCount", label: "Children" },
+              { key: "status", label: "Status" },
+              { key: "createdAt", label: "Created" },
+            ]}
+          />
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            ➕ Add New Parent
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

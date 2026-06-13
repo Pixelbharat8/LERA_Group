@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
+import ExportMenu from "../../../components/ExportMenu";
 
 interface Staff {
   id: string;
@@ -212,7 +213,22 @@ export default function StaffListPage() {
           <p className="text-gray-500">Manage all staff members and employees</p>
         </div>
         <div className="flex gap-3">
-          <button 
+          <ExportMenu
+            filename="staff"
+            rows={staffList}
+            columns={[
+              { key: "staffCode", label: "Code" },
+              { key: "fullName", label: "Name" },
+              { key: "email", label: "Email" },
+              { key: "phone", label: "Phone" },
+              { key: "jobTitle", label: "Job Title" },
+              { key: "department", label: "Department" },
+              { key: "employmentType", label: "Employment Type" },
+              { key: "hireDate", label: "Hire Date" },
+              { key: "status", label: "Status" },
+            ]}
+          />
+          <button
             onClick={() => setShowImportModal(true)}
             className="px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-2"
           >

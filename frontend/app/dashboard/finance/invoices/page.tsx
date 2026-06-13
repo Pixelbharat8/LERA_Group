@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
+import ExportMenu from "../../../components/ExportMenu";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
 
 interface Invoice {
@@ -332,12 +333,30 @@ export default function InvoicesPage() {
           <h1 className="text-3xl font-bold text-gray-900">🧾 Invoice Management</h1>
           <p className="text-gray-500">Generate, track, and manage student invoices</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          ➕ Generate Invoice
-        </button>
+        <div className="flex gap-2">
+          <ExportMenu
+            filename="invoices"
+            rows={invoices}
+            columns={[
+              { key: "invoiceNumber", label: "Invoice #" },
+              { key: "studentName", label: "Student" },
+              { key: "centerName", label: "Centre" },
+              { key: "courseName", label: "Course" },
+              { key: "invoiceDate", label: "Invoice Date" },
+              { key: "dueDate", label: "Due Date" },
+              { key: "totalAmount", label: "Total" },
+              { key: "paidAmount", label: "Paid" },
+              { key: "balance", label: "Balance" },
+              { key: "status", label: "Status" },
+            ]}
+          />
+          <button
+            onClick={() => setShowModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            ➕ Generate Invoice
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

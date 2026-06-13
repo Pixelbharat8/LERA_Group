@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import { apiFetch } from "../../../lib/api";
+import ExportMenu from "../../components/ExportMenu";
 import { useUserCenter, buildCenterFilterUrl } from "../../hooks/useUserCenter";
 
 type PayrollRecord = {
@@ -184,6 +185,27 @@ export default function PayrollPage() {
           <h1 className="text-3xl font-bold text-gray-900">💼 Payroll Management</h1>
           <p className="text-gray-500">Enterprise payroll system with attendance integration</p>
         </div>
+        <span className="mr-2">
+          <ExportMenu
+            filename="payroll"
+            rows={payroll}
+            columns={[
+              { key: "teacherName", label: "Teacher" },
+              { key: "centerName", label: "Centre" },
+              { key: "payPeriodStart", label: "Period Start" },
+              { key: "payPeriodEnd", label: "Period End" },
+              { key: "baseSalary", label: "Base Salary" },
+              { key: "teachingHours", label: "Teaching Hours" },
+              { key: "hourlyRate", label: "Hourly Rate" },
+              { key: "teachingAmount", label: "Teaching Pay" },
+              { key: "bonus", label: "Bonus" },
+              { key: "deductions", label: "Deductions" },
+              { key: "totalAmount", label: "Total" },
+              { key: "currency", label: "Currency" },
+              { key: "status", label: "Status" },
+            ]}
+          />
+        </span>
         <button
           onClick={openGeneratePayroll}
           disabled={generating}

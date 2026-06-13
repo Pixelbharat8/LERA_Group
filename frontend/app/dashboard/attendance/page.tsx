@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../lib/api";
+import ExportMenu from "../../components/ExportMenu";
 import { useUserCenter, buildCenterFilterUrl } from "../../hooks/useUserCenter";
 import { useLanguage } from "../../context/LanguageContext";
 
@@ -184,12 +185,27 @@ export default function AttendancePage() {
           <h1 className="text-3xl font-bold text-gray-900">📅 {t("attendanceDashboard")}</h1>
           <p className="text-gray-500">{t("attendanceOverview")}</p>
         </div>
-        <button 
-          onClick={() => setShowMarkModal(true)}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          ➕ {t("markAttendance")}
-        </button>
+        <div className="flex gap-2">
+          <ExportMenu
+            filename="attendance"
+            rows={records}
+            columns={[
+              { key: "studentName", label: "Student" },
+              { key: "status", label: "Status" },
+              { key: "checkInTime", label: "Check In" },
+              { key: "checkOutTime", label: "Check Out" },
+              { key: "notes", label: "Notes" },
+              { key: "centerName", label: "Centre" },
+              { key: "createdAt", label: "Date" },
+            ]}
+          />
+          <button
+            onClick={() => setShowMarkModal(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            ➕ {t("markAttendance")}
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
