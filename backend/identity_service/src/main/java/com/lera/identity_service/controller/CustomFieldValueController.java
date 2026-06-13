@@ -72,7 +72,8 @@ public class CustomFieldValueController {
         return ResponseEntity.ok(response);
     }
 
-    // Delete a custom field value
+    // Deleting custom-field data is a staff action, not student/parent self-service.
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @DeleteMapping("/field/{customFieldId}/entity/{entityId}")
     public ResponseEntity<Map<String, String>> deleteValue(
             @PathVariable String customFieldId,
@@ -84,6 +85,7 @@ public class CustomFieldValueController {
     }
 
     // Delete all custom field values for an entity
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @DeleteMapping("/entity/{entityId}")
     public ResponseEntity<Map<String, String>> deleteAllValuesForEntity(@PathVariable String entityId) {
         customFieldValueService.deleteAllValuesForEntity(entityId);

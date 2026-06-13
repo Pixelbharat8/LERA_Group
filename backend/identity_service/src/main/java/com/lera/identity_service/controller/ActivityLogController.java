@@ -46,6 +46,8 @@ public class ActivityLogController {
         return ResponseEntity.ok(ApiResponse.success(activities));
     }
 
+    // Whole-tenant / cross-user audit queries are admin-only (avoid activity-log disclosure).
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @GetMapping("/tenant/{tenantId}")
     public ResponseEntity<ApiResponse<Page<ActivityLog>>> getTenantActivities(
             @PathVariable UUID tenantId,
@@ -54,6 +56,7 @@ public class ActivityLogController {
         return ResponseEntity.ok(ApiResponse.success(activities));
     }
 
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @GetMapping("/type/{activityType}")
     public ResponseEntity<ApiResponse<List<ActivityLog>>> getActivitiesByType(
             @PathVariable String activityType) {
@@ -61,6 +64,7 @@ public class ActivityLogController {
         return ResponseEntity.ok(ApiResponse.success(activities));
     }
 
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @GetMapping("/date-range")
     public ResponseEntity<ApiResponse<List<ActivityLog>>> getActivitiesByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,

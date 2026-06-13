@@ -15,7 +15,9 @@ import org.springframework.data.domain.Page;
 @RestController
 @RequestMapping("/api/login-history")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF','STUDENT','PARENT')")
+// Login history is security-audit data (incl. failed logins) and supports clearing a user's
+// history — admins only, never students/parents/teachers/staff.
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
 public class LoginHistoryController {
     
     private final LoginHistoryRepository loginHistoryRepository;
