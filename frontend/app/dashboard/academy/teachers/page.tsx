@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import { apiFetch } from "../../../../lib/api";
-import { exportToCsv, datedFilename } from "../../../../lib/export-csv";
+import ExportMenu from "../../../components/ExportMenu";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
 
 interface Teacher {
@@ -244,25 +244,21 @@ export default function TeachersPage() {
           <p className="text-gray-500">Manage all teachers across centers. Click on a teacher to view profile.</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() =>
-              exportToCsv(datedFilename("teachers"), teachers, [
-                { key: "teacherCode", label: "Code" },
-                { key: "fullName", label: "Name" },
-                { key: "email", label: "Email" },
-                { key: "phone", label: "Phone" },
-                { key: "specialization", label: "Specialization" },
-                { key: "qualification", label: "Qualification" },
-                { key: "yearsOfExperience", label: "Years of Experience" },
-                { key: "contractType", label: "Contract Type" },
-                { key: "status", label: "Status" },
-              ])
-            }
-            disabled={teachers.length === 0}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-          >
-            📤 Export CSV
-          </button>
+          <ExportMenu
+            filename="teachers"
+            rows={teachers}
+            columns={[
+              { key: "teacherCode", label: "Code" },
+              { key: "fullName", label: "Name" },
+              { key: "email", label: "Email" },
+              { key: "phone", label: "Phone" },
+              { key: "specialization", label: "Specialization" },
+              { key: "qualification", label: "Qualification" },
+              { key: "yearsOfExperience", label: "Years of Experience" },
+              { key: "contractType", label: "Contract Type" },
+              { key: "status", label: "Status" },
+            ]}
+          />
           <button
             onClick={() => setShowImportModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"

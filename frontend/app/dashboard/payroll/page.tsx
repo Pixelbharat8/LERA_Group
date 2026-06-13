@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import { apiFetch } from "../../../lib/api";
-import { exportToCsv, datedFilename } from "../../../lib/export-csv";
+import ExportMenu from "../../components/ExportMenu";
 import { useUserCenter, buildCenterFilterUrl } from "../../hooks/useUserCenter";
 
 type PayrollRecord = {
@@ -185,9 +185,11 @@ export default function PayrollPage() {
           <h1 className="text-3xl font-bold text-gray-900">💼 Payroll Management</h1>
           <p className="text-gray-500">Enterprise payroll system with attendance integration</p>
         </div>
-        <button
-          onClick={() =>
-            exportToCsv(datedFilename("payroll"), payroll, [
+        <span className="mr-2">
+          <ExportMenu
+            filename="payroll"
+            rows={payroll}
+            columns={[
               { key: "teacherName", label: "Teacher" },
               { key: "centerName", label: "Centre" },
               { key: "payPeriodStart", label: "Period Start" },
@@ -201,13 +203,9 @@ export default function PayrollPage() {
               { key: "totalAmount", label: "Total" },
               { key: "currency", label: "Currency" },
               { key: "status", label: "Status" },
-            ])
-          }
-          disabled={payroll.length === 0}
-          className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center gap-2 mr-2"
-        >
-          <span>📤</span> Export CSV
-        </button>
+            ]}
+          />
+        </span>
         <button
           onClick={openGeneratePayroll}
           disabled={generating}

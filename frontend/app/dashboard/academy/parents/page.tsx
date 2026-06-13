@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
-import { exportToCsv, datedFilename } from "../../../../lib/export-csv";
+import ExportMenu from "../../../components/ExportMenu";
 
 interface Parent {
   id: string;
@@ -181,25 +181,21 @@ export default function ParentsPage() {
           <p className="text-gray-500">Manage parent accounts and guardian information</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() =>
-              exportToCsv(datedFilename("parents"), parents, [
-                { key: "parentCode", label: "Code" },
-                { key: "fullName", label: "Name" },
-                { key: "email", label: "Email" },
-                { key: "phone", label: "Phone" },
-                { key: "address", label: "Address" },
-                { key: "occupation", label: "Occupation" },
-                { key: "childrenCount", label: "Children" },
-                { key: "status", label: "Status" },
-                { key: "createdAt", label: "Created" },
-              ])
-            }
-            disabled={parents.length === 0}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-          >
-            📤 Export CSV
-          </button>
+          <ExportMenu
+            filename="parents"
+            rows={parents}
+            columns={[
+              { key: "parentCode", label: "Code" },
+              { key: "fullName", label: "Name" },
+              { key: "email", label: "Email" },
+              { key: "phone", label: "Phone" },
+              { key: "address", label: "Address" },
+              { key: "occupation", label: "Occupation" },
+              { key: "childrenCount", label: "Children" },
+              { key: "status", label: "Status" },
+              { key: "createdAt", label: "Created" },
+            ]}
+          />
           <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"

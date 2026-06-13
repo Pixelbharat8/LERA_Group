@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
-import { exportToCsv, datedFilename } from "../../../../lib/export-csv";
+import ExportMenu from "../../../components/ExportMenu";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
 import { ConvertLeadStudentModal } from "../components/ConvertLeadStudentModal";
 import { formatConvertLeadMessage, type ConvertLeadApiResponse, type PlacementSyncPayload } from "../placementSyncAlert";
@@ -264,27 +264,23 @@ export default function LeadsPage() {
           <p className="text-gray-500">Manage potential student inquiries</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() =>
-              exportToCsv(datedFilename("leads"), leads, [
-                { key: "fullName", label: "Name" },
-                { key: "phone", label: "Phone" },
-                { key: "email", label: "Email" },
-                { key: "source", label: "Source" },
-                { key: "status", label: "Status" },
-                { key: "interestedCourse", label: "Interested Course" },
-                { key: "studentName", label: "Student" },
-                { key: "studentAge", label: "Age" },
-                { key: "preferredSchedule", label: "Preferred Schedule" },
-                { key: "centerName", label: "Centre" },
-                { key: "createdAt", label: "Created" },
-              ])
-            }
-            disabled={leads.length === 0}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            📤 Export CSV
-          </button>
+          <ExportMenu
+            filename="leads"
+            rows={leads}
+            columns={[
+              { key: "fullName", label: "Name" },
+              { key: "phone", label: "Phone" },
+              { key: "email", label: "Email" },
+              { key: "source", label: "Source" },
+              { key: "status", label: "Status" },
+              { key: "interestedCourse", label: "Interested Course" },
+              { key: "studentName", label: "Student" },
+              { key: "studentAge", label: "Age" },
+              { key: "preferredSchedule", label: "Preferred Schedule" },
+              { key: "centerName", label: "Centre" },
+              { key: "createdAt", label: "Created" },
+            ]}
+          />
           <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"

@@ -38,6 +38,40 @@ export function exportToCsv<T>(filename: string, rows: T[], columns: CsvColumn<T
   URL.revokeObjectURL(url);
 }
 
+function valueFor<T>(row: T, col: CsvColumn<T>): string {
+  const v = typeof col.key === "function" ? col.key(row) : (row as Record<string, unknown>)[col.key as string];
+  return v == null ? "" : String(v);
+}
+
+/**
+ * Export as an Excel-openable .xls (an HTML table — no library, so it adds no bundle
+ * weight and trips no `npm audit` advisory the way SheetJS does). Excel opens it as a
+ * worksheet with real columns; UTF-8 keeps Vietnamese names intact. Excel may show a
+ * one-time "format differs from extension" prompt — click Yes.
+ */
+export function exportToExcel<T>(filename: string, rows: T[], columns: CsvColumn<T>[]): void {
+  if (typeof window === "undefined") return;
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const head = columns
+    .map((c) => `<th style="background:#1e40af;color:#fff;text-align:left;padding:4px">${esc(c.label)}</th>`)
+    .join("");
+  const body = rows
+    .map((r) => `<tr>${columns.map((c) => `<td>${esc(valueFor(r, c))}</td>`).join("")}</tr>`)
+    .join("");
+  const html =
+    `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head>` +
+    `<body><table border="1"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></body></html>`;
+  const blob = new Blob(["﻿" + html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename.endsWith(".xls") ? filename : `${filename}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 /** `students_2026-06-13.csv` — dated filename for an export. */
 export function datedFilename(base: string): string {
   // Caller passes the date to keep this pure/SSR-safe; default to today on the client.

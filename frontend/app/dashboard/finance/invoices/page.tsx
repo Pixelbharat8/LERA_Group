@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
-import { exportToCsv, datedFilename } from "../../../../lib/export-csv";
+import ExportMenu from "../../../components/ExportMenu";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
 
 interface Invoice {
@@ -334,26 +334,22 @@ export default function InvoicesPage() {
           <p className="text-gray-500">Generate, track, and manage student invoices</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() =>
-              exportToCsv(datedFilename("invoices"), invoices, [
-                { key: "invoiceNumber", label: "Invoice #" },
-                { key: "studentName", label: "Student" },
-                { key: "centerName", label: "Centre" },
-                { key: "courseName", label: "Course" },
-                { key: "invoiceDate", label: "Invoice Date" },
-                { key: "dueDate", label: "Due Date" },
-                { key: "totalAmount", label: "Total" },
-                { key: "paidAmount", label: "Paid" },
-                { key: "balance", label: "Balance" },
-                { key: "status", label: "Status" },
-              ])
-            }
-            disabled={invoices.length === 0}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
-          >
-            📤 Export CSV
-          </button>
+          <ExportMenu
+            filename="invoices"
+            rows={invoices}
+            columns={[
+              { key: "invoiceNumber", label: "Invoice #" },
+              { key: "studentName", label: "Student" },
+              { key: "centerName", label: "Centre" },
+              { key: "courseName", label: "Course" },
+              { key: "invoiceDate", label: "Invoice Date" },
+              { key: "dueDate", label: "Due Date" },
+              { key: "totalAmount", label: "Total" },
+              { key: "paidAmount", label: "Paid" },
+              { key: "balance", label: "Balance" },
+              { key: "status", label: "Status" },
+            ]}
+          />
           <button
             onClick={() => setShowModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
