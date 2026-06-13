@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
+import ExportMenu from "../../../components/ExportMenu";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
 
 interface Enrollment {
@@ -177,12 +178,26 @@ export default function EnrollmentsPage() {
           <h1 className="text-3xl font-bold text-gray-900">📝 Enrollments Management</h1>
           <p className="text-gray-500">Manage student enrollments</p>
         </div>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          ➕ New Enrollment
-        </button>
+        <div className="flex gap-2">
+          <ExportMenu
+            filename="enrollments"
+            rows={enrollments}
+            columns={[
+              { key: "enrollmentCode", label: "Code" },
+              { key: (e) => students.find((s) => s.id === e.studentId)?.fullName || e.studentId, label: "Student" },
+              { key: (e) => classes.find((c) => c.id === e.classId)?.name || e.classId, label: "Class" },
+              { key: "enrollmentDate", label: "Enrollment Date" },
+              { key: "status", label: "Status" },
+              { key: "paymentStatus", label: "Payment Status" },
+            ]}
+          />
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            ➕ New Enrollment
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
