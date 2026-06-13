@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
+import { generateTempPassword } from "../../../../lib/generate-password";
 
 type Director = {
   id: string;
@@ -210,15 +211,19 @@ export default function DirectorsPage() {
         });
         alert("Director updated successfully!");
       } else {
+        const tempPassword = generateTempPassword();
         await apiFetch("/api/users", {
           method: "POST",
           body: JSON.stringify({
             ...payload,
-            password: "Director@123",
+            password: tempPassword,
             username: form.email.split("@")[0]
           })
         });
-        alert("Director added successfully!");
+        alert(
+          `Director added.\n\nTemporary password: ${tempPassword}\n\n` +
+          "Share it securely — they should change it on first login. It won't be shown again."
+        );
       }
 
       setShowModal(false);
