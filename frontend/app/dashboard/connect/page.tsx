@@ -20,6 +20,10 @@ import type {
 import {
   RTC_PEER_CFG,
   SYNTHETIC_USER_NAME,
+  commonEmojis,
+  reactionEmojis,
+  formatTime,
+  formatCallDuration,
   getMediaPermissionIssue,
   mediaPermissionMessage,
   getCurrentUserId,
@@ -1293,17 +1297,6 @@ export default function LeraConnectPage() {
     );
   };
 
-  const formatTime = (dateStr?: string) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    if (isToday) {
-      return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-    }
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
-
   const handleTyping = () => {
     if (!isTyping) {
       setIsTyping(true);
@@ -1330,12 +1323,6 @@ export default function LeraConnectPage() {
     setNewMessage(e.target.value);
     handleTyping();
   };
-
-  // Common emoji list for quick access
-  const commonEmojis = ['😀', '😂', '❤️', '👍', '🎉', '🔥', '👏', '😊', '🙏', '💪', '✨', '🤝'];
-  
-  // Reaction emojis (like iMessage/WhatsApp)
-  const reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥'];
 
   const addEmoji = (emoji: string) => {
     setNewMessage(prev => prev + emoji);
@@ -1376,12 +1363,6 @@ export default function LeraConnectPage() {
   };
 
   // Format call duration
-  const formatCallDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const requestAudioStream = async (): Promise<boolean> => {
     if (typeof window === "undefined" || typeof navigator === "undefined") {
       return false;

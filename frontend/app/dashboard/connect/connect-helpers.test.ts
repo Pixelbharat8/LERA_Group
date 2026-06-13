@@ -7,6 +7,8 @@ import {
   getMediaPermissionIssue,
   mediaPermissionMessage,
   normalizeSavedChatMessage,
+  formatTime,
+  formatCallDuration,
 } from "./connect-helpers";
 import type { Conversation, User } from "./connect-types";
 
@@ -86,6 +88,23 @@ describe("getMediaPermissionIssue", () => {
     for (const issue of ["unsupported", "insecure", "denied", "not_found", "unknown"] as const) {
       expect(mediaPermissionMessage("voice", issue).length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("formatTime / formatCallDuration", () => {
+  it("returns empty string for a missing timestamp", () => {
+    expect(formatTime(undefined)).toBe("");
+    expect(formatTime("")).toBe("");
+  });
+
+  it("shows month/day for a non-today date", () => {
+    expect(formatTime("2020-01-15T09:00:00")).toMatch(/Jan 15/);
+  });
+
+  it("formats call duration as zero-padded mm:ss", () => {
+    expect(formatCallDuration(0)).toBe("00:00");
+    expect(formatCallDuration(65)).toBe("01:05");
+    expect(formatCallDuration(3661)).toBe("61:01");
   });
 });
 

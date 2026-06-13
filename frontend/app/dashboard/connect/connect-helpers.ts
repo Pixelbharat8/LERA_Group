@@ -17,6 +17,31 @@ export const RTC_PEER_CFG: RTCConfiguration = {
 
 export const SYNTHETIC_USER_NAME = /^User [a-f0-9-]{8,}$/i;
 
+/** Quick-access emoji for the composer. */
+export const commonEmojis = ["😀", "😂", "❤️", "👍", "🎉", "🔥", "👏", "😊", "🙏", "💪", "✨", "🤝"];
+
+/** Reaction emoji (iMessage/WhatsApp style). */
+export const reactionEmojis = ["👍", "❤️", "😂", "😮", "😢", "😡", "🎉", "🔥"];
+
+/** Message timestamp: time-of-day for today, else short month/day. */
+export function formatTime(dateStr?: string): string {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  if (isToday) {
+    return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+  }
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/** Call duration in mm:ss. */
+export function formatCallDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+}
+
 export function getMediaPermissionIssue(error: unknown): MediaPermissionIssue {
   if (error instanceof DOMException) {
     if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
