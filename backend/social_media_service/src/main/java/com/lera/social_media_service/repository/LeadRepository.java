@@ -4,6 +4,7 @@ import com.lera.social_media_service.entity.Lead;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,6 +18,8 @@ public interface LeadRepository extends JpaRepository<Lead, UUID> {
     List<Lead> findByCenterIdOrderByCreatedAtDesc(UUID centerId);
     
     List<Lead> findByCampaignId(UUID campaignId);
+
+    List<Lead> findByCreatedAtAfter(LocalDateTime start);
     
     List<Lead> findBySourcePlatform(String sourcePlatform);
     

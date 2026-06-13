@@ -156,11 +156,8 @@ public class AnalyticsService {
     public Map<String, Object> getPostingAnalytics(LocalDateTime start, LocalDateTime end) {
         Map<String, Object> analytics = new HashMap<>();
         
-        List<SocialMediaPost> posts = postRepository.findAll().stream()
-                .filter(p -> p.getPublishedAt() != null && 
-                        p.getPublishedAt().isAfter(start) && 
-                        p.getPublishedAt().isBefore(end))
-                .toList();
+        List<SocialMediaPost> posts =
+                postRepository.findByPublishedAtAfterAndPublishedAtBefore(start, end);
         
         analytics.put("totalPosts", posts.size());
         
@@ -282,9 +279,8 @@ public class AnalyticsService {
         
         // Lead statistics
         long totalLeads = leadRepository.count();
-        List<Lead> allLeads = leadRepository.findAll();
-        long newLeads = allLeads.stream().filter(l -> "NEW".equals(l.getStatus())).count();
-        long convertedLeads = allLeads.stream().filter(l -> "CONVERTED".equals(l.getStatus())).count();
+        long newLeads = leadRepository.countByStatus("NEW");
+        long convertedLeads = leadRepository.countByStatus("CONVERTED");
         
         dashboard.put("leadStats", Map.of(
                 "total", totalLeads,
@@ -295,8 +291,7 @@ public class AnalyticsService {
         
         // Campaign statistics
         long totalCampaigns = campaignRepository.count();
-        List<MarketingCampaign> allCampaigns = campaignRepository.findAll();
-        long activeCampaigns = allCampaigns.stream().filter(c -> "ACTIVE".equals(c.getStatus())).count();
+        long activeCampaigns = campaignRepository.countByStatus("ACTIVE");
         
         dashboard.put("campaignStats", Map.of(
                 "total", totalCampaigns,
@@ -336,9 +331,7 @@ public class AnalyticsService {
                 report.put("data", growthData);
                 break;
             case "leads":
-                List<Lead> leads = leadRepository.findAll().stream()
-                        .filter(l -> l.getCreatedAt() != null && l.getCreatedAt().isAfter(start))
-                        .toList();
+                List<Lead> leads = leadRepository.findByCreatedAtAfter(start);
                 report.put("data", Map.of(
                         "totalLeads", leads.size(),
                         "bySource", groupLeadsBySource(leads),

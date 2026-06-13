@@ -164,10 +164,8 @@ public class CampaignService {
         
         performance.put("campaign", campaign);
         
-        // Get leads attributed to this campaign
-        List<Lead> campaignLeads = leadRepository.findAll().stream()
-                .filter(l -> campaignId.equals(l.getCampaignId()))
-                .toList();
+        // Get leads attributed to this campaign (indexed query, not a full-table scan)
+        List<Lead> campaignLeads = leadRepository.findByCampaignId(campaignId);
         performance.put("totalLeads", campaignLeads.size());
         
         // Calculate conversion metrics

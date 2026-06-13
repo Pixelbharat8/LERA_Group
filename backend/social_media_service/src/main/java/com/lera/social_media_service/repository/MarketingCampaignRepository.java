@@ -12,7 +12,9 @@ import java.util.UUID;
 public interface MarketingCampaignRepository extends JpaRepository<MarketingCampaign, UUID> {
     
     List<MarketingCampaign> findByStatus(String status);
-    
+
+    long countByStatus(String status);
+
     List<MarketingCampaign> findByCampaignType(String campaignType);
     
     List<MarketingCampaign> findByStatusIn(List<String> statuses);

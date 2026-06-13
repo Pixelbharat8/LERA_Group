@@ -50,12 +50,12 @@ class CampaignServiceTest {
     void performance_countsLeadsAndConversionRateScopedToCampaign() {
         UUID id = UUID.randomUUID();
         campaignExists(id, null); // no budget → no ROI
-        when(leadRepository.findAll()).thenReturn(List.of(
+        // findByCampaignId scopes to this campaign at the DB layer (not a full-table scan)
+        when(leadRepository.findByCampaignId(id)).thenReturn(List.of(
                 lead(id, "CONVERTED"),
                 lead(id, "NEW"),
                 lead(id, "NEW"),
-                lead(id, "NEW"),
-                lead(UUID.randomUUID(), "CONVERTED") // other campaign — must be excluded
+                lead(id, "NEW")
         ));
 
         Map<String, Object> p = service.getCampaignPerformance(id);
@@ -70,7 +70,7 @@ class CampaignServiceTest {
     void performance_computesRoiWhenBudgetSet() {
         UUID id = UUID.randomUUID();
         campaignExists(id, new BigDecimal("1000"));
-        when(leadRepository.findAll()).thenReturn(List.of(lead(id, "CONVERTED"), lead(id, "CONVERTED")));
+        when(leadRepository.findByCampaignId(id)).thenReturn(List.of(lead(id, "CONVERTED"), lead(id, "CONVERTED")));
 
         Map<String, Object> p = service.getCampaignPerformance(id);
 
@@ -82,7 +82,7 @@ class CampaignServiceTest {
     void performance_zeroLeadsGivesZeroConversionAndNegativeRoi() {
         UUID id = UUID.randomUUID();
         campaignExists(id, new BigDecimal("500"));
-        when(leadRepository.findAll()).thenReturn(List.of());
+        when(leadRepository.findByCampaignId(id)).thenReturn(List.of());
 
         Map<String, Object> p = service.getCampaignPerformance(id);
 
@@ -96,7 +96,7 @@ class CampaignServiceTest {
     void performance_noRoiWhenBudgetZero() {
         UUID id = UUID.randomUUID();
         campaignExists(id, BigDecimal.ZERO); // guarded: no divide-by-zero
-        when(leadRepository.findAll()).thenReturn(List.of(lead(id, "CONVERTED")));
+        when(leadRepository.findByCampaignId(id)).thenReturn(List.of(lead(id, "CONVERTED")));
 
         Map<String, Object> p = service.getCampaignPerformance(id);
         assertFalse(p.containsKey("estimatedROI"));

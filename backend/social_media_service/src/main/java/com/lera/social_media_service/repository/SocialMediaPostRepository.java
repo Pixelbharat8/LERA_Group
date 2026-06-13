@@ -35,6 +35,9 @@ public interface SocialMediaPostRepository extends JpaRepository<SocialMediaPost
     List<SocialMediaPost> findRecentlyPublished();
     
     List<SocialMediaPost> findByPublishedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    // Exclusive bounds (publishedAt > start AND < end), and excludes null publishedAt.
+    List<SocialMediaPost> findByPublishedAtAfterAndPublishedAtBefore(LocalDateTime start, LocalDateTime end);
     
     @Query("SELECT p FROM SocialMediaPost p WHERE p.status = 'published' ORDER BY p.likes DESC")
     List<SocialMediaPost> findTopByOrderByLikesCountDesc();
