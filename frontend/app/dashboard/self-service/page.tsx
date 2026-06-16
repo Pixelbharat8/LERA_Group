@@ -23,6 +23,7 @@ export default function SelfServicePortal() {
   const [showApply, setShowApply] = useState(false);
   const [applying, setApplying] = useState(false);
   const [leaveForm, setLeaveForm] = useState({ leaveType: "ANNUAL_LEAVE", leaveDate: "", endDate: "", reason: "" });
+  const [viewPayslip, setViewPayslip] = useState<any>(null);
 
   useEffect(() => {
     if (!userLoading && userId) loadAll();
@@ -84,6 +85,33 @@ export default function SelfServicePortal() {
   }
 
   const money = (v: any, cur = "VND") => (v == null ? "—" : `${Number(v).toLocaleString()} ${cur}`);
+
+  // Open a clean, printable payslip in a new window (browser print = save-as-PDF).
+  function printPayslip(p: any) {
+    const cur = p.currency || "VND";
+    const fmt = (v: any) => (v == null ? "—" : `${Number(v).toLocaleString()} ${cur}`);
+    const gross = (Number(p.baseSalary) || 0) + (Number(p.bonus) || 0);
+    const w = window.open("", "_blank", "width=720,height=900");
+    if (!w) return;
+    w.document.write(`<!doctype html><html><head><title>Payslip ${p.payPeriodStart || ""}</title>
+      <style>body{font-family:system-ui,Arial,sans-serif;color:#111;padding:32px;max-width:640px;margin:auto}
+      h1{font-size:20px;margin:0 0 4px} .muted{color:#666;font-size:13px}
+      table{width:100%;border-collapse:collapse;margin-top:20px} td{padding:8px 0;border-bottom:1px solid #eee}
+      td.r{text-align:right} .net{font-weight:700;font-size:18px} .net td{border-top:2px solid #111;border-bottom:none;padding-top:12px}
+      .badge{display:inline-block;padding:2px 8px;border-radius:9999px;background:#eef;font-size:12px}</style></head><body>
+      <h1>LERA Academy — Payslip</h1>
+      <div class="muted">Pay period: ${p.payPeriodStart || "—"} → ${p.payPeriodEnd || "—"} · Status: <span class="badge">${p.status || "—"}</span></div>
+      <table>
+        <tr><td>Base salary</td><td class="r">${fmt(p.baseSalary)}</td></tr>
+        <tr><td>Bonus</td><td class="r">${fmt(p.bonus)}</td></tr>
+        <tr><td>Gross</td><td class="r">${fmt(gross)}</td></tr>
+        <tr><td>Deductions</td><td class="r">- ${fmt(p.deductions)}</td></tr>
+        <tr class="net"><td>Net pay</td><td class="r">${fmt(p.totalAmount)}</td></tr>
+      </table>
+      <p class="muted" style="margin-top:24px">Generated ${new Date().toLocaleString()}</p>
+      <script>window.onload=function(){window.print();}</script></body></html>`);
+    w.document.close();
+  }
   const statusPill = (s: string) => {
     const m: Record<string, string> = {
       PAID: "bg-green-100 text-green-800", APPROVED: "bg-green-100 text-green-800",
@@ -141,13 +169,14 @@ export default function SelfServicePortal() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Base</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bonus</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Deductions</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Net pay</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {payslips.length === 0 ? (
-                    <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">No payslips yet.</td></tr>
+                    <tr><td colSpan={7} className="px-6 py-10 text-center text-gray-500">No payslips yet.</td></tr>
                   ) : payslips.map((p) => (
                     <tr key={p.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-gray-700">{p.payPeriodStart || "—"} → {p.payPeriodEnd || "—"}</td>
@@ -156,6 +185,10 @@ export default function SelfServicePortal() {
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{money(p.deductions, p.currency)}</td>
                       <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{money(p.totalAmount, p.currency)}</td>
                       <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 py-1 text-xs rounded-full ${statusPill(p.status)}`}>{p.status}</span></td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <button onClick={() => setViewPayslip(p)} className="text-blue-600 hover:text-blue-700 text-sm mr-3">View</button>
+                        <button onClick={() => printPayslip(p)} className="text-gray-600 hover:text-gray-800 text-sm">🖨️ Print</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -235,6 +268,34 @@ export default function SelfServicePortal() {
             </div>
           )}
         </>
+      )}
+
+      {viewPayslip && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setViewPayslip(null)}>
+          <div className="w-full max-w-md rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <header className="flex items-center justify-between border-b px-5 py-3">
+              <h2 className="text-base font-semibold">💵 Payslip</h2>
+              <button onClick={() => setViewPayslip(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </header>
+            <div className="px-5 py-4">
+              <div className="text-sm text-gray-500 mb-3">
+                {viewPayslip.payPeriodStart || "—"} → {viewPayslip.payPeriodEnd || "—"}
+                <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${statusPill(viewPayslip.status)}`}>{viewPayslip.status}</span>
+              </div>
+              <div className="divide-y">
+                <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Base salary</span><span>{money(viewPayslip.baseSalary, viewPayslip.currency)}</span></div>
+                <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Bonus</span><span>{money(viewPayslip.bonus, viewPayslip.currency)}</span></div>
+                <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Gross</span><span>{money((Number(viewPayslip.baseSalary) || 0) + (Number(viewPayslip.bonus) || 0), viewPayslip.currency)}</span></div>
+                <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Deductions</span><span className="text-red-600">- {money(viewPayslip.deductions, viewPayslip.currency)}</span></div>
+                <div className="flex justify-between py-3 text-base font-bold border-t-2 border-gray-900"><span>Net pay</span><span>{money(viewPayslip.totalAmount, viewPayslip.currency)}</span></div>
+              </div>
+            </div>
+            <footer className="flex justify-end gap-2 border-t px-5 py-3">
+              <button onClick={() => setViewPayslip(null)} className="h-9 rounded-md border border-gray-300 px-3 text-sm hover:bg-gray-50">Close</button>
+              <button onClick={() => printPayslip(viewPayslip)} className="h-9 rounded-md bg-blue-600 px-4 text-sm text-white hover:bg-blue-700">🖨️ Print / Download PDF</button>
+            </footer>
+          </div>
+        </div>
       )}
 
       {showApply && (

@@ -31,7 +31,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     
     List<Payment> findByProcessedBy(UUID processedBy);
     
-    @Query("SELECT SUM(p.amount) FROM Payment p WHERE p.status = 'COMPLETED'")
+    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = 'COMPLETED'")
     BigDecimal getTotalRevenue();
 
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = :status")
@@ -39,6 +39,13 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     @Query("SELECT COUNT(p) FROM Payment p WHERE p.status = :status")
     long countByStatus(String status);
-    
+
+    // Center-scoped aggregates — let the DB do the work instead of loading all payments.
+    long countByCenterId(UUID centerId);
+    long countByCenterIdAndStatus(UUID centerId, String status);
+
+    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.centerId = :centerId AND p.status = :status")
+    BigDecimal sumAmountByCenterAndStatus(UUID centerId, String status);
+
     List<Payment> findAllByOrderByCreatedAtDesc();
 }

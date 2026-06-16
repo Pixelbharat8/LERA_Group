@@ -94,6 +94,8 @@ public class ApprovalController {
         return ResponseEntity.ok(request);
     }
 
+    // Creating approval requests is staff workflow — gated to staff+ (not students/parents).
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PostMapping
     public ResponseEntity<Map<String, Object>> createApprovalRequest(@Valid @RequestBody Map<String, Object> body) {
         String id = "apr-" + UUID.randomUUID().toString().substring(0, 8);
@@ -187,6 +189,8 @@ public class ApprovalController {
         return ResponseEntity.ok(stats);
     }
 
+    // Deleting an approval (destroying its trail) is an admin action — never students/parents/teachers.
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteApprovalRequest(@PathVariable String id) {
         if (approvalRequests.remove(id) != null) {

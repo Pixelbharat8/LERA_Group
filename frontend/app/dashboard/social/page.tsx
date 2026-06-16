@@ -364,20 +364,12 @@ export default function SocialPage() {
             </h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">12</div>
+                <div className="text-2xl font-bold text-blue-600">{posts.length}</div>
                 <div className="text-xs text-gray-600">{language === "VI" ? "Bài đăng" : "Posts"}</div>
               </div>
               <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">156</div>
-                <div className="text-xs text-gray-600">{language === "VI" ? "Bạn bè" : "Friends"}</div>
-              </div>
-              <div className="text-center p-3 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">5</div>
-                <div className="text-xs text-gray-600">{language === "VI" ? "Nhóm" : "Groups"}</div>
-              </div>
-              <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                <div className="text-2xl font-bold text-yellow-600">3</div>
-                <div className="text-xs text-gray-600">{language === "VI" ? "Thành tích" : "Badges"}</div>
+                <div className="text-2xl font-bold text-green-600">{events.length}</div>
+                <div className="text-xs text-gray-600">{language === "VI" ? "Sự kiện" : "Events"}</div>
               </div>
             </div>
           </div>
@@ -403,34 +395,6 @@ export default function SocialPage() {
             </div>
           </div>
 
-          {/* Suggested Friends */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <h2 className="font-semibold text-gray-900 mb-4">
-              {language === "VI" ? "Gợi ý kết bạn" : "Suggested Friends"}
-            </h2>
-            <div className="space-y-3">
-              {[
-                { name: "Nguyen Thi C", role: "Class 10A", avatar: "NTC" },
-                { name: "Le Van D", role: "Class 11B", avatar: "LVD" },
-                { name: "Pham Thi E", role: "Class 10A", avatar: "PTE" }
-              ].map((friend, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center text-white text-sm">
-                      {friend.avatar}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{friend.name}</p>
-                      <p className="text-xs text-gray-500">{friend.role}</p>
-                    </div>
-                  </div>
-                  <button className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors">
-                    {language === "VI" ? "Kết bạn" : "Add"}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>

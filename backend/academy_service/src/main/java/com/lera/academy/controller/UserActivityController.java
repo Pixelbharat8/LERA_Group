@@ -21,7 +21,7 @@ import java.util.*;
 @RequestMapping("/api/user-activity")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF','STUDENT','PARENT')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
 public class UserActivityController {
     
     private final UserActivityRepository userActivityRepository;
@@ -96,7 +96,8 @@ public class UserActivityController {
         return ResponseEntity.ok(userActivityRepository.findByUserIdAndDateRange(userId, start, now));
     }
     
-    // Log new activity
+    // Log new activity — staff-only; students/parents must not forge activity for arbitrary users.
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PostMapping
     public ResponseEntity<UserActivity> logActivity(@Valid @RequestBody UserActivity activity) {
         UserActivity saved = userActivityRepository.save(activity);
@@ -104,10 +105,11 @@ public class UserActivityController {
         return ResponseEntity.ok(saved);
     }
     
-    // Log activity for a specific user
+    // Log activity for a specific user — staff-only.
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PostMapping("/user/{userId}")
     public ResponseEntity<UserActivity> logUserActivity(
-            @PathVariable UUID userId, 
+            @PathVariable UUID userId,
             @Valid @RequestBody UserActivity activity) {
         activity.setUserId(userId);
         UserActivity saved = userActivityRepository.save(activity);

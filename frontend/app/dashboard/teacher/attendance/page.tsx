@@ -44,6 +44,10 @@ export default function TeacherAttendancePage() {
   const [markComplete, setMarkComplete] = useState(false);
   const [teacherEntityId, setTeacherEntityId] = useState("");
 
+  type HistoryRow = { id: string; date: string; status: string; present: number; absent: number; total: number };
+  const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   useEffect(() => {
     fetchClasses();
   }, []);
@@ -53,6 +57,40 @@ export default function TeacherAttendancePage() {
       fetchStudents(selectedClassId, attendanceDate);
     }
   }, [selectedClassId, attendanceDate]);
+
+  useEffect(() => {
+    if (selectedClassId) loadHistory(selectedClassId);
+  }, [selectedClassId, success]);
+
+  const loadHistory = async (classId: string) => {
+    setHistoryLoading(true);
+    try {
+      const sessions = await apiFetch(`/api/class-sessions?classId=${classId}`).catch(() => []);
+      const recent = (Array.isArray(sessions) ? sessions : [])
+        .filter((s: any) => s?.sessionDate)
+        .sort((a: any, b: any) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime())
+        .slice(0, 8);
+      const rows: HistoryRow[] = await Promise.all(
+        recent.map(async (s: any) => {
+          const marks = await apiFetch(`/api/session-attendance/session/${s.id}`).catch(() => []);
+          const arr = Array.isArray(marks) ? marks : [];
+          const present = arr.filter((m: any) => ["PRESENT", "LATE"].includes(String(m.status).toUpperCase())).length;
+          const absent = arr.filter((m: any) => String(m.status).toUpperCase() === "ABSENT").length;
+          return {
+            id: String(s.id),
+            date: s.sessionDate,
+            status: String(s.status || "SCHEDULED"),
+            present,
+            absent,
+            total: arr.length,
+          };
+        })
+      );
+      setHistory(rows);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const fetchClasses = async () => {
     try {
@@ -228,6 +266,47 @@ export default function TeacherAttendancePage() {
               <button type="submit" disabled={saving} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400">{saving ? "Saving..." : "Save Attendance"}</button>
             </div>
           </form>
+        </div>
+      )}
+
+      {selectedClassId && (
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-semibold">📋 Recent Sessions</h2>
+            <p className="text-sm text-gray-500">Attendance you've recorded for this class</p>
+          </div>
+          {historyLoading ? (
+            <p className="p-6 text-center text-gray-400">Loading history…</p>
+          ) : history.length === 0 ? (
+            <p className="p-6 text-center text-gray-400">No sessions recorded yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Present</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Absent</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Marked</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {history.map((h) => (
+                    <tr key={h.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-3 text-gray-700">{new Date(h.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</td>
+                      <td className="px-6 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${h.status === "COMPLETED" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>{h.status}</span>
+                      </td>
+                      <td className="px-6 py-3 text-center text-green-600 font-medium">{h.present}</td>
+                      <td className="px-6 py-3 text-center text-red-600 font-medium">{h.absent}</td>
+                      <td className="px-6 py-3 text-center text-gray-500">{h.total}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { apiFetch } from "../../lib/api";
+import { publicFetch } from "../../lib/api";
 import { HERO_IMAGES } from "../../config/images";
 
 interface BlogPost {
@@ -74,7 +74,7 @@ export default function BlogPage() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const data = await apiFetch("/api/blog/published");
+        const data = await publicFetch("/api/blog/published");
         if (Array.isArray(data) && data.length > 0) {
           setPosts(data);
         }

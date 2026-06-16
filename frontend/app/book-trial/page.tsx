@@ -5,7 +5,7 @@ import Link from "next/link";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useLanguage } from "../context/LanguageContext";
-import { apiFetch } from "../../lib/api";
+import { publicFetch } from "../../lib/api";
 import { FUNNEL_NOTES_PREFIX, TRIAL_BOOKING_LEAD_CONTEXT } from "../../lib/english-centre-vertical-scope";
 
 export default function BookTrialPage() {
@@ -26,7 +26,7 @@ export default function BookTrialPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await apiFetch("/api/public/leads", {
+      await publicFetch("/api/public/leads", {
         method: "POST",
         body: JSON.stringify({
           parentName: formData.parentName.trim(),

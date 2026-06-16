@@ -33,27 +33,20 @@ public class FinanceDashboardService {
         summary.put("pendingPayments", paymentRepository.countByStatus("PENDING"));
         summary.put("completedPayments", paymentRepository.countByStatus("COMPLETED"));
         summary.put("failedPayments", paymentRepository.countByStatus("FAILED"));
-        summary.put("totalInvoices", invoiceRepository.count());
+        long totalInvoices = invoiceRepository.count();
+        summary.put("totalInvoices", totalInvoices);
 
-        List<Invoice> allInvoices = invoiceRepository.findAll();
-        long paidInvoices = allInvoices.stream().filter(i -> "PAID".equalsIgnoreCase(i.getStatus())).count();
-        long pendingInvoices = allInvoices.stream().filter(i -> "PENDING".equalsIgnoreCase(i.getStatus())).count();
-        long overdueInvoices = allInvoices.stream().filter(i -> "OVERDUE".equalsIgnoreCase(i.getStatus())).count();
-        long cancelledInvoices = allInvoices.stream().filter(i -> "CANCELLED".equalsIgnoreCase(i.getStatus())).count();
-
+        // DB-side aggregation — previously this loaded the entire invoices table into memory.
         Map<String, Long> invoiceStats = new HashMap<>();
-        invoiceStats.put("total", (long) allInvoices.size());
-        invoiceStats.put("paid", paidInvoices);
-        invoiceStats.put("pending", pendingInvoices);
-        invoiceStats.put("overdue", overdueInvoices);
-        invoiceStats.put("cancelled", cancelledInvoices);
+        invoiceStats.put("total", totalInvoices);
+        invoiceStats.put("paid", invoiceRepository.countByStatus("PAID"));
+        invoiceStats.put("pending", invoiceRepository.countByStatus("PENDING"));
+        invoiceStats.put("overdue", invoiceRepository.countByStatus("OVERDUE"));
+        invoiceStats.put("cancelled", invoiceRepository.countByStatus("CANCELLED"));
         summary.put("invoiceStats", invoiceStats);
 
-        BigDecimal outstandingAmount = allInvoices.stream()
-                .filter(i -> "PENDING".equalsIgnoreCase(i.getStatus()) || "OVERDUE".equalsIgnoreCase(i.getStatus()))
-                .map(i -> i.getTotalAmount() != null ? i.getTotalAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        summary.put("outstandingAmount", outstandingAmount);
+        BigDecimal outstandingAmount = invoiceRepository.sumOutstanding();
+        summary.put("outstandingAmount", outstandingAmount != null ? outstandingAmount : BigDecimal.ZERO);
 
         List<Refund> approvedRefunds = refundRepository.findByStatus("APPROVED");
         BigDecimal refundedAmount = approvedRefunds.stream()

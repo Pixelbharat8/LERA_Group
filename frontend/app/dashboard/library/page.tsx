@@ -64,18 +64,10 @@ export default function LibraryPage() {
       setBooks(Array.isArray(booksData) ? booksData : []);
       setBorrowedBooks(Array.isArray(borrowedData) ? borrowedData : []);
     } catch (error) {
-      // Fallback data
-      setBooks([
-        { id: "1", title: "English Grammar in Use", author: "Raymond Murphy", category: "Grammar", available: true, totalCopies: 10, availableCopies: 5 },
-        { id: "2", title: "Oxford Advanced Learner's Dictionary", author: "Oxford", category: "Dictionary", available: true, totalCopies: 15, availableCopies: 8 },
-        { id: "3", title: "IELTS Cambridge 18", author: "Cambridge", category: "IELTS", available: false, totalCopies: 5, availableCopies: 0 },
-        { id: "4", title: "Vocabulary for IELTS", author: "Pauline Cullen", category: "IELTS", available: true, totalCopies: 8, availableCopies: 3 },
-        { id: "5", title: "Essential English for Kids", author: "LERA Academy", category: "Kids", available: true, totalCopies: 20, availableCopies: 12 },
-      ]);
-      setBorrowedBooks([
-        { id: "1", bookTitle: "English Grammar in Use", borrowDate: "2026-01-20", dueDate: "2026-02-20", status: "borrowed" },
-        { id: "2", bookTitle: "IELTS Cambridge 17", borrowDate: "2026-01-10", dueDate: "2026-01-30", status: "overdue" },
-      ]);
+      // Don't fabricate a catalog on failure — show the real (empty) state.
+      console.error("Failed to load library data:", error);
+      setBooks([]);
+      setBorrowedBooks([]);
     } finally {
       setLoading(false);
     }

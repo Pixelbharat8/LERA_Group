@@ -38,12 +38,14 @@ public class BlogPostController {
     
     // Get published posts (public)
     @GetMapping("/published")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<List<BlogPost>> getPublishedPosts() {
         return ResponseEntity.ok(blogPostRepository.findByStatusOrderByPublishedAtDesc("published"));
     }
     
     // Get featured posts
     @GetMapping("/featured")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<List<BlogPost>> getFeaturedPosts() {
         return ResponseEntity.ok(blogPostRepository.findByIsFeaturedTrueAndStatusOrderByPublishedAtDesc("published"));
     }
@@ -118,6 +120,7 @@ public class BlogPostController {
     
     // Get posts by category
     @GetMapping("/category/{category}")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<List<BlogPost>> getPostsByCategory(@PathVariable String category) {
         return ResponseEntity.ok(blogPostRepository.findByCategoryAndStatusOrderByPublishedAtDesc(category, "published"));
     }
@@ -138,6 +141,7 @@ public class BlogPostController {
     
     // Get single post by slug (for public URLs)
     @GetMapping("/slug/{slug}")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<BlogPost> getPostBySlug(@PathVariable String slug) {
         Optional<BlogPost> opt = blogPostRepository.findBySlug(slug);
         if (opt.isEmpty()) {

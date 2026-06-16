@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { apiFetch } from "../../lib/api";
+import { publicFetch } from "../../lib/api";
 import { CENTER_IMAGES, HERO_IMAGES } from "../../config/images";
 
 // Types for dynamic centers
@@ -49,7 +49,7 @@ export default function CentersPage() {
     const fetchData = async () => {
       try {
         // Fetch centers from backend
-        const centersData = await apiFetch("/api/centers");
+        const centersData = await publicFetch("/api/centers");
         if (Array.isArray(centersData) && centersData.length > 0) {
           const transformedCenters = centersData
             .filter((c: any) => c.isActive !== false)
@@ -78,7 +78,7 @@ export default function CentersPage() {
 
       try {
         // Fetch contact phone from CMS
-        const cmsData = await apiFetch("/api/cms-settings/map/contact");
+        const cmsData = await publicFetch("/api/cms-settings/map/contact");
         if (cmsData && cmsData.contact_phone) {
           setContactPhone(cmsData.contact_phone);
         }

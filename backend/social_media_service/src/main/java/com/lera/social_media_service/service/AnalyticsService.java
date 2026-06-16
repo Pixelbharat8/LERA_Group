@@ -140,15 +140,9 @@ public class AnalyticsService {
     }
     
     public List<Map<String, Object>> getTopPerformingPosts(int limit) {
-        List<SocialMediaPost> posts = postRepository.findAll();
-        
-        return posts.stream()
-                .sorted((p1, p2) -> {
-                    int likes1 = p1.getLikes() != null ? p1.getLikes() : 0;
-                    int likes2 = p2.getLikes() != null ? p2.getLikes() : 0;
-                    return Integer.compare(likes2, likes1);
-                })
-                .limit(limit)
+        // DB sorts + limits to top-N by likes — no longer pulls every post into memory.
+        return postRepository.findTopByLikes(org.springframework.data.domain.PageRequest.of(0, Math.max(1, limit)))
+                .stream()
                 .map(post -> getPostAnalytics(post.getId()))
                 .toList();
     }
@@ -264,11 +258,11 @@ public class AnalyticsService {
         dashboard.put("platformsSummary", getAllPlatformsSummary());
         
         // Post statistics
+        // DB-side, case-insensitive counts (previously loaded all posts AND missed lowercase statuses).
         long totalPosts = postRepository.count();
-        List<SocialMediaPost> allPosts = postRepository.findAll();
-        long publishedPosts = allPosts.stream().filter(p -> "PUBLISHED".equals(p.getStatus())).count();
-        long scheduledPosts = allPosts.stream().filter(p -> "SCHEDULED".equals(p.getStatus())).count();
-        long draftPosts = allPosts.stream().filter(p -> "DRAFT".equals(p.getStatus())).count();
+        long publishedPosts = postRepository.countByStatusIgnoreCase("PUBLISHED");
+        long scheduledPosts = postRepository.countByStatusIgnoreCase("SCHEDULED");
+        long draftPosts = postRepository.countByStatusIgnoreCase("DRAFT");
         
         dashboard.put("postStats", Map.of(
                 "total", totalPosts,

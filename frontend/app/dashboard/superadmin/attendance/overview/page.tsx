@@ -108,7 +108,7 @@ export default function ExecutiveAttendanceOverviewPage() {
       // Fetch leave records
       let leaveData: any[] = [];
       try {
-        const data = await apiFetch("/api/leave");
+        const data = await apiFetch("/api/leave/all");
         leaveData = Array.isArray(data) ? data : [];
       } catch (err) {
         console.error("Error fetching leave:", err);

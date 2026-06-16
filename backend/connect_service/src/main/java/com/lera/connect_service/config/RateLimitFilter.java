@@ -15,7 +15,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class RateLimitFilter implements Filter {
 
-    private static final int MAX_REQUESTS_PER_MINUTE = 100;
+    // Keyed PER USER (not per IP), so a whole office sharing one public IP isn't
+    // throttled as a single client. The chat UI polls a few endpoints every few
+    // seconds (~30 req/min/user), so this leaves generous headroom while still
+    // stopping a runaway client.
+    private static final int MAX_REQUESTS_PER_MINUTE = 300;
 
     private final LoadingCache<String, AtomicInteger> requestCounts = Caffeine.newBuilder()
             .expireAfterWrite(1, TimeUnit.MINUTES)
@@ -25,8 +29,8 @@ public class RateLimitFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
-        String clientIp = getClientIp(httpRequest);
-        AtomicInteger counter = requestCounts.get(clientIp);
+        String clientKey = getClientKey(httpRequest);
+        AtomicInteger counter = requestCounts.get(clientKey);
         if (counter != null && counter.incrementAndGet() > MAX_REQUESTS_PER_MINUTE) {
             HttpServletResponse httpResponse = (HttpServletResponse) response;
             httpResponse.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
@@ -35,6 +39,22 @@ public class RateLimitFilter implements Filter {
             return;
         }
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Per-user key: the bearer JWT uniquely identifies the session, so users behind a
+     * shared NAT/office IP each get their own bucket. We hash the token (don't store the
+     * raw secret) and fall back to client IP for unauthenticated requests.
+     */
+    private String getClientKey(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            String token = auth.substring(7).trim();
+            if (!token.isEmpty()) {
+                return "u:" + Integer.toHexString(token.hashCode());
+            }
+        }
+        return "ip:" + getClientIp(request);
     }
 
     private String getClientIp(HttpServletRequest request) {

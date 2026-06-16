@@ -26,7 +26,7 @@ public interface AiTutorSessionRepository extends JpaRepository<AiTutorSession, 
     @Query("SELECT s FROM AiTutorSession s WHERE s.academyId = :academyId AND s.createdAt BETWEEN :start AND :end")
     List<AiTutorSession> findByAcademyAndDateRange(@Param("academyId") UUID academyId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
     
-    @Query("SELECT SUM(s.tokensUsed) FROM AiTutorSession s WHERE s.studentId = :studentId")
+    @Query("SELECT COALESCE(SUM(s.tokensUsed), 0) FROM AiTutorSession s WHERE s.studentId = :studentId")
     Long getTotalTokensUsedByStudent(@Param("studentId") UUID studentId);
     
     @Query("SELECT AVG(s.feedbackRating) FROM AiTutorSession s WHERE s.academyId = :academyId AND s.feedbackRating IS NOT NULL")

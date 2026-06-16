@@ -22,6 +22,7 @@ export default function AcademicManagerDashboard() {
     avgAttendance: 0,
   });
   const [recentClasses, setRecentClasses] = useState<any[]>([]);
+  const [upcomingExams, setUpcomingExams] = useState<any[]>([]);
 
   const quickActions = [
     { label: "Manage Classes", href: "/dashboard/academicmanager/classes", icon: "📚", color: "bg-blue-600" },
@@ -52,27 +53,45 @@ export default function AcademicManagerDashboard() {
   const fetchDashboardData = async () => {
     try {
       const center = shouldFilterByCenter ? centerId : null;
-      const [classes, teachers, courses] = await Promise.all([
+      const [classes, teachers, courses, attendanceRes, examsRes] = await Promise.all([
         apiFetch(buildCenterFilterUrl("/api/classes", center)).catch(() => []),
         apiFetch(buildCenterFilterUrl("/api/teachers", center)).catch(() => []),
         apiFetch("/api/courses").catch(() => []),
+        apiFetch(center ? `/api/attendance/summary?centerId=${encodeURIComponent(center)}` : "/api/attendance/summary").catch(() => null),
+        apiFetch(buildCenterFilterUrl("/api/exams", center)).catch(() => []),
       ]);
 
       const classCount = Array.isArray(classes) ? classes.length : 0;
       const teacherCount = Array.isArray(teachers) ? teachers.filter((t: any) => t.status === 'active' || !t.status).length : 0;
       const courseCount = Array.isArray(courses) ? courses.length : 0;
+      const avgAttendance = attendanceRes && typeof (attendanceRes as any).attendanceRate === "number"
+        ? Math.round((attendanceRes as any).attendanceRate)
+        : 0;
 
       setStatsData({
         totalClasses: classCount,
         activeTeachers: teacherCount,
         totalCourses: courseCount,
-        avgAttendance: 92, // Would come from attendance service
+        avgAttendance,
       });
 
       // Set recent classes for display
       if (Array.isArray(classes)) {
         setRecentClasses(classes.slice(0, 3));
       }
+
+      // Upcoming exams (real) replace the old hardcoded "Final Exams / Graduation" block.
+      const now = Date.now();
+      const upcoming = (Array.isArray(examsRes) ? examsRes : [])
+        .filter((e: any) => {
+          const d = new Date(e.examDate || e.date || e.startDate).getTime();
+          return !isNaN(d) && d >= now;
+        })
+        .sort((a: any, b: any) =>
+          new Date(a.examDate || a.date || a.startDate).getTime() -
+          new Date(b.examDate || b.date || b.startDate).getTime())
+        .slice(0, 3);
+      setUpcomingExams(upcoming);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -162,22 +181,27 @@ export default function AcademicManagerDashboard() {
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Upcoming Events</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Upcoming Exams</h2>
           <div className="space-y-4">
-            <div className="flex items-center p-3 bg-orange-50 rounded-lg">
-              <div className="text-orange-600 text-2xl mr-3">📅</div>
-              <div>
-                <p className="font-medium">Final Exams</p>
-                <p className="text-sm text-gray-500">Check schedule for dates</p>
-              </div>
-            </div>
-            <div className="flex items-center p-3 bg-blue-50 rounded-lg">
-              <div className="text-blue-600 text-2xl mr-3">🎓</div>
-              <div>
-                <p className="font-medium">Graduation Ceremony</p>
-                <p className="text-sm text-gray-500">Check schedule for dates</p>
-              </div>
-            </div>
+            {upcomingExams.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">No upcoming exams scheduled</p>
+            ) : (
+              upcomingExams.map((exam, index) => {
+                const d = new Date(exam.examDate || exam.date || exam.startDate);
+                return (
+                  <div key={exam.id || index} className="flex items-center p-3 bg-orange-50 rounded-lg">
+                    <div className="text-orange-600 text-2xl mr-3">📅</div>
+                    <div>
+                      <p className="font-medium">{exam.name || exam.title || "Exam"}</p>
+                      <p className="text-sm text-gray-500">
+                        {isNaN(d.getTime()) ? "Date TBD" : d.toLocaleDateString()}
+                        {exam.subject ? ` • ${exam.subject}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

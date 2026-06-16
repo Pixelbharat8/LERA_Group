@@ -28,6 +28,7 @@ public class LeadershipMemberController {
     
     // Get active leadership members (public website)
     @GetMapping("/public")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<List<LeadershipMember>> getActiveLeadershipMembers() {
         return ResponseEntity.ok(leadershipMemberRepository.findByIsActiveTrueOrderByDisplayOrderAsc());
     }

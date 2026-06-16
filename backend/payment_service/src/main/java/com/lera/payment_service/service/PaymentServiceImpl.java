@@ -56,34 +56,36 @@ public class PaymentServiceImpl {
     }
 
     public Map<String, Object> getPaymentSummary(UUID centerId) {
-        List<Payment> payments = centerId != null
-                ? paymentRepository.findByCenterId(centerId)
-                : paymentRepository.findAll();
-
+        // DB-side aggregation per status — previously this loaded EVERY payment into memory
+        // (the org-wide centerId==null path was a hard scale ceiling).
         Map<String, Object> summary = new HashMap<>();
-        long completedCount = payments.stream().filter(p -> "COMPLETED".equals(p.getStatus())).count();
-        long pendingCount = payments.stream().filter(p -> "PENDING".equals(p.getStatus())).count();
-        long failedCount = payments.stream().filter(p -> "FAILED".equals(p.getStatus())).count();
-        long refundedCount = payments.stream().filter(p -> "REFUNDED".equals(p.getStatus())).count();
-
-        BigDecimal totalRevenue = payments.stream()
-                .filter(p -> "COMPLETED".equals(p.getStatus()))
-                .map(Payment::getAmount).filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal pendingAmount = payments.stream()
-                .filter(p -> "PENDING".equals(p.getStatus()))
-                .map(Payment::getAmount).filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        summary.put("totalRevenue", totalRevenue);
-        summary.put("pendingAmount", pendingAmount);
+        long completedCount, pendingCount, failedCount, refundedCount, totalCount;
+        BigDecimal totalRevenue, pendingAmount;
+        if (centerId != null) {
+            completedCount = paymentRepository.countByCenterIdAndStatus(centerId, "COMPLETED");
+            pendingCount = paymentRepository.countByCenterIdAndStatus(centerId, "PENDING");
+            failedCount = paymentRepository.countByCenterIdAndStatus(centerId, "FAILED");
+            refundedCount = paymentRepository.countByCenterIdAndStatus(centerId, "REFUNDED");
+            totalCount = paymentRepository.countByCenterId(centerId);
+            totalRevenue = paymentRepository.sumAmountByCenterAndStatus(centerId, "COMPLETED");
+            pendingAmount = paymentRepository.sumAmountByCenterAndStatus(centerId, "PENDING");
+            summary.put("centerId", centerId);
+        } else {
+            completedCount = paymentRepository.countByStatus("COMPLETED");
+            pendingCount = paymentRepository.countByStatus("PENDING");
+            failedCount = paymentRepository.countByStatus("FAILED");
+            refundedCount = paymentRepository.countByStatus("REFUNDED");
+            totalCount = paymentRepository.count();
+            totalRevenue = paymentRepository.sumAmountByStatus("COMPLETED");
+            pendingAmount = paymentRepository.sumAmountByStatus("PENDING");
+        }
+        summary.put("totalRevenue", totalRevenue != null ? totalRevenue : BigDecimal.ZERO);
+        summary.put("pendingAmount", pendingAmount != null ? pendingAmount : BigDecimal.ZERO);
         summary.put("completedCount", completedCount);
         summary.put("pendingCount", pendingCount);
         summary.put("failedCount", failedCount);
         summary.put("refundedCount", refundedCount);
-        summary.put("totalCount", payments.size());
-        if (centerId != null) summary.put("centerId", centerId);
+        summary.put("totalCount", totalCount);
         return summary;
     }
 

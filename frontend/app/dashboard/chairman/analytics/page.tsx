@@ -12,9 +12,10 @@ interface AnalyticsData {
   totalRevenue: number;
   monthlyRevenue: number;
   enrollmentGrowth: number;
+  revenueGrowth: number;
   attendanceRate: number;
   completionRate: number;
-  satisfactionScore: number;
+  studentRetention: number;
 }
 
 interface ChartData {
@@ -34,9 +35,10 @@ export default function ChairmanAnalyticsPage() {
     totalRevenue: 0,
     monthlyRevenue: 0,
     enrollmentGrowth: 0,
+    revenueGrowth: 0,
     attendanceRate: 0,
     completionRate: 0,
-    satisfactionScore: 0,
+    studentRetention: 0,
   });
 
   const [enrollmentTrend, setEnrollmentTrend] = useState<ChartData[]>([]);
@@ -53,13 +55,14 @@ export default function ChairmanAnalyticsPage() {
       setIsLoading(true);
 
       // Fetch multiple data points
-      const [studentsRes, teachersRes, coursesRes, paymentsRes, centersRes, enrollmentsRes] = await Promise.all([
+      const [studentsRes, teachersRes, coursesRes, paymentsRes, centersRes, enrollmentsRes, attendanceRes] = await Promise.all([
         apiFetch("/api/students").catch(() => []),
         apiFetch("/api/teachers").catch(() => []),
         apiFetch("/api/courses").catch(() => []),
         apiFetch("/api/payments").catch(() => []),
         apiFetch("/api/centers").catch(() => []),
         apiFetch("/api/enrollments").catch(() => []),
+        apiFetch("/api/attendance/summary").catch(() => null),
       ]);
 
       const studentList = Array.isArray(studentsRes) ? studentsRes : [];
@@ -73,29 +76,59 @@ export default function ChairmanAnalyticsPage() {
       const totalRevenueNum: number = paidPayments
         .reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
 
+      // Build monthly enrollment + revenue buckets from real data (used for trends AND growth %)
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthlyEnrollments: Record<string, number> = {};
+      const monthlyRevenues: Record<string, number> = {};
+      months.forEach(m => { monthlyEnrollments[m] = 0; monthlyRevenues[m] = 0; });
+      enrollmentList.forEach((e: any) => {
+        const d = new Date(e.enrollmentDate || e.createdAt);
+        if (!isNaN(d.getTime())) monthlyEnrollments[months[d.getMonth()]] += 1;
+      });
+      paidPayments.forEach((p: any) => {
+        const d = new Date(p.paidAt || p.paymentDate || p.createdAt);
+        if (!isNaN(d.getTime())) monthlyRevenues[months[d.getMonth()]] += Number(p.amount || 0);
+      });
+
+      // Month-over-month growth (this month vs last month) — real, not hardcoded.
+      const pct = (cur: number, prev: number) =>
+        prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : 0;
+      const curIdx = new Date().getMonth();
+      const prevIdx = (curIdx + 11) % 12;
+      const enrollmentGrowth = pct(monthlyEnrollments[months[curIdx]], monthlyEnrollments[months[prevIdx]]);
+      const revenueGrowth = pct(monthlyRevenues[months[curIdx]], monthlyRevenues[months[prevIdx]]);
+
+      // Completion rate from enrollment status; retention from active/total students.
+      const completedEnrollments = enrollmentList.filter(
+        (e: any) => String(e.status).toUpperCase() === "COMPLETED"
+      ).length;
+      const completionRate = enrollmentList.length > 0
+        ? Math.round((completedEnrollments / enrollmentList.length) * 1000) / 10
+        : 0;
+      const activeStudentCount = studentList.filter(
+        (s: any) => s.status === "ACTIVE" || s.isActive !== false
+      ).length;
+      const studentRetention = studentList.length > 0
+        ? Math.round((activeStudentCount / studentList.length) * 1000) / 10
+        : 0;
+      const attendanceRate = attendanceRes && typeof (attendanceRes as any).attendanceRate === "number"
+        ? Math.round((attendanceRes as any).attendanceRate * 10) / 10
+        : 0;
+
       setAnalytics({
         totalStudents: studentList.length,
-        activeStudents: studentList.filter((s: any) => s.status === "ACTIVE" || s.isActive !== false).length,
+        activeStudents: activeStudentCount,
         totalTeachers: Array.isArray(teachers) ? teachers.length : 0,
         totalCourses: Array.isArray(courses) ? courses.length : 0,
         totalRevenue: totalRevenueNum,
-        monthlyRevenue: totalRevenueNum ? Math.round(totalRevenueNum / 12) : 0,
-        enrollmentGrowth: 0,
-        attendanceRate: 0,
-        completionRate: 0,
-        satisfactionScore: 0,
+        monthlyRevenue: monthlyRevenues[months[curIdx]] || 0,
+        enrollmentGrowth,
+        revenueGrowth,
+        attendanceRate,
+        completionRate,
+        studentRetention,
       });
 
-      // Build enrollment trend from real enrollment data
-      const monthlyEnrollments: Record<string, number> = {};
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      months.forEach(m => monthlyEnrollments[m] = 0);
-      enrollmentList.forEach((e: any) => {
-        const d = new Date(e.enrollmentDate || e.createdAt);
-        if (!isNaN(d.getTime())) {
-          monthlyEnrollments[months[d.getMonth()]] = (monthlyEnrollments[months[d.getMonth()]] || 0) + 1;
-        }
-      });
       setEnrollmentTrend(months.map((m, i) => ({
         label: m,
         value: monthlyEnrollments[m],
@@ -104,15 +137,6 @@ export default function ChairmanAnalyticsPage() {
           : 0,
       })));
 
-      // Build revenue trend from real payment data
-      const monthlyRevenues: Record<string, number> = {};
-      months.forEach(m => monthlyRevenues[m] = 0);
-      paidPayments.forEach((p: any) => {
-        const d = new Date(p.paidAt || p.paymentDate || p.createdAt);
-        if (!isNaN(d.getTime())) {
-          monthlyRevenues[months[d.getMonth()]] = (monthlyRevenues[months[d.getMonth()]] || 0) + Number(p.amount || 0);
-        }
-      });
       setRevenueTrend(months.map(m => ({
         label: m,
         value: Math.round(monthlyRevenues[m] / 1000000) || 0,
@@ -151,9 +175,10 @@ export default function ChairmanAnalyticsPage() {
         totalRevenue: 0,
         monthlyRevenue: 0,
         enrollmentGrowth: 0,
+        revenueGrowth: 0,
         attendanceRate: 0,
         completionRate: 0,
-        satisfactionScore: 0,
+        studentRetention: 0,
       });
     } finally {
       setIsLoading(false);
@@ -167,6 +192,17 @@ export default function ChairmanAnalyticsPage() {
   };
 
   const getMaxValue = (data: ChartData[]) => Math.max(...data.map(d => d.value));
+
+  // Render a month-over-month delta with sign + colour; blank when we have no baseline.
+  const Delta = ({ value }: { value: number }) => {
+    if (!value) return null;
+    const up = value > 0;
+    return (
+      <span className={`text-xs font-medium ${up ? "text-green-600" : "text-red-600"}`}>
+        {up ? "+" : ""}{value}%
+      </span>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -217,7 +253,7 @@ export default function ChairmanAnalyticsPage() {
           <div className="bg-white rounded-xl shadow-sm p-5">
             <div className="flex items-center justify-between mb-2">
               <span className="text-2xl">👨‍🎓</span>
-              <span className="text-xs text-green-600 font-medium">+{analytics.enrollmentGrowth}%</span>
+              <Delta value={analytics.enrollmentGrowth} />
             </div>
             <div className="text-2xl font-bold text-gray-900">{analytics.totalStudents.toLocaleString()}</div>
             <div className="text-sm text-gray-500">Total Students</div>
@@ -225,7 +261,6 @@ export default function ChairmanAnalyticsPage() {
           <div className="bg-white rounded-xl shadow-sm p-5">
             <div className="flex items-center justify-between mb-2">
               <span className="text-2xl">👨‍🏫</span>
-              <span className="text-xs text-blue-600 font-medium">+3</span>
             </div>
             <div className="text-2xl font-bold text-gray-900">{analytics.totalTeachers}</div>
             <div className="text-sm text-gray-500">Teachers</div>
@@ -240,17 +275,17 @@ export default function ChairmanAnalyticsPage() {
           <div className="bg-white rounded-xl shadow-sm p-5">
             <div className="flex items-center justify-between mb-2">
               <span className="text-2xl">💰</span>
-              <span className="text-xs text-green-600 font-medium">+18.5%</span>
+              <Delta value={analytics.revenueGrowth} />
             </div>
             <div className="text-2xl font-bold text-gray-900">{formatCurrency(analytics.monthlyRevenue)}</div>
             <div className="text-sm text-gray-500">Monthly Revenue</div>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">⭐</span>
+              <span className="text-2xl">✅</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900">{analytics.satisfactionScore}/5</div>
-            <div className="text-sm text-gray-500">Satisfaction</div>
+            <div className="text-2xl font-bold text-gray-900">{analytics.activeStudents.toLocaleString()}</div>
+            <div className="text-sm text-gray-500">Active Students</div>
           </div>
         </div>
 
@@ -259,7 +294,6 @@ export default function ChairmanAnalyticsPage() {
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-gray-900">Attendance Rate</h3>
-              <span className="text-green-600 text-sm">+2.1%</span>
             </div>
             <div className="relative pt-1">
               <div className="flex items-center justify-between mb-2">
@@ -277,7 +311,6 @@ export default function ChairmanAnalyticsPage() {
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-gray-900">Course Completion</h3>
-              <span className="text-blue-600 text-sm">+5.3%</span>
             </div>
             <div className="relative pt-1">
               <div className="flex items-center justify-between mb-2">
@@ -295,15 +328,14 @@ export default function ChairmanAnalyticsPage() {
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-gray-900">Student Retention</h3>
-              <span className="text-purple-600 text-sm">+1.8%</span>
             </div>
             <div className="relative pt-1">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-3xl font-bold text-purple-600">92.3%</span>
+                <span className="text-3xl font-bold text-purple-600">{analytics.studentRetention}%</span>
               </div>
               <div className="overflow-hidden h-3 text-xs flex rounded-full bg-gray-100">
                 <div
-                  style={{ width: "92.3%" }}
+                  style={{ width: `${analytics.studentRetention}%` }}
                   className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-purple-500 rounded-full"
                 ></div>
               </div>
@@ -315,7 +347,7 @@ export default function ChairmanAnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Enrollment Trend */}
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-4">📈 Enrollment Trend (2025)</h3>
+            <h3 className="font-bold text-gray-900 mb-4">📈 Enrollment Trend ({new Date().getFullYear()})</h3>
             <div className="h-48 flex items-end gap-2">
               {enrollmentTrend.map((data, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center">
@@ -358,20 +390,19 @@ export default function ChairmanAnalyticsPage() {
                 <div key={i}>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="font-medium">{course.label}</span>
-                    <span className="text-gray-500">{course.value}%</span>
+                    <span className="text-gray-500">{course.value} enrolled</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${
-                        course.value >= 90 ? "bg-green-500" :
-                        course.value >= 80 ? "bg-blue-500" :
-                        course.value >= 70 ? "bg-yellow-500" : "bg-red-500"
-                      }`}
-                      style={{ width: `${course.value}%` }}
+                      className="h-full rounded-full bg-blue-500"
+                      style={{ width: `${getMaxValue(coursePerformance) > 0 ? (course.value / getMaxValue(coursePerformance)) * 100 : 0}%` }}
                     ></div>
                   </div>
                 </div>
               ))}
+              {coursePerformance.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">No enrollment data yet.</p>
+              )}
             </div>
           </div>
 

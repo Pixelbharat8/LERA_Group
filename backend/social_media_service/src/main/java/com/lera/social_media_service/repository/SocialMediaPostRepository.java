@@ -1,6 +1,7 @@
 package com.lera.social_media_service.repository;
 
 import com.lera.social_media_service.entity.SocialMediaPost;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -11,7 +12,15 @@ import java.util.UUID;
 
 @Repository
 public interface SocialMediaPostRepository extends JpaRepository<SocialMediaPost, UUID> {
-    
+
+    /** Case-insensitive status count done in the DB (avoids loading every post for the dashboard). */
+    @Query("SELECT COUNT(p) FROM SocialMediaPost p WHERE UPPER(p.status) = UPPER(:status)")
+    long countByStatusIgnoreCase(String status);
+
+    /** Top-N posts by likes, computed + limited in the DB rather than sorting the whole table in memory. */
+    @Query("SELECT p FROM SocialMediaPost p ORDER BY COALESCE(p.likes, 0) DESC")
+    List<SocialMediaPost> findTopByLikes(Pageable pageable);
+
     @Query("SELECT p FROM SocialMediaPost p ORDER BY p.createdAt DESC")
     List<SocialMediaPost> findAllOrderByCreatedAtDesc();
     

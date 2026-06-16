@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { apiFetch } from "../../lib/api";
+import { publicFetch } from "../../lib/api";
 import { HERO_IMAGES, TEAM_IMAGES } from "../../config/images";
 
 // Types for dynamic content
@@ -75,7 +75,7 @@ export default function AboutPage() {
     const fetchData = async () => {
       try {
         // Fetch CMS settings for about page
-        const cmsData = await apiFetch("/api/cms-settings/map/about");
+        const cmsData = await publicFetch("/api/cms-settings/map/about");
         if (cmsData && typeof cmsData === 'object') {
           setContent({
             heroTitle: {
@@ -126,7 +126,7 @@ export default function AboutPage() {
 
       try {
         // Fetch leadership team from new leadership-members endpoint
-        const leadersData = await apiFetch("/api/leadership-members/public");
+        const leadersData = await publicFetch("/api/leadership-members/public");
         if (Array.isArray(leadersData) && leadersData.length > 0) {
           setLeaders(leadersData.map((l: any) => ({
             id: l.id,

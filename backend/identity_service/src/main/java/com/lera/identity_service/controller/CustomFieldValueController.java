@@ -42,7 +42,8 @@ public class CustomFieldValueController {
         return ResponseEntity.ok(customFieldValueService.getValuesAsMap(entityId, entityType));
     }
 
-    // Save a single custom field value
+    // Save a single custom field value — staff-only; students/parents must not write PII for other entities.
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PostMapping
     public ResponseEntity<?> saveValue(@Valid @RequestBody SaveValueRequest request) {
         try {
@@ -59,7 +60,8 @@ public class CustomFieldValueController {
         }
     }
 
-    // Save multiple custom field values at once
+    // Save multiple custom field values at once — staff-only.
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PostMapping("/bulk")
     public ResponseEntity<Map<String, String>> saveValues(@Valid @RequestBody SaveBulkValuesRequest request) {
         customFieldValueService.saveValues(

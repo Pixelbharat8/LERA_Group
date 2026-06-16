@@ -45,10 +45,10 @@ export default function StaffDashboard() {
         : 0;
 
       setStatsData({
-        tasksToday: Array.isArray(tasks) ? tasks.length : 8,
-        completed: completedTasks || 5,
-        pending: pendingTasks || 3,
-        messages: Array.isArray(messages) ? messages.length : 2,
+        tasksToday: Array.isArray(tasks) ? tasks.length : 0,
+        completed: completedTasks,
+        pending: pendingTasks,
+        messages: Array.isArray(messages) ? messages.length : 0,
       });
     } catch (error) {
       console.error("Error fetching staff stats:", error);

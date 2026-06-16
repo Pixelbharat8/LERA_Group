@@ -73,23 +73,10 @@ export default function HostelPage() {
       setRooms(Array.isArray(roomsData) ? roomsData : []);
       setMyRegistration(regData);
     } catch (error) {
-      // Fallback data
-      setRooms([
-        { id: "1", roomNumber: "101", type: "single", floor: 1, capacity: 1, occupied: 0, amenities: ["AC", "WiFi", "Bathroom"], monthlyFee: 3000000, available: true },
-        { id: "2", roomNumber: "102", type: "double", floor: 1, capacity: 2, occupied: 1, amenities: ["AC", "WiFi", "Shared Bathroom"], monthlyFee: 2000000, available: true },
-        { id: "3", roomNumber: "201", type: "quad", floor: 2, capacity: 4, occupied: 4, amenities: ["Fan", "WiFi", "Shared Bathroom"], monthlyFee: 1500000, available: false },
-        { id: "4", roomNumber: "202", type: "double", floor: 2, capacity: 2, occupied: 0, amenities: ["AC", "WiFi", "Bathroom"], monthlyFee: 2500000, available: true },
-        { id: "5", roomNumber: "301", type: "single", floor: 3, capacity: 1, occupied: 1, amenities: ["AC", "WiFi", "Bathroom", "Balcony"], monthlyFee: 3500000, available: false },
-      ]);
-      setMyRegistration({
-        id: "1",
-        roomNumber: "202",
-        roomType: "double",
-        checkInDate: "2026-01-15",
-        monthlyFee: 2500000,
-        status: "active",
-        roommates: ["Nguyễn Văn A"],
-      });
+      // Don't fabricate rooms/registration on failure — show the real (empty) state.
+      console.error("Failed to load hostel data:", error);
+      setRooms([]);
+      setMyRegistration(null);
     } finally {
       setLoading(false);
     }

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { apiFetch } from "../../lib/api";
+import { publicFetch } from "../../lib/api";
 
 interface Section {
   title: string;
@@ -122,7 +122,7 @@ export default function PrivacyPage() {
 
   const fetchContent = async () => {
     try {
-      const data = await apiFetch("/api/cms-settings/map/privacy").catch(() => ({}));
+      const data = await publicFetch("/api/cms-settings/map/privacy").catch(() => ({}));
       if (data && Object.keys(data).length > 0) {
         if (data.privacy_title_en) setTitle(prev => ({ ...prev, EN: data.privacy_title_en }));
         if (data.privacy_title_vi) setTitle(prev => ({ ...prev, VI: data.privacy_title_vi }));

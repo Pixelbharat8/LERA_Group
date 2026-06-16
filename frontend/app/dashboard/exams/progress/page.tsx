@@ -11,9 +11,9 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     avgCompletion: 0,
-    avgGrade: 0,
-    improvement: 0,
-    goalAchievement: 0,
+    avgScore: 0,
+    passRate: 0,
+    totalExams: 0,
   });
   const [examResults, setExamResults] = useState<any[]>([]);
 
@@ -26,29 +26,41 @@ export default function ProgressPage() {
   const fetchProgressData = async () => {
     try {
       const center = shouldFilterByCenter ? centerId : null;
-      const [exams, students, enrollments] = await Promise.all([
+      const [exams, enrollments, results] = await Promise.all([
         apiFetch(buildCenterFilterUrl("/api/exams", center)).catch(() => []),
-        apiFetch(buildCenterFilterUrl("/api/students", center)).catch(() => []),
         apiFetch(buildCenterFilterUrl("/api/enrollments", center)).catch(() => []),
+        apiFetch(buildCenterFilterUrl("/api/exam-results", center)).catch(() => []),
       ]);
 
       const examCount = Array.isArray(exams) ? exams.length : 0;
-      const studentCount = Array.isArray(students) ? students.length : 0;
-      const enrollmentCount = Array.isArray(enrollments) ? enrollments.length : 0;
+      const enrollmentList = Array.isArray(enrollments) ? enrollments : [];
+      const resultList = Array.isArray(results) ? results : [];
 
-      // Calculate average completion
-      const completedEnrollments = Array.isArray(enrollments)
-        ? enrollments.filter((e: any) => e.status === 'completed').length
+      // Avg completion from real enrollment status (no fabricated fallback).
+      const completedEnrollments = enrollmentList.filter(
+        (e: any) => String(e.status).toUpperCase() === "COMPLETED"
+      ).length;
+      const avgCompletion = enrollmentList.length > 0
+        ? Math.round((completedEnrollments / enrollmentList.length) * 100)
         : 0;
-      const avgCompletion = enrollmentCount > 0
-        ? Math.round((completedEnrollments / enrollmentCount) * 100)
-        : 85;
+
+      // Avg score + pass rate from real exam results.
+      const scored = resultList
+        .map((r: any) => Number(r.percentage ?? r.score))
+        .filter((n: number) => !isNaN(n));
+      const avgScore = scored.length > 0
+        ? Math.round((scored.reduce((a: number, b: number) => a + b, 0) / scored.length) * 10) / 10
+        : 0;
+      const passedCount = resultList.filter((r: any) => r.passed === true).length;
+      const passRate = resultList.length > 0
+        ? Math.round((passedCount / resultList.length) * 100)
+        : 0;
 
       setStats({
-        avgCompletion: avgCompletion || 85,
-        avgGrade: 4.2,
-        improvement: 12,
-        goalAchievement: 92,
+        avgCompletion,
+        avgScore,
+        passRate,
+        totalExams: examCount,
       });
 
       // Set exam results
@@ -103,26 +115,26 @@ export default function ProgressPage() {
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">⭐</div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{stats.avgGrade}</p>
-                  <p className="text-sm text-gray-500">Avg. Grade</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.avgScore}%</p>
+                  <p className="text-sm text-gray-500">Avg. Score</p>
                 </div>
               </div>
             </div>
             <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-2xl">📈</div>
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-2xl">✅</div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">+{stats.improvement}%</p>
-                  <p className="text-sm text-gray-500">Improvement</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.passRate}%</p>
+                  <p className="text-sm text-gray-500">Pass Rate</p>
                 </div>
               </div>
             </div>
             <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center text-2xl">🎯</div>
+                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center text-2xl">📝</div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{stats.goalAchievement}%</p>
-                  <p className="text-sm text-gray-500">Goal Achievement</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalExams}</p>
+                  <p className="text-sm text-gray-500">Total Exams</p>
                 </div>
               </div>
             </div>

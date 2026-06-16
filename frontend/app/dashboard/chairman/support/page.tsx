@@ -369,7 +369,7 @@ export default function ChairmanSupportPage() {
                       <div className="text-2xl">📚</div>
                       <div>
                         <div className="font-medium">Documentation</div>
-                        <a href="#" className="text-orange-600 hover:underline">View User Guide</a>
+                        <a href="/dashboard/help" className="text-orange-600 hover:underline">View User Guide</a>
                         <p className="text-sm text-gray-500 mt-1">Comprehensive documentation</p>
                       </div>
                     </div>

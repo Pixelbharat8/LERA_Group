@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useLanguage } from "../../context/LanguageContext";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import { apiFetch } from "../../../lib/api";
+import { publicFetch } from "../../../lib/api";
 
 /** Simple HTML sanitizer — strips <script>, onerror=, javascript: etc. */
 function sanitizeHtml(html: string): string {
@@ -43,7 +43,7 @@ export default function BlogPostPage() {
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const data = await apiFetch(`/api/blog/slug/${slug}`);
+        const data = await publicFetch(`/api/blog/slug/${slug}`);
         if (data) {
           setPost(data);
         } else {

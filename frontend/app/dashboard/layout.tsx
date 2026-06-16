@@ -363,6 +363,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           { name: `👔 ${t("directors")}`, href: "/dashboard/chairman/directors" },
           { name: `🏢 ${t("orgStructure")}`, href: "/dashboard/chairman/org-structure" },
           { name: `🔐 ${t("rolesPermissions")}`, href: "/dashboard/chairman/roles" },
+          { name: `🧩 ${language === "VI" ? "Quản lý Tính năng" : "Feature Management"}`, href: "/dashboard/chairman/feature-management" },
           { name: `🏢 ${t("centers")}`, href: "/dashboard/chairman/centers" },
           { name: `🏛️ ${t("departments")}`, href: "/dashboard/chairman/departments" },
           { name: `📚 ${t("coursesNav")}`, href: "/dashboard/chairman/courses" },
@@ -1055,7 +1056,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     // If user is superadmin type (CHAIRMAN, CEO, DIRECTOR), treat as SUPERADMIN for navigation
     const userRole = user?.role?.toUpperCase() || "";
     const effectiveRole = isSuperAdmin ? "SUPERADMIN" : userRole;
-    return item.roles.includes(effectiveRole) || item.roles.includes(userRole);
+    const roleOk = item.roles.includes(effectiveRole) || item.roles.includes(userRole);
+    if (!roleOk) return false;
+    // Feature gating: if the item declares a permission, the user must have it enabled.
+    // High-level admins (Chairman/CEO/SuperAdmin/Director) always pass — checkPermission()
+    // returns true for them — so god-mode access is never gated out.
+    const perm = (item as any).permission as keyof typeof permissions | undefined;
+    if (perm && !checkPermission(perm)) return false;
+    return true;
   });
 
   return (

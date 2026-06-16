@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { apiFetch } from "../../lib/api";
+import { publicFetch } from "../../lib/api";
 import { COURSE_IMAGES, HERO_IMAGES, PLACEHOLDERS } from "../../config/images";
 
 // Types for dynamic courses
@@ -32,16 +32,19 @@ interface Course {
 // English course codes that we support
 const ENGLISH_COURSE_CODES = ["STARTERS", "EXPLORERS", "PRIMARY", "TEENS", "IELTS_SAT", "BUSINESS", "CONVERSATION", "PHONICS"];
 
-// Map course codes to proper slugs and images
-const courseCodeMapping: Record<string, { slug: string; image: string; color: string }> = {
-  "STARTERS": { slug: "lera-starters", image: COURSE_IMAGES["lera-starters"], color: "bg-pink-500" },
-  "EXPLORERS": { slug: "lera-explorers", image: COURSE_IMAGES["lera-explorers"], color: "bg-blue-500" },
-  "PRIMARY": { slug: "lera-primary", image: COURSE_IMAGES["lera-primary"], color: "bg-green-500" },
-  "TEENS": { slug: "lera-teens", image: COURSE_IMAGES["lera-teens"], color: "bg-purple-500" },
-  "IELTS_SAT": { slug: "ielts-sat", image: COURSE_IMAGES["ielts-sat"], color: "bg-indigo-600" },
-  "BUSINESS": { slug: "business-english", image: COURSE_IMAGES["business-english"], color: "bg-violet-600" },
-  "CONVERSATION": { slug: "conversation", image: COURSE_IMAGES["conversation"] || COURSE_IMAGES["default"], color: "bg-cyan-500" },
-  "PHONICS": { slug: "phonics", image: COURSE_IMAGES["phonics"] || COURSE_IMAGES["default"], color: "bg-amber-500" },
+// Map course codes to slug, image, colour, AND the age-group/age-range used for
+// filtering. The backend stores category="ENGLISH" (a subject, not an age group)
+// and leaves ageMin/ageMax null, so the code is the reliable signal for which
+// "Kids / Teens / Adults" filter a programme belongs to.
+const courseCodeMapping: Record<string, { slug: string; image: string; color: string; category: string; ageRange: string; ageMin: number; ageMax: number }> = {
+  "STARTERS":     { slug: "lera-starters",   image: COURSE_IMAGES["lera-starters"],   color: "bg-pink-500",   category: "kids",   ageRange: "2.5-4", ageMin: 2.5, ageMax: 4 },
+  "EXPLORERS":    { slug: "lera-explorers",  image: COURSE_IMAGES["lera-explorers"],  color: "bg-blue-500",   category: "kids",   ageRange: "5-6",   ageMin: 5,   ageMax: 6 },
+  "PRIMARY":      { slug: "lera-primary",    image: COURSE_IMAGES["lera-primary"],    color: "bg-green-500",  category: "kids",   ageRange: "7-10",  ageMin: 7,   ageMax: 10 },
+  "PHONICS":      { slug: "phonics",         image: COURSE_IMAGES["phonics"] || COURSE_IMAGES["default"], color: "bg-amber-500", category: "kids", ageRange: "4-7", ageMin: 4, ageMax: 7 },
+  "TEENS":        { slug: "lera-teens",      image: COURSE_IMAGES["lera-teens"],      color: "bg-purple-500", category: "teens",  ageRange: "11-14", ageMin: 11,  ageMax: 14 },
+  "IELTS_SAT":    { slug: "ielts-sat",       image: COURSE_IMAGES["ielts-sat"],       color: "bg-indigo-600", category: "teens",  ageRange: "15-17", ageMin: 15,  ageMax: 17 },
+  "BUSINESS":     { slug: "business-english", image: COURSE_IMAGES["business-english"], color: "bg-violet-600", category: "adults", ageRange: "18+", ageMin: 18, ageMax: 99 },
+  "CONVERSATION": { slug: "conversation",    image: COURSE_IMAGES["conversation"] || COURSE_IMAGES["default"], color: "bg-cyan-500", category: "adults", ageRange: "16+", ageMin: 16, ageMax: 99 },
 };
 
 // Fallback courses (LERA Academy English programs - always used if API returns non-English courses)
@@ -77,7 +80,7 @@ export default function CoursesPage() {
     const fetchData = async () => {
       try {
         // Fetch courses from backend
-        const coursesData = await apiFetch("/api/courses/active");
+        const coursesData = await publicFetch("/api/courses/active");
         if (Array.isArray(coursesData) && coursesData.length > 0) {
           // Check if courses are English courses (category === 'ENGLISH') or have valid English course codes
           const englishCourses = coursesData.filter((c: any) => 
@@ -101,12 +104,16 @@ export default function CoursesPage() {
                   nameVi: course.nameVi || course.titleVI || course.name,
                   description: course.description || course.descriptionEN,
                   descriptionVi: course.descriptionVi || course.descriptionVI || course.description,
-                  ageMin: course.ageMin || course.ageFrom || course.minAge,
-                  ageMax: course.ageMax || course.ageTo || course.maxAge,
-                  ageRange: course.ageRange || (course.ageFrom && course.ageTo ? `${course.ageFrom}-${course.ageTo}` : "All ages"),
+                  ageMin: course.ageMin || course.ageFrom || course.minAge || mapping?.ageMin,
+                  ageMax: course.ageMax || course.ageTo || course.maxAge || mapping?.ageMax,
+                  ageRange: course.ageRange || mapping?.ageRange || (course.ageFrom && course.ageTo ? `${course.ageFrom}-${course.ageTo}` : "All ages"),
                   imageUrl: mapping?.image || course.imageUrl || course.image || COURSE_IMAGES["default"],
                   color: mapping?.color || course.color || categoryColors[course.category] || categoryColors.default,
-                  category: course.category || determineCategory(course.ageMin, course.ageMax),
+                  // Filter by AGE GROUP: prefer a real age-group from the API, else the
+                  // code mapping, else derive from age. (API category is a subject, e.g. ENGLISH.)
+                  category: ["kids", "teens", "adults"].includes(String(course.category).toLowerCase())
+                    ? String(course.category).toLowerCase()
+                    : (mapping?.category || determineCategory(course.ageMin || mapping?.ageMin, course.ageMax || mapping?.ageMax)),
                   price: course.price || course.tuitionFee,
                   duration: course.duration,
                   sessionsPerWeek: course.sessionsPerWeek,
@@ -131,7 +138,7 @@ export default function CoursesPage() {
 
       try {
         // Fetch CMS content for hero section
-        const cmsData = await apiFetch("/api/cms-settings/map/courses");
+        const cmsData = await publicFetch("/api/cms-settings/map/courses");
         if (cmsData && typeof cmsData === 'object') {
           setHeroContent({
             title: {
@@ -158,7 +165,7 @@ export default function CoursesPage() {
   function determineCategory(ageMin?: number, ageMax?: number): string {
     if (!ageMin) return "kids";
     if (ageMin >= 18) return "adults";
-    if (ageMin >= 11) return "teens";
+    if (ageMin >= 13) return "teens";
     return "kids";
   }
 

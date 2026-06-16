@@ -15,7 +15,7 @@ import java.util.*;
 @RequestMapping("/api/form-configs")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF','STUDENT','PARENT')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
 public class FormConfigurationController {
     
     private final FormConfigurationRepository formConfigurationRepository;
