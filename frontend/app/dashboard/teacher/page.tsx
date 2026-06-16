@@ -13,6 +13,25 @@ import {
 } from "../../../lib/teacher-context";
 import { useLanguage } from "../../context/LanguageContext";
 
+function statusBadge(status: string): {
+  label: string;
+  pill: string;
+  rowBg: string;
+  time: string;
+} {
+  switch (status.toUpperCase()) {
+    case "COMPLETED":
+      return { label: "Completed", pill: "bg-green-100 text-green-600", rowBg: "bg-green-50", time: "text-green-600" };
+    case "IN_PROGRESS":
+    case "ONGOING":
+      return { label: "In Progress", pill: "bg-blue-100 text-blue-600", rowBg: "bg-blue-50", time: "text-blue-600" };
+    case "CANCELLED":
+      return { label: "Cancelled", pill: "bg-red-100 text-red-600", rowBg: "bg-red-50", time: "text-red-600" };
+    default:
+      return { label: "Upcoming", pill: "bg-gray-100 text-gray-600", rowBg: "bg-gray-50", time: "text-gray-600" };
+  }
+}
+
 export default function TeacherDashboard() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -24,6 +43,15 @@ export default function TeacherDashboard() {
     todaySessions: 0,
     pendingAttendance: 0,
   });
+  type ScheduleRow = {
+    id: string;
+    time: string;
+    className: string;
+    room: string;
+    students: number;
+    status: string;
+  };
+  const [todaySchedule, setTodaySchedule] = useState<ScheduleRow[]>([]);
 
   const quickActions = [
     { label: t("mySchedule"), href: "/dashboard/teacher/schedule", icon: "📅", color: "bg-indigo-600" },
@@ -32,6 +60,7 @@ export default function TeacherDashboard() {
     { label: t("myGrades"), href: "/dashboard/teacher/grades", icon: "📊", color: "bg-orange-600" },
     { label: t("studentList"), href: "/dashboard/teacher/students", icon: "👨‍🎓", color: "bg-purple-600" },
     { label: t("messages"), href: "/dashboard/teacher/messages", icon: "💬", color: "bg-pink-600" },
+    { label: "My Workspace", href: "/dashboard/self-service", icon: "🙋", color: "bg-teal-600" },
   ];
 
   const fetchTeacherStats = async () => {
@@ -52,11 +81,30 @@ export default function TeacherDashboard() {
           )
         ),
       ]);
+      const classById = new Map(classes.map((c) => [String(c.id), c]));
       const todaySessions = sessionLists
         .flat()
-        .filter((s): s is { sessionDate?: string; status?: string } => !!s && typeof s === "object")
+        .filter(
+          (s): s is { id?: string; classId?: string; startTime?: string; sessionDate?: string; status?: string } =>
+            !!s && typeof s === "object"
+        )
         .filter((s) => String(s.sessionDate || "").startsWith(today));
       const pendingAttendance = todaySessions.filter((s) => s.status !== "COMPLETED").length;
+
+      const schedule: ScheduleRow[] = todaySessions
+        .map((s) => {
+          const cls = classById.get(String(s.classId));
+          return {
+            id: String(s.id ?? `${s.classId}-${s.startTime ?? ""}`),
+            time: String(s.startTime || "").slice(0, 5) || "—",
+            className: cls?.className || cls?.name || "Class",
+            room: cls?.room || "",
+            students: cls?.enrolledCount ?? 0,
+            status: String(s.status || "SCHEDULED"),
+          };
+        })
+        .sort((a, b) => a.time.localeCompare(b.time));
+      setTodaySchedule(schedule);
 
       setStatsData({
         myClasses: classes.length,
@@ -150,32 +198,29 @@ export default function TeacherDashboard() {
       {/* Today's Schedule */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4">{t("todaysSchedule")}</h2>
-        <div className="space-y-4">
-          <div className="flex items-center p-4 bg-blue-50 rounded-lg">
-            <div className="text-blue-600 font-bold mr-4">09:00</div>
-            <div className="flex-1">
-              <p className="font-medium">English Beginners - Class A</p>
-              <p className="text-sm text-gray-500">Room 101 • 25 students</p>
-            </div>
-            <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm">Completed</span>
+        {todaySchedule.length === 0 ? (
+          <p className="text-gray-500 text-sm py-6 text-center">{t("noSessionsToday")}</p>
+        ) : (
+          <div className="space-y-4">
+            {todaySchedule.map((row) => {
+              const badge = statusBadge(row.status);
+              return (
+                <div key={row.id} className={`flex items-center p-4 ${badge.rowBg} rounded-lg`}>
+                  <div className={`${badge.time} font-bold mr-4`}>{row.time}</div>
+                  <div className="flex-1">
+                    <p className="font-medium">{row.className}</p>
+                    <p className="text-sm text-gray-500">
+                      {[row.room && `Room ${row.room}`, `${row.students} ${t("studentsLabel")}`]
+                        .filter(Boolean)
+                        .join(" • ")}
+                    </p>
+                  </div>
+                  <span className={`px-3 py-1 ${badge.pill} rounded-full text-sm`}>{badge.label}</span>
+                </div>
+              );
+            })}
           </div>
-          <div className="flex items-center p-4 bg-purple-50 rounded-lg">
-            <div className="text-purple-600 font-bold mr-4">11:00</div>
-            <div className="flex-1">
-              <p className="font-medium">IELTS Preparation</p>
-              <p className="text-sm text-gray-500">Room 203 • 15 students</p>
-            </div>
-            <span className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm">In Progress</span>
-          </div>
-          <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-gray-600 font-bold mr-4">14:00</div>
-            <div className="flex-1">
-              <p className="font-medium">Advanced Speaking</p>
-              <p className="text-sm text-gray-500">Room 105 • 12 students</p>
-            </div>
-            <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">Upcoming</span>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

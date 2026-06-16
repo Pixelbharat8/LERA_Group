@@ -61,7 +61,7 @@ public class InvoiceServiceImpl {
     }
 
     /**
-     * Invoices for all children linked to a parent (requires students.parent_id in DB).
+     * Invoices for all children linked to a parent (via the student_parents link table).
      */
     public List<Invoice> getInvoicesForParent(UUID parentId) {
         return invoiceRepository.findByParentIdJoinStudents(parentId);
@@ -129,9 +129,11 @@ public class InvoiceServiceImpl {
     private void notifyParentInvoicePaid(Invoice invoice) {
         try {
             var row = jdbcTemplate.queryForMap(
-                    "SELECT s.parent_id, s.fullname, u.email AS parent_email "
+                    "SELECT pp.parent_id, s.fullname, u.email AS parent_email "
                             + "FROM students s "
-                            + "LEFT JOIN users u ON u.id = s.parent_id "
+                            + "LEFT JOIN LATERAL (SELECT sp.parent_id FROM student_parents sp "
+                            + "  WHERE sp.student_id = s.id ORDER BY sp.is_primary DESC NULLS LAST LIMIT 1) pp ON true "
+                            + "LEFT JOIN users u ON u.id = pp.parent_id "
                             + "WHERE s.id = ?",
                     invoice.getStudentId());
             Object pid = row.get("parent_id");

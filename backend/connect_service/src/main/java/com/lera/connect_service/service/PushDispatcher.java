@@ -49,17 +49,25 @@ public class PushDispatcher {
      * (FCM {@code data}, APNs custom fields, Web Push JSON envelope).
      */
     public void send(UUID userId, String title, String body, Map<String, String> data) {
-        List<DeviceToken> tokens = (userId == null)
-                ? deviceTokenRepository.findAll()
-                : deviceTokenRepository.findByUserId(userId);
-
-        if (tokens.isEmpty()) {
-            log.debug("push.send: no device tokens for {}",
-                    userId == null ? "broadcast" : userId);
+        if (userId != null) {
+            dispatchBatch(deviceTokenRepository.findByUserId(userId), userId.toString(), title, body, data);
             return;
         }
+        // Broadcast: page through device tokens in chunks so we never load the whole table at once.
+        int page = 0;
+        org.springframework.data.domain.Page<DeviceToken> chunk;
+        do {
+            chunk = deviceTokenRepository.findAll(org.springframework.data.domain.PageRequest.of(page, 500));
+            dispatchBatch(chunk.getContent(), "broadcast", title, body, data);
+            page++;
+        } while (chunk.hasNext());
+    }
 
-        String label = userId == null ? "broadcast" : userId.toString();
+    private void dispatchBatch(List<DeviceToken> tokens, String label, String title, String body, Map<String, String> data) {
+        if (tokens.isEmpty()) {
+            log.debug("push.send: no device tokens for {}", label);
+            return;
+        }
         int delivered = 0, dryRun = 0, retry = 0, dead = 0;
         for (DeviceToken t : tokens) {
             if (!enabled) {

@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useLanguage } from "../../context/LanguageContext";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import { apiFetch } from "../../../lib/api";
+import { publicFetch } from "../../../lib/api";
 import { TRIAL_BOOKING_LEAD_CONTEXT } from "../../../lib/english-centre-vertical-scope";
 import { useWebsiteSettings } from "@/hooks/useWebsiteSettings";
 
@@ -41,7 +41,9 @@ const slugToCode: Record<string, string> = {
   "lera-primary": "PRIMARY",
   "lera-teens": "TEENS",
   "ielts-sat": "IELTS_SAT",
-  "business-english": "BUSINESS"
+  "business-english": "BUSINESS",
+  "conversation": "CONVERSATION",
+  "phonics": "PHONICS"
 };
 
 // Default content for fallback
@@ -194,7 +196,7 @@ export default function CourseDetailPage() {
   const fetchCourseData = async () => {
     try {
       // Try to fetch all courses from API
-      const courses = await apiFetch("/api/courses/active").catch(() => []);
+      const courses = await publicFetch("/api/courses/active").catch(() => []);
       
       if (Array.isArray(courses) && courses.length > 0) {
         // Find the current course by slug or code
@@ -334,7 +336,7 @@ export default function CourseDetailPage() {
         website: formData.website,
       };
       
-      await apiFetch("/api/public/leads", {
+      await publicFetch("/api/public/leads", {
         method: "POST",
         body: JSON.stringify(leadData)
       });

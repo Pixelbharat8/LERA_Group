@@ -79,56 +79,9 @@ export default function NotificationsPage() {
       const data = await apiFetch(`/api/notifications/user/${userId}`);
       setNotifications(Array.isArray(data) ? data : data.content || []);
     } catch (error) {
-      // Fallback notifications
-      setNotifications([
-        {
-          id: "1",
-          title: isVietnamese ? "Chào mừng đến LERA!" : "Welcome to LERA!",
-          message: isVietnamese 
-            ? "Cảm ơn bạn đã tham gia LERA Academy. Khám phá các tính năng của chúng tôi!" 
-            : "Thank you for joining LERA Academy. Explore our features!",
-          type: "info",
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          category: "System",
-        },
-        {
-          id: "2",
-          title: isVietnamese ? "Lớp học sắp bắt đầu" : "Class Starting Soon",
-          message: isVietnamese 
-            ? "Lớp tiếng Anh nâng cao sẽ bắt đầu trong 30 phút" 
-            : "Your Advanced English class starts in 30 minutes",
-          type: "warning",
-          isRead: false,
-          createdAt: new Date(Date.now() - 1800000).toISOString(),
-          category: "Class",
-          link: "/dashboard/student/schedule",
-        },
-        {
-          id: "3",
-          title: isVietnamese ? "Điểm số mới" : "New Grade Posted",
-          message: isVietnamese 
-            ? "Giáo viên đã đăng điểm bài kiểm tra tuần" 
-            : "Your teacher has posted your weekly test score",
-          type: "success",
-          isRead: true,
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          category: "Grade",
-          link: "/dashboard/student/grades",
-        },
-        {
-          id: "4",
-          title: isVietnamese ? "Thanh toán thành công" : "Payment Successful",
-          message: isVietnamese 
-            ? "Thanh toán học phí tháng 2 đã hoàn tất" 
-            : "Your February tuition payment has been processed",
-          type: "success",
-          isRead: true,
-          createdAt: new Date(Date.now() - 172800000).toISOString(),
-          category: "Payment",
-          link: "/dashboard/student/payments",
-        },
-      ]);
+      // Don't fabricate notifications on failure — show the real (empty) state.
+      console.error("Failed to load notifications:", error);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }

@@ -44,7 +44,7 @@ public class PaymentAccessService {
             return false;
         }
         Long c = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM students WHERE id = ? AND parent_id = ?",
+                "SELECT COUNT(*) FROM student_parents WHERE student_id = ? AND parent_id = ?",
                 Long.class, studentId, parentUserId);
         return c != null && c > 0;
     }

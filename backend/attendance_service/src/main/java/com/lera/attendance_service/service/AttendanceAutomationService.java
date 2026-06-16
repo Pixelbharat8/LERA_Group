@@ -305,18 +305,20 @@ public class AttendanceAutomationService {
         }
         LocalDate tomorrow = LocalDate.now().plusDays(1);
         int dow = tomorrow.getDayOfWeek().getValue() % 7;
+        // Parent links live in the student_parents junction table — the legacy students.parent_id
+        // column is unused/NULL, so joining it meant NO class reminders were ever sent to parents.
         final String sql = """
-                SELECT s.parent_id, u.email AS parent_email, c.name AS class_name,
+                SELECT sp.parent_id, u.email AS parent_email, c.name AS class_name,
                        cs.start_time::text AS start_t, cs.end_time::text AS end_t
                 FROM class_schedules cs
                 INNER JOIN classes c ON c.id = cs.class_id
                 INNER JOIN class_students cst ON cst.class_id = c.id
                         AND UPPER(TRIM(COALESCE(cst.status, ''))) = 'ACTIVE'
                 INNER JOIN students s ON s.id = cst.student_id
-                LEFT JOIN users u ON u.id = s.parent_id
+                INNER JOIN student_parents sp ON sp.student_id = s.id
+                LEFT JOIN users u ON u.id = sp.parent_id
                 WHERE UPPER(TRIM(COALESCE(c.status, ''))) = 'ONGOING'
                   AND cs.day_of_week = ?
-                  AND s.parent_id IS NOT NULL
                 """;
         try {
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, dow);

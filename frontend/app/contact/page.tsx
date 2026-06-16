@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { apiFetch } from "../../lib/api";
+import { publicFetch } from "../../lib/api";
 import Image from "next/image";
 import { GALLERY_IMAGES, HERO_IMAGES } from "../../config/images";
 
@@ -116,7 +116,7 @@ export default function ContactPage() {
     const fetchContent = async () => {
       try {
         // Try to fetch contact settings from CMS
-        const settings = await apiFetch("/api/cms-settings/map/contact");
+        const settings = await publicFetch("/api/cms-settings/map/contact");
         if (settings && typeof settings === 'object') {
           setCmsData(settings);
           const langKey = language === 'VI' ? 'vi' : 'en';
@@ -139,7 +139,7 @@ export default function ContactPage() {
 
       try {
         // Try to fetch FAQs from API
-        const faqData = await apiFetch("/api/faqs?page=contact");
+        const faqData = await publicFetch("/api/faqs/page/contact");
         if (Array.isArray(faqData) && faqData.length > 0) {
           setFaqs(faqData);
         }
@@ -171,7 +171,8 @@ export default function ContactPage() {
     try {
       const leadData = {
         parentName: formData.name,
-        parentPhone: defaultContactInfo.phone,
+        // The contact form has no phone field — email is the contact channel here.
+        // (Previously this sent the centre's own number, mis-tagging every lead.)
         parentEmail: formData.email,
         notes: `Contact Form - Subject: ${formData.subject}\nMessage: ${formData.message}`,
         utmSource: "website",
@@ -180,7 +181,7 @@ export default function ContactPage() {
         website: formData.website,
       };
       
-      await apiFetch("/api/public/leads", {
+      await publicFetch("/api/public/leads", {
         method: "POST",
         body: JSON.stringify(leadData)
       });

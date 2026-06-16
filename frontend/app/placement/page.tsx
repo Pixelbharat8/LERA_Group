@@ -5,7 +5,7 @@ import Link from "next/link";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useLanguage } from "../context/LanguageContext";
-import { apiFetch } from "../../lib/api";
+import { publicFetch } from "../../lib/api";
 import { FUNNEL_NOTES_PREFIX, PLACEMENT_QUIZ_LEAD_CONTEXT } from "../../lib/english-centre-vertical-scope";
 
 type Q = { id: string; en: string; vi: string };
@@ -63,7 +63,7 @@ export default function PlacementPage() {
       `Suggested track: ${recommendation.track}. Answers: ${detail}`;
 
     try {
-      await apiFetch("/api/public/leads", {
+      await publicFetch("/api/public/leads", {
         method: "POST",
         body: JSON.stringify({
           parentName: contact.name.trim(),

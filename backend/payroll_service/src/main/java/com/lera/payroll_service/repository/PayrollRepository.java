@@ -21,7 +21,7 @@ public interface PayrollRepository extends JpaRepository<PayrollRecord, UUID> {
     
     List<PayrollRecord> findByPayPeriodStartAndPayPeriodEnd(LocalDate start, LocalDate end);
     
-    @Query("SELECT SUM(p.totalAmount) FROM PayrollRecord p WHERE p.status = 'PAID'")
+    @Query("SELECT COALESCE(SUM(p.totalAmount), 0) FROM PayrollRecord p WHERE p.status = 'PAID'")
     BigDecimal getTotalPayroll();
     
     @Query("SELECT COUNT(p) FROM PayrollRecord p WHERE p.status = :status")

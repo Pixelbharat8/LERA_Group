@@ -16,7 +16,7 @@ import org.springframework.data.domain.Page;
 @RestController
 @RequestMapping("/api/tenant-settings")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF','STUDENT','PARENT')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
 public class TenantSettingsController {
     
     private final TenantSettingsRepository tenantSettingsRepository;

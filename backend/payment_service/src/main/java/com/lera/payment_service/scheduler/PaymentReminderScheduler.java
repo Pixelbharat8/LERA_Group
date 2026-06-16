@@ -68,7 +68,9 @@ public class PaymentReminderScheduler {
         if (inv.getStudentId() == null) return false;
         try {
             Map<String, Object> row = jdbcTemplate.queryForMap(
-                    "SELECT s.parent_id, s.fullname FROM students s WHERE s.id = ?", inv.getStudentId());
+                    "SELECT (SELECT sp.parent_id FROM student_parents sp WHERE sp.student_id = s.id "
+                            + "ORDER BY sp.is_primary DESC NULLS LAST LIMIT 1) AS parent_id, s.fullname "
+                            + "FROM students s WHERE s.id = ?", inv.getStudentId());
             Object pid = row.get("parent_id");
             if (pid == null) return false;
             UUID parentId = pid instanceof UUID u ? u : UUID.fromString(pid.toString());

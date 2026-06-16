@@ -28,12 +28,14 @@ public class FaqController {
 
     // Get active FAQs (public website)
     @GetMapping("/public")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<List<Faq>> getActiveFaqs() {
         return ResponseEntity.ok(faqRepository.findByIsActiveTrueOrderByDisplayOrderAsc());
     }
 
     // Get FAQs by page (contact, courses, about, etc.)
     @GetMapping("/page/{page}")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<List<Faq>> getFaqsByPage(@PathVariable String page) {
         return ResponseEntity.ok(faqRepository.findByPageAndIsActiveTrueOrderByDisplayOrderAsc(page));
     }

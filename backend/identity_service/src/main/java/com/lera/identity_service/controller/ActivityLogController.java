@@ -23,6 +23,8 @@ public class ActivityLogController {
 
     private final ActivityLogService activityLogService;
 
+    // Writing activity/audit records is staff-only — students/parents must not forge logs for other users.
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','TEACHER','STAFF')")
     @PostMapping
     public ResponseEntity<ApiResponse<ActivityLog>> logActivity(
             @RequestParam UUID userId,

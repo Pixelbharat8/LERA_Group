@@ -136,13 +136,17 @@ export function hasAuthSession(): boolean {
   return Boolean(Cookies.get("token") || Cookies.get("tokenSet") || getNativeAuthToken());
 }
 
-export async function apiFetch(path: string, init: RequestInit = {}) {
+export async function apiFetch(
+  path: string,
+  init: RequestInit = {},
+  opts: { anonymous?: boolean } = {}
+) {
   let res = await doFetch(path, init);
 
   // Try to refresh on 401, once, but only if we have any indication of an
   // existing session — otherwise we're just hitting a protected endpoint
   // anonymously and there's nothing to refresh.
-  if (res.status === 401 && hasAuthSession()) {
+  if (res.status === 401 && !opts.anonymous && hasAuthSession()) {
     const ok = await tryRefreshToken();
     if (ok) {
       res = await doFetch(path, init);
@@ -154,18 +158,35 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
 
   if (!res.ok) {
     if (res.status === 401) {
-      redirectToLogin();
+      // Public/marketing pages opt out of the login bounce: a 401 there just
+      // means "no content for anonymous users", so we throw and let the caller
+      // fall back to defaults instead of yanking the visitor to /auth/login.
+      if (!opts.anonymous) {
+        redirectToLogin();
+      }
       throw new Error("Session expired. Redirecting to login...");
     }
     const msg = (data && (data.message || data.error)) || res.statusText;
     const finalMsg = typeof msg === "string" ? msg : "Request failed";
     // Surface non-401 errors to the global toast container. Callers can still
     // catch the throw for their own UX; this just guarantees something is shown.
-    if (typeof window !== "undefined") {
+    // Anonymous (public-page) calls stay silent — they degrade to defaults.
+    if (typeof window !== "undefined" && !opts.anonymous) {
       window.dispatchEvent(new CustomEvent("lera:error", { detail: { message: finalMsg } }));
     }
     throw new Error(finalMsg);
   }
 
   return data;
+}
+
+/**
+ * Fetch for PUBLIC pages (marketing site: /about, /courses, /contact, …).
+ * Identical to apiFetch but never redirects to login and never raises a global
+ * error toast on failure — a 401/empty response just throws so the caller can
+ * fall back to its default content. Use this anywhere an unauthenticated
+ * visitor must be able to view the page.
+ */
+export async function publicFetch(path: string, init: RequestInit = {}) {
+  return apiFetch(path, init, { anonymous: true });
 }

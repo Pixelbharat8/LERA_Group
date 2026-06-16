@@ -15,6 +15,20 @@ interface DashboardStats {
   todayClasses: number;
 }
 
+function scheduleStatusBadge(status: string): { label: string; cls: string } {
+  switch (status.toUpperCase()) {
+    case "COMPLETED":
+      return { label: "Completed", cls: "bg-green-100 text-green-800" };
+    case "IN_PROGRESS":
+    case "ONGOING":
+      return { label: "In Progress", cls: "bg-blue-100 text-blue-800" };
+    case "CANCELLED":
+      return { label: "Cancelled", cls: "bg-red-100 text-red-800" };
+    default:
+      return { label: "Upcoming", cls: "bg-gray-100 text-gray-800" };
+  }
+}
+
 export default function CenterAdminDashboard() {
   const { t } = useLanguage();
   const [stats, setStats] = useState<DashboardStats>({
@@ -26,6 +40,15 @@ export default function CenterAdminDashboard() {
     todayClasses: 0,
   });
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  type ScheduleRow = {
+    id: string;
+    time: string;
+    className: string;
+    teacher: string;
+    students: number | string;
+    status: string;
+  };
+  const [todaySchedule, setTodaySchedule] = useState<ScheduleRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -85,20 +108,63 @@ export default function CenterAdminDashboard() {
         return typeof st === "string" && st.toUpperCase() === "PENDING";
       }).length;
 
+      const classesArr = Array.isArray(classes) ? classes : [];
+      const teachersArr = Array.isArray(teachers) ? teachers : [];
+
       setStats({
         totalStudents: Array.isArray(students) ? students.length : 0,
-        totalTeachers: Array.isArray(teachers) ? teachers.length : 0,
-        totalClasses: Array.isArray(classes) ? classes.length : 0,
+        totalTeachers: teachersArr.length,
+        totalClasses: classesArr.length,
         pendingAttendance,
         pendingLeaves,
-        todayClasses: Array.isArray(classes) ? classes.length : 0,
+        todayClasses: classesArr.length,
       });
 
-      setRecentActivities([
-        { type: "enrollment", message: "New student enrolled in English Advanced", time: "2 hours ago" },
-        { type: "attendance", message: "Morning attendance submitted", time: "3 hours ago" },
-        { type: "leave", message: "Leave request from Teacher A", time: "5 hours ago" },
-      ]);
+      // Recent activity from REAL data: newest enrolled students for this center.
+      const studentsArr = Array.isArray(students) ? students : [];
+      const recent = [...studentsArr]
+        .filter((s: any) => s?.createdAt)
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
+        .map((s: any) => ({
+          type: "enrollment",
+          message: `New student enrolled: ${s.fullname || s.fullName || s.name || s.studentCode || "Student"}`,
+          time: new Date(s.createdAt).toLocaleDateString(),
+        }));
+      setRecentActivities(recent);
+
+      // Today's Schedule from REAL class sessions for this center's classes.
+      const teacherById = new Map(
+        teachersArr.map((tt: any) => [
+          String(tt.id),
+          tt.fullName || tt.fullname || tt.name ||
+            `${tt.firstName || ""} ${tt.lastName || ""}`.trim() || "—",
+        ])
+      );
+      const classById = new Map(classesArr.map((c: any) => [String(c.id), c]));
+      const today = new Date().toISOString().split("T")[0];
+      const sessionLists = await Promise.all(
+        classesArr.map((c: any) => apiFetch(`/api/class-sessions?classId=${c.id}`).catch(() => []))
+      );
+      const schedule: ScheduleRow[] = sessionLists
+        .flat()
+        .filter((s: any) => s && typeof s === "object" && String(s.sessionDate || "").startsWith(today))
+        .map((s: any) => {
+          const cls: any = classById.get(String(s.classId));
+          const tName = cls?.teacherId ? teacherById.get(String(cls.teacherId)) : undefined;
+          const start = String(s.startTime || "").slice(0, 5);
+          const end = String(s.endTime || "").slice(0, 5);
+          return {
+            id: String(s.id ?? `${s.classId}-${start}`),
+            time: start && end ? `${start} - ${end}` : start || "—",
+            className: cls?.name || cls?.className || "Class",
+            teacher: tName || "—",
+            students: cls?.currentEnrollment ?? cls?.enrolledCount ?? "—",
+            status: String(s.status || "SCHEDULED"),
+          };
+        })
+        .sort((a, b) => a.time.localeCompare(b.time));
+      setTodaySchedule(schedule);
     } catch (err) {
       console.error("Failed to fetch dashboard data:", err);
     } finally {
@@ -220,27 +286,28 @@ export default function CenterAdminDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              <tr>
-                <td className="py-3">09:00 - 10:30</td>
-                <td className="py-3">English Beginner A</td>
-                <td className="py-3">John Smith</td>
-                <td className="py-3">12</td>
-                <td className="py-3"><span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Completed</span></td>
-              </tr>
-              <tr>
-                <td className="py-3">10:30 - 12:00</td>
-                <td className="py-3">Math Advanced</td>
-                <td className="py-3">Jane Doe</td>
-                <td className="py-3">8</td>
-                <td className="py-3"><span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">In Progress</span></td>
-              </tr>
-              <tr>
-                <td className="py-3">14:00 - 15:30</td>
-                <td className="py-3">Science Lab</td>
-                <td className="py-3">Mike Johnson</td>
-                <td className="py-3">15</td>
-                <td className="py-3"><span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">Upcoming</span></td>
-              </tr>
+              {todaySchedule.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-gray-400 text-sm">
+                    No sessions scheduled today.
+                  </td>
+                </tr>
+              ) : (
+                todaySchedule.map((row) => {
+                  const badge = scheduleStatusBadge(row.status);
+                  return (
+                    <tr key={row.id}>
+                      <td className="py-3">{row.time}</td>
+                      <td className="py-3">{row.className}</td>
+                      <td className="py-3">{row.teacher}</td>
+                      <td className="py-3">{row.students}</td>
+                      <td className="py-3">
+                        <span className={`px-2 py-1 text-xs rounded-full ${badge.cls}`}>{badge.label}</span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

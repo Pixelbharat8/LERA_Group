@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { apiFetch } from "../../lib/api";
+import { publicFetch } from "../../lib/api";
 
 interface FAQ {
   id: string;
@@ -115,7 +115,7 @@ export default function FAQPage() {
 
   const fetchFAQs = async () => {
     try {
-      const data = await apiFetch("/api/faqs/public");
+      const data = await publicFetch("/api/faqs/public");
       setFaqs(Array.isArray(data) ? data : data.content || fallbackFAQs);
     } catch (error) {
       console.error("Error fetching FAQs:", error);

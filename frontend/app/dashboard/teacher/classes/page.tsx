@@ -33,12 +33,41 @@ interface Student {
   currentGrade?: string;
 }
 
+interface Session {
+  id: string;
+  sessionDate: string;
+  startTime?: string;
+  endTime?: string;
+  status: string;
+  topic?: string;
+}
+
+interface Material {
+  key: string;
+  label: string;
+  url: string;
+  type: "ppt" | "worksheet" | "video" | "audio" | "link";
+  context: string; // lesson plan title + date
+}
+
+interface GradeRow {
+  studentId: string;
+  fullname: string;
+  count: number;
+  average: number | null;
+  passed: number;
+}
+
 export default function TeacherClassesPage() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [classStudents, setClassStudents] = useState<Student[]>([]);
-  const [activeTab, setActiveTab] = useState<"students" | "attendance" | "grades">("students");
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [grades, setGrades] = useState<GradeRow[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"students" | "sessions" | "materials" | "grades">("students");
 
   useEffect(() => {
     fetchClasses();
@@ -53,23 +82,39 @@ export default function TeacherClassesPage() {
         return;
       }
       const mapped = await loadScopedClasses("teacher", teacherEntityId);
-      const mappedClasses: Class[] = mapped.map((c) => ({
-        id: c.id,
-        className: c.className,
-        courseId: c.programId,
-        courseName: c.programName,
-        courseCode: "",
-        schedule: c.schedule,
-        room: c.room,
-        capacity: c.capacity,
-        enrolledCount: c.enrolledCount,
-        status: c.status,
-        attendanceToday: false,
-      }));
+      const today = new Date().toISOString().split("T")[0];
+      // Pull today's sessions per class so "attendance pending" is REAL, not static.
+      const sessionLists = await Promise.all(
+        mapped.map((c) =>
+          apiFetch(`/api/class-sessions?classId=${c.id}`).catch(() => [])
+        )
+      );
+      const mappedClasses: Class[] = mapped.map((c, i) => {
+        const list = Array.isArray(sessionLists[i]) ? sessionLists[i] : [];
+        const todays = list.filter((s: any) => String(s?.sessionDate || "").startsWith(today));
+        const done = todays.length > 0 && todays.every((s: any) => s.status === "COMPLETED");
+        const nextSession = [...list]
+          .filter((s: any) => s?.sessionDate && new Date(s.sessionDate).getTime() >= Date.now() - 86400000)
+          .sort((a: any, b: any) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())[0];
+        return {
+          id: c.id,
+          className: c.className,
+          courseId: c.programId,
+          courseName: c.programName,
+          courseCode: "",
+          schedule: c.schedule,
+          room: c.room,
+          capacity: c.capacity,
+          enrolledCount: c.enrolledCount,
+          status: c.status,
+          attendanceToday: todays.length > 0 ? done : true, // no session today => nothing pending
+          nextSession: nextSession?.sessionDate,
+        };
+      });
       setClasses(mappedClasses);
       if (mappedClasses.length > 0) {
         setSelectedClass(mappedClasses[0]);
-        fetchClassStudents(mappedClasses[0].id);
+        fetchClassDetail(mappedClasses[0].id, mappedClasses[0]);
       }
     } catch (err) {
       console.error(err);
@@ -79,45 +124,107 @@ export default function TeacherClassesPage() {
     }
   };
 
-  const fetchClassStudents = async (classId: string) => {
+  const fetchClassDetail = async (classId: string, _cls: Class) => {
+    setDetailLoading(true);
+    setClassStudents([]);
+    setSessions([]);
+    setMaterials([]);
+    setGrades([]);
     try {
-      const enrollments = await apiFetch(`/api/enrollments?classId=${classId}`);
+      const [enrollments, sessionList, lessonPlans] = await Promise.all([
+        apiFetch(`/api/enrollments?classId=${classId}`).catch(() => []),
+        apiFetch(`/api/class-sessions?classId=${classId}`).catch(() => []),
+        apiFetch(`/api/lesson-plans?classId=${classId}`).catch(() => []),
+      ]);
+
+      // --- Sessions (real) ---
+      const sList: Session[] = (Array.isArray(sessionList) ? sessionList : [])
+        .map((s: any) => ({
+          id: String(s.id),
+          sessionDate: s.sessionDate,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          status: String(s.status || "SCHEDULED"),
+          topic: s.topic,
+        }))
+        .sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime());
+      setSessions(sList);
+
+      // --- Materials from per-class lesson plans (real files) ---
+      const mats: Material[] = [];
+      (Array.isArray(lessonPlans) ? lessonPlans : []).forEach((lp: any) => {
+        const ctx = [lp.title, lp.planDate ? new Date(lp.planDate).toLocaleDateString() : ""]
+          .filter(Boolean).join(" • ") || "Lesson plan";
+        const add = (url: string | undefined, label: string, type: Material["type"]) => {
+          if (url && String(url).trim()) mats.push({ key: `${lp.id}-${type}`, label, url: String(url), type, context: ctx });
+        };
+        add(lp.powerpointUrl, lp.powerpointName || "PowerPoint", "ppt");
+        add(lp.worksheetUrl, lp.worksheetName || "Worksheet", "worksheet");
+        add(lp.videoUrl, "Video", "video");
+        add(lp.audioUrl, "Audio", "audio");
+        // additionalResources may hold a URL or free text; surface only if it looks like a link
+        if (lp.additionalResources && /^https?:\/\//i.test(String(lp.additionalResources).trim())) {
+          add(lp.additionalResources, "Additional resource", "link");
+        }
+      });
+      setMaterials(mats);
+
+      // --- Students (real) ---
       const enrollmentsArray = Array.isArray(enrollments) ? enrollments : [];
-      
-      if (enrollmentsArray.length > 0) {
-        const studentIds = enrollmentsArray.map((e: any) => e.studentId).filter(Boolean);
-        const studentsData = await Promise.all(
-          studentIds.map(async (id: string) => {
-            try {
-              return await apiFetch(`/api/students/${id}`);
-            } catch {
-              return null;
-            }
-          })
-        );
-        const validStudents: Student[] = studentsData.filter(Boolean).map((s: any) => ({
-          id: s.id,
-          fullname: s.fullname || s.fullName || "Unknown",
-          studentCode: s.studentCode || s.student_code || "",
-          email: s.email || "",
-          attendanceRate: s.attendanceRate || 0,
-          currentGrade: s.currentGrade || s.grade || "N/A"
-        }));
-        setClassStudents(validStudents);
-      } else {
-        setClassStudents([]);
-      }
+      const studentIds = enrollmentsArray.map((e: any) => e.studentId).filter(Boolean);
+      const studentsData = await Promise.all(
+        studentIds.map((id: string) => apiFetch(`/api/students/${id}`).catch(() => null))
+      );
+      const validStudents: Student[] = studentsData.filter(Boolean).map((s: any) => ({
+        id: s.id,
+        fullname: s.fullname || s.fullName || "Unknown",
+        studentCode: s.studentCode || s.student_code || "",
+        email: s.email || "",
+        attendanceRate: s.attendanceRate || 0,
+        currentGrade: s.currentGrade || s.grade || "N/A",
+      }));
+      setClassStudents(validStudents);
+
+      // --- Grades (real, per student for this class) ---
+      const gradeRows: GradeRow[] = await Promise.all(
+        validStudents.map(async (st) => {
+          const res = await apiFetch(`/api/grades?studentId=${st.id}&classId=${classId}`).catch(() => []);
+          const arr = Array.isArray(res) ? res : [];
+          const pcts = arr
+            .map((g: any) => Number(g.percentage ?? g.score))
+            .filter((n: number) => !isNaN(n));
+          const passed = arr.filter((g: any) => g.passed === true || g.isPassed === true).length;
+          return {
+            studentId: st.id,
+            fullname: st.fullname,
+            count: arr.length,
+            average: pcts.length ? Math.round((pcts.reduce((a, b) => a + b, 0) / pcts.length) * 10) / 10 : null,
+            passed,
+          };
+        })
+      );
+      setGrades(gradeRows);
     } catch (error) {
       console.error(error);
-      setClassStudents([]);
+    } finally {
+      setDetailLoading(false);
     }
   };
 
   const handleSelectClass = (cls: Class) => {
     setSelectedClass(cls);
-    fetchClassStudents(cls.id);
+    fetchClassDetail(cls.id, cls);
     setActiveTab("students");
   };
+
+  const messageAll = () => {
+    if (!selectedClass) return;
+    // Open the messaging surface scoped to this class so the teacher can broadcast.
+    window.location.href = `/dashboard/connect?classId=${selectedClass.id}&className=${encodeURIComponent(selectedClass.className)}`;
+  };
+
+  const materialIcon = (type: Material["type"]) =>
+    type === "ppt" ? "📊" : type === "worksheet" ? "📝" : type === "video" ? "🎬" : type === "audio" ? "🎧" : "🔗";
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -314,7 +421,7 @@ export default function TeacherClassesPage() {
                     >
                       📝 Add Grades
                     </Link>
-                    <button className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700">
+                    <button onClick={messageAll} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700">
                       💬 Message All
                     </button>
                   </div>
@@ -324,8 +431,9 @@ export default function TeacherClassesPage() {
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                   <div className="flex border-b border-gray-200">
                     {[
-                      { id: "students", label: "Students", icon: "👥" },
-                      { id: "attendance", label: "Attendance", icon: "✅" },
+                      { id: "students", label: `Students (${classStudents.length})`, icon: "👥" },
+                      { id: "sessions", label: `Sessions (${sessions.length})`, icon: "📅" },
+                      { id: "materials", label: `Materials (${materials.length})`, icon: "📂" },
                       { id: "grades", label: "Grades", icon: "📝" },
                     ].map((tab) => (
                       <button
@@ -394,51 +502,114 @@ export default function TeacherClassesPage() {
                       </div>
                     )}
 
-                    {activeTab === "attendance" && (
-                      <div className="text-center py-8">
-                        <div className="text-4xl mb-4">✅</div>
-                        <h3 className="text-lg font-semibold mb-2">Attendance Management</h3>
-                        <p className="text-gray-500 mb-4">Take and manage attendance for this class</p>
-                        <Link
-                          href={`/dashboard/teacher/attendance?classId=${selectedClass.id}`}
-                          className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 inline-block"
-                        >
-                          Go to Attendance
-                        </Link>
-                      </div>
+                    {activeTab === "sessions" && (
+                      detailLoading ? (
+                        <p className="text-center text-gray-400 py-8">Loading sessions…</p>
+                      ) : sessions.length === 0 ? (
+                        <div className="text-center py-8">
+                          <div className="text-4xl mb-4">📅</div>
+                          <p className="text-gray-500 mb-4">No sessions scheduled for this class yet.</p>
+                          <Link href={`/dashboard/teacher/attendance?classId=${selectedClass.id}`} className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 inline-block">
+                            Take Attendance
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {sessions.map((s) => {
+                            const badge = getStatusColor(s.status === "COMPLETED" ? "COMPLETED" : s.status === "IN_PROGRESS" ? "ACTIVE" : "UPCOMING");
+                            const time = [s.startTime, s.endTime].filter(Boolean).map((t) => String(t).slice(0, 5)).join(" – ");
+                            return (
+                              <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div>
+                                  <div className="font-medium text-gray-900">
+                                    {new Date(s.sessionDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                                    {time && <span className="text-gray-500 font-normal"> · {time}</span>}
+                                  </div>
+                                  {s.topic && <div className="text-xs text-gray-500">{s.topic}</div>}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${badge}`}>{s.status}</span>
+                                  <Link href={`/dashboard/teacher/attendance?classId=${selectedClass.id}`} className="text-green-600 hover:text-green-700 text-sm">Attendance →</Link>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )
+                    )}
+
+                    {activeTab === "materials" && (
+                      detailLoading ? (
+                        <p className="text-center text-gray-400 py-8">Loading materials…</p>
+                      ) : materials.length === 0 ? (
+                        <div className="text-center py-8">
+                          <div className="text-4xl mb-4">📂</div>
+                          <h3 className="text-lg font-semibold mb-1">No materials yet</h3>
+                          <p className="text-gray-500">Teaching materials attached to this class's lesson plans (PowerPoint, worksheets, video, audio) will appear here.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {materials.map((m) => (
+                            <a
+                              key={m.key}
+                              href={m.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition group"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{materialIcon(m.type)}</span>
+                                <div>
+                                  <div className="font-medium text-gray-900 group-hover:text-blue-700">{m.label}</div>
+                                  <div className="text-xs text-gray-500">{m.context}</div>
+                                </div>
+                              </div>
+                              <span className="text-blue-600 text-sm opacity-0 group-hover:opacity-100">Open / Download →</span>
+                            </a>
+                          ))}
+                        </div>
+                      )
                     )}
 
                     {activeTab === "grades" && (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Quiz 1</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Quiz 2</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Midterm</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Final</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Overall</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
-                            {classStudents.map((student) => (
-                              <tr key={student.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 font-medium text-gray-900">{student.fullname}</td>
-                                <td className="px-4 py-3 text-center">85</td>
-                                <td className="px-4 py-3 text-center">90</td>
-                                <td className="px-4 py-3 text-center">88</td>
-                                <td className="px-4 py-3 text-center">-</td>
-                                <td className="px-4 py-3 text-center">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getGradeColor(student.currentGrade || "N/A")}`}>
-                                    {student.currentGrade || "N/A"}
-                                  </span>
-                                </td>
+                      detailLoading ? (
+                        <p className="text-center text-gray-400 py-8">Loading grades…</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <div className="flex justify-end mb-3">
+                            <Link href="/dashboard/teacher/gradebook" className="text-sm text-blue-600 hover:text-blue-700">Open gradebook →</Link>
+                          </div>
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Assessments</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Average</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Passed</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {grades.map((g) => (
+                                <tr key={g.studentId} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3 font-medium text-gray-900">{g.fullname}</td>
+                                  <td className="px-4 py-3 text-center text-gray-600">{g.count}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    {g.average === null ? (
+                                      <span className="text-gray-400">—</span>
+                                    ) : (
+                                      <span className={`font-medium ${g.average >= 80 ? "text-green-600" : g.average >= 50 ? "text-yellow-600" : "text-red-600"}`}>{g.average}%</span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 text-center text-gray-600">{g.count > 0 ? `${g.passed}/${g.count}` : "—"}</td>
+                                </tr>
+                              ))}
+                              {grades.length === 0 && (
+                                <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400">No students enrolled.</td></tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      )
                     )}
                   </div>
                 </div>

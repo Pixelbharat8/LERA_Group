@@ -13,7 +13,7 @@ export default function AdminDashboard() {
   const [statsData, setStatsData] = useState({
     totalUsers: 0,
     activeSessions: 0,
-    systemHealth: 98,
+    systemHealth: 0,
     pendingTasks: 0,
   });
 
@@ -45,20 +45,28 @@ export default function AdminDashboard() {
         /* ignore bad cookie */
       }
 
-      const [users, leaveRequests] = await Promise.all([
-        apiFetch("/api/users").catch(() => []),
-        apiFetch(leavePendingUrl).catch(() => []),
+      // null = the call failed; we use that to derive a REAL health signal below
+      // instead of a hardcoded "98%".
+      const [usersRes, leaveRes] = await Promise.all([
+        apiFetch("/api/users").catch(() => null),
+        apiFetch(leavePendingUrl).catch(() => null),
       ]);
 
-      const activeUsers = Array.isArray(users) 
-        ? users.filter((u: any) => u.status === 'active' || u.isActive).length 
-        : 0;
+      const users = Array.isArray(usersRes) ? usersRes : [];
+      const leaveRequests = Array.isArray(leaveRes) ? leaveRes : [];
+      const activeUsers = users.filter((u: any) => u.status === 'active' || u.isActive).length;
+
+      // System health = % of core API checks that responded this load.
+      const checks = [usersRes, leaveRes];
+      const systemHealth = Math.round(
+        (checks.filter((r) => r !== null).length / checks.length) * 100
+      );
 
       setStatsData({
-        totalUsers: Array.isArray(users) ? users.length : 0,
+        totalUsers: users.length,
         activeSessions: activeUsers,
-        systemHealth: 98,
-        pendingTasks: Array.isArray(leaveRequests) ? leaveRequests.length : 0,
+        systemHealth,
+        pendingTasks: leaveRequests.length,
       });
     } catch (error) {
       console.error("Error fetching admin stats:", error);

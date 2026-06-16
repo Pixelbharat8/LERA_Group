@@ -253,7 +253,7 @@ export default function LeraConnectPage() {
     }
     const conversationsPolling = setInterval(() => {
       refreshConversations();
-    }, 5000);
+    }, 8000);
     return () => {
       clearInterval(conversationsPolling);
       if (pollingIntervalRef.current) {
@@ -466,7 +466,7 @@ export default function LeraConnectPage() {
       clearInterval(pollingIntervalRef.current);
     }
     if (activeConversation) {
-      const pollMs = stompConnected ? 15000 : 2000;
+      const pollMs = stompConnected ? 15000 : 4000;
       pollingIntervalRef.current = setInterval(() => {
         refreshMessages(activeConversation.id);
       }, pollMs);
@@ -738,7 +738,7 @@ export default function LeraConnectPage() {
         // ignore
       }
     };
-    const t = setInterval(() => void run(), 5000);
+    const t = setInterval(() => void run(), 8000);
     void run();
     return () => {
       cancelled = true;

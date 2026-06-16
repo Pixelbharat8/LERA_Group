@@ -72,6 +72,15 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.GET, "/api/courses/featured").permitAll();
                 auth.requestMatchers(HttpMethod.GET, "/api/programs/active").permitAll();
                 auth.requestMatchers(HttpMethod.GET, "/api/programs/featured").permitAll();
+                // Public marketing content: published/active-only variants (the admin
+                // base paths that include drafts stay authenticated).
+                auth.requestMatchers(HttpMethod.GET, "/api/blog/published").permitAll();
+                auth.requestMatchers(HttpMethod.GET, "/api/blog/featured").permitAll();
+                auth.requestMatchers(HttpMethod.GET, "/api/blog/slug/*").permitAll();
+                auth.requestMatchers(HttpMethod.GET, "/api/blog/category/*").permitAll();
+                auth.requestMatchers(HttpMethod.GET, "/api/faqs/public").permitAll();
+                auth.requestMatchers(HttpMethod.GET, "/api/faqs/page/*").permitAll();
+                auth.requestMatchers(HttpMethod.GET, "/api/leadership-members/public").permitAll();
                 // Public website CMS slices (single path segment — not GET /map which lists all keys)
                 auth.requestMatchers(HttpMethod.GET, "/api/cms-settings/map/*").permitAll();
                 auth.requestMatchers(HttpMethod.GET, "/api/cms-settings/value/*").permitAll();

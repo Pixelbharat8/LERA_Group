@@ -70,56 +70,10 @@ export default function TransportPage() {
       setRoutes(Array.isArray(routesData) ? routesData : []);
       setMyRegistration(regData);
     } catch (error) {
-      // Fallback data
-      setRoutes([
-        {
-          id: "1",
-          name: "Tuyến 1 - Vinhomes Marina",
-          startPoint: "LERA Academy - Vinhomes Marina",
-          endPoint: "Các điểm trong khu Vinhomes",
-          departureTime: "07:30",
-          arrivalTime: "08:00",
-          driver: "Mr. Hùng",
-          vehicle: "Ford Transit 16 chỗ",
-          capacity: 16,
-          enrolled: 12,
-          status: "active",
-        },
-        {
-          id: "2", 
-          name: "Tuyến 2 - Lê Hồng Phong",
-          startPoint: "LERA Academy",
-          endPoint: "Khu vực Lê Hồng Phong",
-          departureTime: "07:15",
-          arrivalTime: "08:00",
-          driver: "Mr. Tuấn",
-          vehicle: "Toyota Hiace 12 chỗ",
-          capacity: 12,
-          enrolled: 10,
-          status: "active",
-        },
-        {
-          id: "3",
-          name: "Tuyến 3 - Ngô Quyền",
-          startPoint: "LERA Academy",
-          endPoint: "Khu vực Ngô Quyền",
-          departureTime: "07:00",
-          arrivalTime: "08:00",
-          driver: "Mr. Long",
-          vehicle: "Ford Transit 16 chỗ",
-          capacity: 16,
-          enrolled: 8,
-          status: "active",
-        },
-      ]);
-      setMyRegistration({
-        id: "1",
-        routeName: "Tuyến 1 - Vinhomes Marina",
-        pickupPoint: "Cổng số 2 Vinhomes Marina",
-        dropoffPoint: "LERA Academy",
-        status: "active",
-        monthlyFee: 800000,
-      });
+      // Don't fabricate routes/registration on failure — show the real (empty) state.
+      console.error("Failed to load transport data:", error);
+      setRoutes([]);
+      setMyRegistration(null);
     } finally {
       setLoading(false);
     }

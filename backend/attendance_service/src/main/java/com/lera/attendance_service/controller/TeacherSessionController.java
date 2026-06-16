@@ -16,7 +16,7 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/teacher-sessions")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF','STUDENT','PARENT')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
 public class TeacherSessionController {
     
     private final TeacherSessionService teacherSessionService;

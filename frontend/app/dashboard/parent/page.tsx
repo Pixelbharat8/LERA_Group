@@ -23,7 +23,7 @@ export default function ParentDashboard() {
   const [loading, setLoading] = useState(true);
   const [statsData, setStatsData] = useState({
     children: 0,
-    avgAttendance: 94,
+    avgAttendance: 0,
     upcomingFees: 0,
     messages: 0,
   });
