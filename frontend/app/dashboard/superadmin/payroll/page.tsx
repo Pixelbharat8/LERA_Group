@@ -440,7 +440,10 @@ export default function PayrollPage() {
               <h2 className="text-lg font-bold text-gray-900">
                 Payroll Records - {viewMode === "yearly" ? selectedYear : "Recent"}
               </h2>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <button
+                onClick={() => { window.location.href = "/dashboard/superadmin/payroll/cycles"; }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
                 + Generate Payslip
               </button>
             </div>
@@ -470,7 +473,10 @@ export default function PayrollPage() {
                         <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                           No payroll records found for this period
                           <div className="mt-4">
-                            <button className="text-blue-600 hover:text-blue-800 font-medium">
+                            <button
+                              onClick={() => { window.location.href = "/dashboard/superadmin/payroll/cycles"; }}
+                              className="text-blue-600 hover:text-blue-800 font-medium"
+                            >
                               + Create First Payroll Record
                             </button>
                           </div>

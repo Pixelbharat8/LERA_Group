@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { exportToCsv, datedFilename } from "@/lib/export-csv";
 
 interface SEOSettings {
   title: { en: string; vi: string };
@@ -389,13 +390,31 @@ export default function SEOSettings() {
               </div>
 
               <div className="flex gap-4">
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button
+                  onClick={() =>
+                    exportToCsv(datedFilename("seo_pages"), pages, [
+                      { key: "name", label: "Page" },
+                      { key: "path", label: "Path" },
+                      { key: (p) => p.title.en, label: "Title (EN)" },
+                      { key: (p) => p.title.vi, label: "Title (VI)" },
+                      { key: (p) => p.description.en, label: "Description (EN)" },
+                      { key: (p) => p.description.vi, label: "Description (VI)" },
+                      { key: (p) => (p.indexed ? "Yes" : "No"), label: "Indexed" },
+                    ])
+                  }
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
                   📥 Export SEO Config
                 </button>
                 <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                   📤 Import SEO Config
                 </button>
-                <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                <button
+                  onClick={() =>
+                    window.open(`${settings.canonicalUrl.replace(/\/$/, "")}/sitemap.xml`, "_blank")
+                  }
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
                   🔄 Test Sitemap
                 </button>
               </div>

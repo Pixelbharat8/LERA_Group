@@ -108,6 +108,32 @@ export default function StaffProfilePage() {
     fetchAllData();
   }, [staffId]);
 
+  const handleUploadDocument = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const userId = staff?.userId || staffId;
+      try {
+        await apiFetch(`/api/documents`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: file.name,
+            fileName: file.name,
+            type: file.type || "OTHER",
+            documentType: file.type || "OTHER",
+            userId,
+          }),
+        });
+        await fetchAllData();
+      } catch (error) {
+        console.error("Error uploading document:", error);
+      }
+    };
+    input.click();
+  };
+
   const fetchAllData = async () => {
     setLoading(true);
     try {
@@ -473,7 +499,7 @@ export default function StaffProfilePage() {
                   ))}
                 </div>
               )}
-              <button className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">
+              <button onClick={handleUploadDocument} className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">
                 📤 Upload Document
               </button>
             </div>

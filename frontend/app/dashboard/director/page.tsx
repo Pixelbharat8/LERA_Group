@@ -73,10 +73,10 @@ export default function DirectorDashboard() {
   };
 
   const stats = [
-    { label: t("totalCenters"), value: statsData.totalCenters.toString(), icon: "🏢", color: "bg-blue-500" },
-    { label: t("totalStudents"), value: statsData.totalStudents.toLocaleString(), icon: "👨‍🎓", color: "bg-green-500" },
-    { label: t("totalStaff"), value: statsData.totalStaff.toString(), icon: "👥", color: "bg-purple-500" },
-    { label: t("monthlyRevenue"), value: formatCurrency(statsData.totalRevenue), icon: "💰", color: "bg-yellow-500" },
+    { label: t("totalCenters"), value: statsData.totalCenters.toString(), icon: "🏢", color: "bg-blue-500", href: "/dashboard/director/centers" },
+    { label: t("totalStudents"), value: statsData.totalStudents.toLocaleString(), icon: "👨‍🎓", color: "bg-green-500", href: "/dashboard/academy/students" },
+    { label: t("totalStaff"), value: statsData.totalStaff.toString(), icon: "👥", color: "bg-purple-500", href: "/dashboard/director/staff" },
+    { label: t("monthlyRevenue"), value: formatCurrency(statsData.totalRevenue), icon: "💰", color: "bg-yellow-500", href: "/dashboard/finance" },
   ];
 
   if (loading) {
@@ -88,7 +88,7 @@ export default function DirectorDashboard() {
       <div><h1 className="text-3xl font-bold text-gray-800">{t("directorDashboard")}</h1><p className="text-gray-600">{t("strategicOverview")}</p></div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((s, i) => (
-          <div key={i} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+          <div key={i} onClick={() => (s as any).href && (window.location.href = (s as any).href)} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
             <div className="flex items-center justify-between">
               <div><p className="text-gray-500 text-sm">{s.label}</p><p className="text-3xl font-bold">{s.value}</p></div>
               <div className={`${s.color} p-4 rounded-full text-2xl`}>{s.icon}</div>

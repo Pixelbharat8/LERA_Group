@@ -101,38 +101,22 @@ export default function SportsManagement() {
     setLoading(true);
     try {
       const [teamsRes, matchesRes, facilitiesRes, equipRes, typesRes, sessionsRes] = await Promise.all([
-        apiFetch("/api/sport-teams").catch(() => ({ ok: false })),
-        apiFetch("/api/sport-matches").catch(() => ({ ok: false })),
-        apiFetch("/api/sport-facilities").catch(() => ({ ok: false })),
-        apiFetch("/api/sport-equipment").catch(() => ({ ok: false })),
-        apiFetch("/api/sport-types").catch(() => ({ ok: false })),
-        apiFetch("/api/sport-training-sessions").catch(() => ({ ok: false })),
+        apiFetch("/api/sport-teams").catch(() => []),
+        apiFetch("/api/sport-matches").catch(() => []),
+        apiFetch("/api/sport-facilities").catch(() => []),
+        apiFetch("/api/sport-equipment").catch(() => []),
+        apiFetch("/api/sport-types").catch(() => []),
+        apiFetch("/api/sport-training-sessions").catch(() => []),
       ]);
 
-      if ((teamsRes as any).ok) {
-        const data = await (teamsRes as any).json();
-        setTeams(Array.isArray(data) ? data : data.data || data.content || []);
-      }
-      if ((matchesRes as any).ok) {
-        const data = await (matchesRes as any).json();
-        setMatches(Array.isArray(data) ? data : data.data || data.content || []);
-      }
-      if ((facilitiesRes as any).ok) {
-        const data = await (facilitiesRes as any).json();
-        setFacilities(Array.isArray(data) ? data : data.data || data.content || []);
-      }
-      if ((equipRes as any).ok) {
-        const data = await (equipRes as any).json();
-        setEquipment(Array.isArray(data) ? data : data.data || data.content || []);
-      }
-      if ((typesRes as any).ok) {
-        const data = await (typesRes as any).json();
-        setSportTypes(Array.isArray(data) ? data : data.data || data.content || []);
-      }
-      if ((sessionsRes as any).ok) {
-        const data = await (sessionsRes as any).json();
-        setTrainingSessions(Array.isArray(data) ? data : data.data || data.content || []);
-      }
+      // apiFetch returns PARSED data (not a Response) — normalise directly.
+      const list = (res: any): any[] => Array.isArray(res) ? res : (res?.data || res?.content || []);
+      setTeams(list(teamsRes));
+      setMatches(list(matchesRes));
+      setFacilities(list(facilitiesRes));
+      setEquipment(list(equipRes));
+      setSportTypes(list(typesRes));
+      setTrainingSessions(list(sessionsRes));
     } catch (e) {
       console.error("Failed to fetch sports data:", e);
     } finally {

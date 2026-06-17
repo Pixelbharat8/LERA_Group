@@ -51,6 +51,19 @@ export default function FollowupsPage() {
     }
   };
 
+  const handleComplete = async (id: string) => {
+    if (!confirm("Mark this follow-up as completed?")) return;
+    try {
+      await apiFetch(`/api/followups/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ outcome: "CONVERTED" }),
+      });
+      await fetchFollowups();
+    } catch (err) {
+      console.error("Error completing followup:", err);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Pending": return "bg-yellow-100 text-yellow-800";
@@ -143,7 +156,7 @@ export default function FollowupsPage() {
                 <td className="px-6 py-4 text-gray-500 max-w-xs truncate">{followup.notes}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button className="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
-                  <button className="text-green-600 hover:text-green-800">Complete</button>
+                  <button onClick={() => handleComplete(followup.id)} className="text-green-600 hover:text-green-800">Complete</button>
                 </td>
               </tr>
             ))}

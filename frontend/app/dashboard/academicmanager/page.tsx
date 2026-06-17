@@ -100,10 +100,10 @@ export default function AcademicManagerDashboard() {
   };
 
   const stats = [
-    { label: "Total Classes", value: statsData.totalClasses.toString(), icon: "📚", color: "bg-blue-500" },
-    { label: "Active Teachers", value: statsData.activeTeachers.toString(), icon: "👨‍🏫", color: "bg-green-500" },
-    { label: "Total Courses", value: statsData.totalCourses.toString(), icon: "📖", color: "bg-purple-500" },
-    { label: "Avg. Attendance", value: `${statsData.avgAttendance}%`, icon: "📊", color: "bg-orange-500" },
+    { label: "Total Classes", value: statsData.totalClasses.toString(), icon: "📚", color: "bg-blue-500", href: "/dashboard/academicmanager/classes" },
+    { label: "Active Teachers", value: statsData.activeTeachers.toString(), icon: "👨‍🏫", color: "bg-green-500", href: "/dashboard/academicmanager/teachers" },
+    { label: "Total Courses", value: statsData.totalCourses.toString(), icon: "📖", color: "bg-purple-500", href: "/dashboard/academicmanager/courses" },
+    { label: "Avg. Attendance", value: `${statsData.avgAttendance}%`, icon: "📊", color: "bg-orange-500", href: "/dashboard/attendance" },
   ];
 
   if (loading) {
@@ -129,7 +129,7 @@ export default function AcademicManagerDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+          <div key={index} onClick={() => (stat as any).href && (window.location.href = (stat as any).href)} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">{stat.label}</p>

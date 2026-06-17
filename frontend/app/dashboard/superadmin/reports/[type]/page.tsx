@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "../../../../../lib/api";
+import { exportToExcel, datedFilename } from "../../../../../lib/export-csv";
 import { useLanguage } from "../../../../context/LanguageContext";
 
 interface ReportData {
@@ -177,6 +178,14 @@ export default function ReportTypePage() {
     }
   };
 
+  const handleExportExcel = () => {
+    exportToExcel(
+      datedFilename(reportType),
+      data,
+      config.columns.map((col) => ({ key: (row: any) => getCellValue(row, col.key), label: col.label }))
+    );
+  };
+
   const getCellValue = (item: any, key: string) => {
     const value = item[key] || item[key.replace(/([A-Z])/g, "_$1").toLowerCase()] || "—";
     if (key === "amount" || key === "totalAmount" || key === "paidAmount") {
@@ -228,10 +237,16 @@ export default function ReportTypePage() {
           >
             🔄 {t("refresh")}
           </button>
-          <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+          <button
+            onClick={handleExportExcel}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
             📊 {t("export")} Excel
           </button>
-          <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+          <button
+            onClick={() => window.print()}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
             📄 {t("export")} PDF
           </button>
         </div>

@@ -54,6 +54,7 @@ export default function TransportManagement() {
   const [driverForm, setDriverForm] = useState({ driverCode: "", name: "", phone: "", email: "", licenseNumber: "", licenseExpiry: "", vehicleId: "" });
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+  const [editingRoute, setEditingRoute] = useState<TransportRoute | null>(null);
 
   useEffect(() => {
     fetchAllData();
@@ -89,15 +90,23 @@ export default function TransportManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiFetch("/api/transport/routes", {
-        method: "POST",
-        body: JSON.stringify(formData),
-      });
+      if (editingRoute) {
+        await apiFetch(`/api/transport/routes/${editingRoute.id}`, {
+          method: "PUT",
+          body: JSON.stringify(formData),
+        });
+      } else {
+        await apiFetch("/api/transport/routes", {
+          method: "POST",
+          body: JSON.stringify(formData),
+        });
+      }
       setShowModal(false);
+      setEditingRoute(null);
       fetchRoutes();
       setFormData({ routeCode: "", routeName: "", startLocation: "", endLocation: "", totalDistance: 0, estimatedDuration: 30 });
     } catch (error) {
-      console.error("Error creating route:", error);
+      console.error("Error saving route:", error);
     }
   };
 
@@ -214,7 +223,7 @@ export default function TransportManagement() {
           <h1 className="text-2xl font-bold text-gray-900">Transport Management</h1>
           <p className="text-gray-500">Manage routes, vehicles, and drivers</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        <button onClick={() => { setEditingRoute(null); setFormData({ routeCode: "", routeName: "", startLocation: "", endLocation: "", totalDistance: 0, estimatedDuration: 30 }); setShowModal(true); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
           + Add Route
         </button>
       </div>
@@ -281,7 +290,7 @@ export default function TransportManagement() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                      <button onClick={() => { setEditingRoute(route); setFormData({ routeCode: route.routeCode, routeName: route.routeName, startLocation: route.startLocation, endLocation: route.endLocation, totalDistance: route.totalDistance || 0, estimatedDuration: route.estimatedDuration || 30 }); setShowModal(true); }} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
                       <button onClick={() => handleDelete(route.id)} className="text-red-600 hover:text-red-900">Delete</button>
                     </td>
                   </tr>
@@ -391,7 +400,7 @@ export default function TransportManagement() {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add New Route</h2>
+            <h2 className="text-xl font-bold mb-4">{editingRoute ? "Edit Route" : "Add New Route"}</h2>
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
@@ -422,8 +431,8 @@ export default function TransportManagement() {
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add Route</button>
+                <button type="button" onClick={() => { setShowModal(false); setEditingRoute(null); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{editingRoute ? "Update Route" : "Add Route"}</button>
               </div>
             </form>
           </div>

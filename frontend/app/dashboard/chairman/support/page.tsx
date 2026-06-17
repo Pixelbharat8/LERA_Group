@@ -36,6 +36,15 @@ export default function ChairmanSupportPage() {
     category: "technical",
     priority: "medium",
   });
+  const [contactSubject, setContactSubject] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
+
+  const handleSendMessage = () => {
+    const mailto = `mailto:support@lera.edu.vn?subject=${encodeURIComponent(
+      contactSubject || "Support inquiry"
+    )}&body=${encodeURIComponent(contactMessage)}`;
+    window.location.href = mailto;
+  };
 
   useEffect(() => {
     fetchData();
@@ -383,6 +392,8 @@ export default function ChairmanSupportPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
                       <input
                         type="text"
+                        value={contactSubject}
+                        onChange={(e) => setContactSubject(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Brief description of your inquiry"
                       />
@@ -391,11 +402,16 @@ export default function ChairmanSupportPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
                       <textarea
                         rows={4}
+                        value={contactMessage}
+                        onChange={(e) => setContactMessage(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Please describe your issue or question in detail..."
                       ></textarea>
                     </div>
-                    <button className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                    <button
+                      onClick={handleSendMessage}
+                      className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                    >
                       Send Message
                     </button>
                   </div>

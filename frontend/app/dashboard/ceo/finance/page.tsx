@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import { apiFetch } from "../../../../lib/api";
+import { exportToCsv, datedFilename } from "../../../../lib/export-csv";
 
 interface FinancialData {
   totalRevenue: number;
@@ -131,7 +132,17 @@ export default function CEOFinancePage() {
           <Link href="/dashboard/ceo" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
             ← Back to Dashboard
           </Link>
-          <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+          <button
+            onClick={() =>
+              exportToCsv(datedFilename("ceo-finance-by-center"), financialData.byCenter, [
+                { key: "centerName", label: "Center" },
+                { key: "revenue", label: "Revenue" },
+                { key: "expenses", label: "Expenses" },
+                { key: (c) => c.revenue - c.expenses, label: "Profit" },
+              ])
+            }
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
             📥 Export Report
           </button>
         </div>

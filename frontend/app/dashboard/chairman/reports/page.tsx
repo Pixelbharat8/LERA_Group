@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
+import { exportToCsv, datedFilename } from "@/lib/export-csv";
 
 interface Report {
   id: string;
@@ -74,8 +75,33 @@ export default function ChairmanReportsPage() {
   };
 
   const downloadReport = (report: Report) => {
-    // In real implementation, this would download the actual file
-    alert(`Downloading ${report.name}.${report.format}`);
+    exportToCsv(
+      datedFilename(report.name.replace(/\s+/g, "_")),
+      [report],
+      [
+        { key: "name", label: "Name" },
+        { key: "description", label: "Description" },
+        { key: "type", label: "Type" },
+        { key: "status", label: "Status" },
+        { key: "format", label: "Format" },
+        { key: "generatedAt", label: "Generated" },
+        { key: "size", label: "Size" },
+      ]
+    );
+  };
+
+  const createCustomReport = async () => {
+    try {
+      await apiFetch("/api/reports/generate", {
+        method: "POST",
+        body: JSON.stringify({ type: "custom" }),
+      });
+      await fetchReports();
+      alert("Report generation started.");
+    } catch (error) {
+      console.error("Error creating report:", error);
+      alert("Failed to create report.");
+    }
   };
 
   const getTypeColor = (type: string) => {
@@ -143,10 +169,16 @@ export default function ChairmanReportsPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+              <button
+                onClick={() => { window.location.href = "/dashboard/chairman/settings"; }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+              >
                 ⚙️ Report Settings
               </button>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+              <button
+                onClick={createCustomReport}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              >
                 ➕ Create Custom Report
               </button>
             </div>

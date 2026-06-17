@@ -34,6 +34,10 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = 'COMPLETED'")
     BigDecimal getTotalRevenue();
 
+    /** Completed revenue recorded on/after a cutoff (used for the real "this month" figure). */
+    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = 'COMPLETED' AND p.createdAt >= :start")
+    BigDecimal sumCompletedSince(java.time.LocalDateTime start);
+
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = :status")
     BigDecimal sumAmountByStatus(String status);
 

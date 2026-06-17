@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Cookies from "js-cookie";
-import { apiFetch } from "../../../../lib/api";
+import { apiFetch, apiUrl } from "../../../../lib/api";
 import ExportMenu from "../../../components/ExportMenu";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
 
@@ -52,6 +52,8 @@ export default function TeachersPage() {
   const [centerFilter, setCenterFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
@@ -207,6 +209,35 @@ export default function TeachersPage() {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    // Backend serves a real .xlsx template; cookie auth is same-origin, so a
+    // direct navigation downloads it with the user's session intact.
+    window.location.href = apiUrl("/api/import/templates/teachers");
+  };
+
+  const handleImportTeachers = async () => {
+    if (!importFile) {
+      setError("Please select a file to import.");
+      return;
+    }
+    setImporting(true);
+    setError("");
+    try {
+      const body = new FormData();
+      body.append("file", importFile);
+      const result = await apiFetch("/api/import/teachers", { method: "POST", body });
+      const count = Array.isArray(result?.imported) ? result.imported.length : 0;
+      alert(`Import complete. ${count} teacher(s) imported.`);
+      setShowImportModal(false);
+      setImportFile(null);
+      fetchTeachers();
+    } catch (err: any) {
+      setError(err.message || "Failed to import teachers");
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -683,7 +714,7 @@ export default function TeachersPage() {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 className="font-semibold text-blue-900 mb-2">📄 Step 1: Download Template</h3>
                 <p className="text-sm text-blue-700 mb-3">Download the Excel template with required columns for teacher data.</p>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                <button onClick={handleDownloadTemplate} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
                   Download Template
                 </button>
               </div>
@@ -692,10 +723,16 @@ export default function TeachersPage() {
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <h3 className="font-semibold text-gray-900 mb-2">📤 Step 2: Upload Your File</h3>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
-                  <input type="file" accept=".xlsx,.xls,.csv" className="hidden" id="teacher-excel-upload" />
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    className="hidden"
+                    id="teacher-excel-upload"
+                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  />
                   <label htmlFor="teacher-excel-upload" className="cursor-pointer">
                     <div className="text-4xl mb-2">📁</div>
-                    <p className="text-gray-600">Click to upload or drag and drop</p>
+                    <p className="text-gray-600">{importFile ? importFile.name : "Click to upload or drag and drop"}</p>
                     <p className="text-sm text-gray-400">Supports: .xlsx, .xls, .csv</p>
                   </label>
                 </div>
@@ -742,10 +779,12 @@ export default function TeachersPage() {
                 >
                   Cancel
                 </button>
-                <button 
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                <button
+                  onClick={handleImportTeachers}
+                  disabled={importing || !importFile}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                 >
-                  Import Teachers
+                  {importing ? "Importing..." : "Import Teachers"}
                 </button>
               </div>
             </div>

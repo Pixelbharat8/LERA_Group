@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../../lib/api";
 
@@ -35,6 +35,51 @@ export default function BlogEditor() {
   const [filter, setFilter] = useState<"all" | "published" | "draft" | "scheduled">("all");
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [showEditor, setShowEditor] = useState(false);
+
+  // Editor modal field refs (uncontrolled inputs)
+  const titleEnRef = useRef<HTMLInputElement>(null);
+  const excerptEnRef = useRef<HTMLTextAreaElement>(null);
+  const contentEnRef = useRef<HTMLTextAreaElement>(null);
+  const titleViRef = useRef<HTMLInputElement>(null);
+  const excerptViRef = useRef<HTMLTextAreaElement>(null);
+  const contentViRef = useRef<HTMLTextAreaElement>(null);
+  const categoryRef = useRef<HTMLSelectElement>(null);
+  const imageRef = useRef<HTMLInputElement>(null);
+
+  const handleSavePost = async (status: BlogPost["status"]) => {
+    const payload = {
+      titleEn: titleEnRef.current?.value || "",
+      titleVi: titleViRef.current?.value || "",
+      excerptEn: excerptEnRef.current?.value || "",
+      excerptVi: excerptViRef.current?.value || "",
+      contentEn: contentEnRef.current?.value || "",
+      contentVi: contentViRef.current?.value || "",
+      imageUrl: imageRef.current?.value || "",
+      category: categoryRef.current?.value || "News",
+      audience: editingPost?.audience || "ALL",
+      author: editingPost?.author || "LERA Academy",
+      slug: editingPost?.slug,
+      status,
+    };
+    try {
+      if (editingPost) {
+        await apiFetch(`/api/blog/${editingPost.id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await apiFetch("/api/blog", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      }
+      await fetchPosts();
+      setShowEditor(false);
+      setEditingPost(null);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   useEffect(() => {
     fetchPosts();
@@ -333,6 +378,7 @@ export default function BlogEditor() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                     <input
+                      ref={titleEnRef}
                       type="text"
                       defaultValue={editingPost?.titleEN}
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -342,6 +388,7 @@ export default function BlogEditor() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Excerpt</label>
                     <textarea
+                      ref={excerptEnRef}
                       defaultValue={editingPost?.excerptEN}
                       rows={2}
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -351,6 +398,7 @@ export default function BlogEditor() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
                     <textarea
+                      ref={contentEnRef}
                       defaultValue={editingPost?.contentEN}
                       rows={8}
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -363,6 +411,7 @@ export default function BlogEditor() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                     <input
+                      ref={titleViRef}
                       type="text"
                       defaultValue={editingPost?.titleVI}
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -372,6 +421,7 @@ export default function BlogEditor() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Excerpt</label>
                     <textarea
+                      ref={excerptViRef}
                       defaultValue={editingPost?.excerptVI}
                       rows={2}
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -381,6 +431,7 @@ export default function BlogEditor() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
                     <textarea
+                      ref={contentViRef}
                       defaultValue={editingPost?.contentVI}
                       rows={8}
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -393,7 +444,8 @@ export default function BlogEditor() {
               <div className="grid md:grid-cols-3 gap-4 pt-4 border-t">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <select 
+                  <select
+                    ref={categoryRef}
                     defaultValue={editingPost?.category}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   >
@@ -405,6 +457,7 @@ export default function BlogEditor() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Featured Image</label>
                   <input
+                    ref={imageRef}
                     type="text"
                     defaultValue={editingPost?.image}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -413,7 +466,7 @@ export default function BlogEditor() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select 
+                  <select
                     defaultValue={editingPost?.status || "draft"}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   >
@@ -428,10 +481,16 @@ export default function BlogEditor() {
               <button onClick={() => setShowEditor(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-50">
                 Cancel
               </button>
-              <button className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+              <button
+                onClick={() => handleSavePost("draft")}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
                 💾 Save as Draft
               </button>
-              <button className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+              <button
+                onClick={() => handleSavePost("published")}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
                 ✅ Publish
               </button>
             </div>

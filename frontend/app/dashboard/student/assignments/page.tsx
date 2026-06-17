@@ -66,6 +66,30 @@ export default function StudentAssignmentsPage() {
     }
   };
 
+  const handleSubmit = async (assignment: Assignment) => {
+    if (!confirm(`Submit "${assignment.title}"? You may not be able to change it afterwards.`)) return;
+    try {
+      const studentId = await resolveMyStudentId();
+      if (!studentId) {
+        alert("Could not resolve your student profile. Please try again.");
+        return;
+      }
+      await apiFetch(`/api/assignment-submissions`, {
+        method: "POST",
+        body: JSON.stringify({
+          assignmentId: Number(assignment.id),
+          studentId,
+          submittedAt: new Date().toISOString(),
+          status: "SUBMITTED",
+        }),
+      });
+      await fetchAssignments();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to submit assignment. Please try again.");
+    }
+  };
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       PENDING: "bg-yellow-100 text-yellow-800",
@@ -185,7 +209,10 @@ export default function StudentAssignmentsPage() {
                   )}
                 </div>
                 {assignment.status === "PENDING" && (
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap">
+                  <button
+                    onClick={() => handleSubmit(assignment)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
+                  >
                     Submit
                   </button>
                 )}

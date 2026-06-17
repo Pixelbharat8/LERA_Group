@@ -144,6 +144,29 @@ export default function CenterProfilePage() {
     }
   };
 
+  const handleEditCenter = async () => {
+    if (!center) return;
+    const name = window.prompt("Center name", center.name ?? "");
+    if (name === null) return;
+    const phone = window.prompt("Phone", center.phone ?? "");
+    if (phone === null) return;
+    const email = window.prompt("Email", center.email ?? "");
+    if (email === null) return;
+    const address = window.prompt("Address", center.address ?? "");
+    if (address === null) return;
+    try {
+      await apiFetch(`/api/centers/${centerId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...center, name, phone, email, address }),
+      });
+      await fetchCenterProfile();
+    } catch (error) {
+      console.error("Error updating center:", error);
+      window.alert("Failed to update center.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -193,7 +216,7 @@ export default function CenterProfilePage() {
               </div>
             </div>
           </div>
-          <button className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition">
+          <button onClick={handleEditCenter} className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition">
             ✏️ Edit Center
           </button>
         </div>

@@ -83,6 +83,23 @@ export default function TransportPage() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
+  const handleRegister = async (route: Route) => {
+    try {
+      await apiFetch("/api/transport/register", {
+        method: "POST",
+        body: JSON.stringify({
+          routeId: route.id,
+          routeName: route.name,
+          pickupPoint: route.startPoint,
+          dropoffPoint: route.endPoint,
+        }),
+      });
+      await fetchData();
+    } catch (error) {
+      console.error("Failed to register for transport:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
@@ -181,7 +198,8 @@ export default function TransportPage() {
                         ></div>
                       </div>
                     </div>
-                    <button 
+                    <button
+                      onClick={() => handleRegister(route)}
                       disabled={route.enrolled >= route.capacity}
                       className={`px-6 py-3 rounded-lg font-medium ${route.enrolled >= route.capacity ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                     >

@@ -267,7 +267,10 @@ export default function ParentProfilePage() {
               </div>
             </div>
           </div>
-          <button className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition">
+          <button
+            onClick={() => { window.location.href = "/dashboard/academy/parents"; }}
+            className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition"
+          >
             ✏️ Edit Profile
           </button>
         </div>

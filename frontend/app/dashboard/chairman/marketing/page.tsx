@@ -344,10 +344,16 @@ export default function ChairmanMarketingPage() {
               <p className="text-blue-100">Access guides, best practices, and support for your marketing campaigns.</p>
             </div>
             <div className="flex gap-3">
-              <button className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition">
+              <button
+                onClick={() => { window.location.href = "/dashboard/help"; }}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition"
+              >
                 📚 View Guides
               </button>
-              <button className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition">
+              <button
+                onClick={() => { window.location.href = "/dashboard/chairman/support"; }}
+                className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition"
+              >
                 💬 Contact Support
               </button>
             </div>

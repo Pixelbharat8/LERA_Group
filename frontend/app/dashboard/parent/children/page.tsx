@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
+import { exportToCsv, datedFilename } from "../../../../lib/export-csv";
 import { loadMyChildren } from "../../../../lib/parent-context";
 import {
   computeAttendanceRate,
@@ -452,7 +453,22 @@ export default function ParentChildrenPage() {
                     <div className="text-2xl mb-1">💬</div>
                     <div className="text-sm font-medium">Message Teacher</div>
                   </Link>
-                  <button className="bg-blue-600 text-white p-4 rounded-xl text-center hover:bg-blue-700 transition">
+                  <button
+                    onClick={() =>
+                      exportToCsv(
+                        datedFilename(`${selectedChild.studentCode || selectedChild.fullname}-grades`),
+                        childGrades,
+                        [
+                          { key: "subject", label: "Subject" },
+                          { key: "type", label: "Type" },
+                          { key: "date", label: "Date" },
+                          { key: "score", label: "Score" },
+                          { key: "maxScore", label: "Max Score" },
+                        ]
+                      )
+                    }
+                    className="bg-blue-600 text-white p-4 rounded-xl text-center hover:bg-blue-700 transition"
+                  >
                     <div className="text-2xl mb-1">📄</div>
                     <div className="text-sm font-medium">Download Report</div>
                   </button>

@@ -22,6 +22,16 @@ export default function RegistrationsPage() {
     fetchRegistrations();
   }, []);
 
+  const handleConfirm = async (id: string) => {
+    if (!confirm("Confirm this registration?")) return;
+    try {
+      await apiFetch(`/api/student-registrations/${id}/confirm`, { method: "PUT" });
+      fetchRegistrations();
+    } catch (err) {
+      console.error("Error confirming registration:", err);
+    }
+  };
+
   const fetchRegistrations = async () => {
     try {
       const data = await apiFetch("/api/student-registrations");
@@ -129,7 +139,7 @@ export default function RegistrationsPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button className="text-blue-600 hover:text-blue-800 mr-3">View</button>
-                  <button className="text-green-600 hover:text-green-800">Confirm</button>
+                  <button onClick={() => handleConfirm(reg.id)} className="text-green-600 hover:text-green-800">Confirm</button>
                 </td>
               </tr>
             ))}

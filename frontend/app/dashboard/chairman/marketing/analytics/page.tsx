@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../../lib/api";
+import { exportToExcel, datedFilename } from "@/lib/export-csv";
 
 interface AnalyticsData {
   platform: string;
@@ -165,7 +166,25 @@ export default function SocialAnalyticsPage() {
                   </button>
                 ))}
               </div>
-              <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">
+              <button
+                onClick={() =>
+                  exportToExcel(
+                    datedFilename(`social-analytics-${dateRange}`),
+                    analytics,
+                    [
+                      { key: "platform", label: "Platform" },
+                      { key: "followers", label: "Followers" },
+                      { key: "followersGrowth", label: "Growth %" },
+                      { key: "posts", label: "Posts" },
+                      { key: "engagement", label: "Engagement" },
+                      { key: "engagementRate", label: "Eng. Rate %" },
+                      { key: "reach", label: "Reach" },
+                      { key: "clicks", label: "Clicks" },
+                    ]
+                  )
+                }
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
+              >
                 📥 Export Report
               </button>
             </div>

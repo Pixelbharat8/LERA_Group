@@ -592,7 +592,13 @@ export default function ClassProfilePage() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <p className="text-gray-600">{stats.totalStudents} students enrolled</p>
-                <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.href = `/dashboard/academy/enrollments?classId=${classId}`;
+                  }}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                >
                   ➕ Add Student
                 </button>
               </div>

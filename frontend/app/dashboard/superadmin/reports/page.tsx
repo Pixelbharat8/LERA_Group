@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { exportToCsv, exportToExcel, datedFilename } from "@/lib/export-csv";
 
 export default function ReportsPage() {
   const [stats, setStats] = useState({
@@ -43,6 +44,20 @@ export default function ReportsPage() {
       setLoading(false);
     }
   };
+
+  const statRows = [
+    { metric: "Students", value: stats.totalStudents },
+    { metric: "Teachers", value: stats.totalTeachers },
+    { metric: "Centers", value: stats.totalCenters },
+    { metric: "Classes", value: stats.totalClasses },
+    { metric: "Enrollments", value: stats.totalEnrollments },
+    { metric: "Revenue", value: stats.totalRevenue },
+  ];
+
+  const exportColumns = [
+    { key: "metric" as const, label: "Metric" },
+    { key: "value" as const, label: "Value" },
+  ];
 
   const reportCategories = [
     {
@@ -153,10 +168,22 @@ export default function ReportsPage() {
       <div className="mt-8 bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-bold mb-4">📥 Export Options</h2>
         <div className="flex flex-wrap gap-4">
-          <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+          <button
+            onClick={() => exportToExcel(datedFilename("reports-summary"), statRows, exportColumns)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
             <span>📊</span> Export to Excel
           </button>
-          <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2">
+          <button
+            onClick={() => exportToCsv(datedFilename("reports-summary"), statRows, exportColumns)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+          >
+            <span>📑</span> Export to CSV
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+          >
             <span>📄</span> Export to PDF
           </button>
           <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">

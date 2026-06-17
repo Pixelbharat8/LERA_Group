@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 import { resolveMyStudentId } from "../../../../lib/student-context";
+import { exportToCsv, datedFilename } from "../../../../lib/export-csv";
 
 interface Payment {
   id: string;
@@ -93,6 +94,23 @@ export default function StudentPaymentsPage() {
       style: 'currency',
       currency: currency
     }).format(amount);
+  };
+
+  const downloadReceipt = (payment: Payment) => {
+    exportToCsv(
+      datedFilename(`receipt_${payment.invoiceNumber}`),
+      [payment],
+      [
+        { key: "invoiceNumber", label: "Invoice" },
+        { key: "description", label: "Description" },
+        { key: (p) => formatCurrency(p.amount, p.currency), label: "Amount" },
+        { key: (p) => new Date(p.dueDate).toLocaleDateString(), label: "Due Date" },
+        { key: (p) => (p.paidDate ? new Date(p.paidDate).toLocaleDateString() : ""), label: "Paid Date" },
+        { key: "status", label: "Status" },
+        { key: "paymentMethod", label: "Payment Method" },
+        { key: "transactionId", label: "Transaction ID" },
+      ]
+    );
   };
 
   const filteredPayments = filter === "ALL" ? payments : payments.filter((p) => p.status === filter);
@@ -238,7 +256,10 @@ export default function StudentPaymentsPage() {
                         </button>
                       )}
                       {payment.status === "PAID" && (
-                        <button className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200">
+                        <button
+                          onClick={() => downloadReceipt(payment)}
+                          className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200"
+                        >
                           Download Receipt
                         </button>
                       )}
