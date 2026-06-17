@@ -24,12 +24,16 @@ public class FinanceDashboardService {
     private final LedgerEntryRepository ledgerEntryRepository;
     private final RefundRepository refundRepository;
     private final StudentFeePlanRepository studentFeePlanRepository;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     public Map<String, Object> getDashboardSummary(UUID centerId) {
         Map<String, Object> summary = new HashMap<>();
         
         BigDecimal totalRevenue = paymentRepository.getTotalRevenue();
         summary.put("totalRevenue", totalRevenue != null ? totalRevenue : BigDecimal.ZERO);
+        // Real current-month revenue (was incorrectly shown as the all-time total on the dashboard).
+        BigDecimal thisMonth = paymentRepository.sumCompletedSince(LocalDate.now().withDayOfMonth(1).atStartOfDay());
+        summary.put("thisMonthRevenue", thisMonth != null ? thisMonth : BigDecimal.ZERO);
         summary.put("pendingPayments", paymentRepository.countByStatus("PENDING"));
         summary.put("completedPayments", paymentRepository.countByStatus("COMPLETED"));
         summary.put("failedPayments", paymentRepository.countByStatus("FAILED"));
@@ -68,23 +72,18 @@ public class FinanceDashboardService {
     }
 
     public List<Map<String, Object>> getRevenueByCenter() {
-        List<Invoice> paidInvoices = invoiceRepository.findByStatus("PAID");
-        Map<UUID, List<Invoice>> grouped = paidInvoices.stream()
-                .filter(i -> i.getCenterId() != null)
-                .collect(Collectors.groupingBy(Invoice::getCenterId));
-
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Map.Entry<UUID, List<Invoice>> entry : grouped.entrySet()) {
-            BigDecimal revenue = entry.getValue().stream()
-                    .map(i -> i.getTotalAmount() != null ? i.getTotalAmount() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            result.add(Map.of(
-                    "centerId", entry.getKey().toString(),
-                    "centerName", "Center " + entry.getKey().toString().substring(0, 8),
-                    "totalRevenue", revenue,
-                    "invoiceCount", entry.getValue().size()));
-        }
-        return result;
+        // Join the centres table (shared DB) for REAL names instead of the UUID-derived
+        // "Center c0000000" placeholder, and EXCLUDE soft-deleted centres so the breakdown
+        // matches Centers Management (which also hides DELETED). Outstanding/collected are
+        // computed per centre so the UI bars are accurate.
+        return jdbcTemplate.queryForList(
+                "SELECT CAST(c.id AS varchar) AS \"centerId\", c.name AS \"centerName\", " +
+                "COALESCE(SUM(CASE WHEN UPPER(i.status)='PAID' THEN i.total_amount ELSE 0 END),0) AS \"totalRevenue\", " +
+                "COALESCE(SUM(CASE WHEN UPPER(i.status) IN ('PENDING','OVERDUE') THEN i.total_amount ELSE 0 END),0) AS \"outstanding\", " +
+                "COUNT(DISTINCT i.student_id) AS \"studentCount\", COUNT(i.id) AS \"invoiceCount\" " +
+                "FROM centers c LEFT JOIN invoices i ON i.center_id = c.id " +
+                "WHERE c.status IS NULL OR UPPER(c.status) <> 'DELETED' " +
+                "GROUP BY c.id, c.name ORDER BY \"totalRevenue\" DESC");
     }
 
     public Map<String, Object> getRevenueByCenterId(UUID centerId) {

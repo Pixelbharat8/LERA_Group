@@ -205,6 +205,16 @@ export default function AdsCampaignsPage() {
     }
   };
 
+  const handleDisconnectAccount = async (id: string, name: string) => {
+    if (!confirm(`Disconnect ad account "${name}"? This will revoke its access tokens.`)) return;
+    try {
+      await apiFetch(`/api/ad-accounts/${id}/disconnect`, { method: "PUT" });
+      await fetchCampaigns();
+    } catch (error) {
+      console.error("Error disconnecting ad account:", error);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
   };
@@ -470,7 +480,10 @@ export default function AdsCampaignsPage() {
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${account.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
                         {account.status}
                       </span>
-                      <button className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">
+                      <button
+                        onClick={() => handleDisconnectAccount(account.id, account.accountName)}
+                        className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg"
+                      >
                         Manage
                       </button>
                     </div>
@@ -479,7 +492,10 @@ export default function AdsCampaignsPage() {
               </div>
             </div>
 
-            <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-blue-500 hover:text-blue-500 transition">
+            <button
+              onClick={() => { window.location.href = "/dashboard/connect"; }}
+              className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-blue-500 hover:text-blue-500 transition"
+            >
               ➕ Connect New Ad Account
             </button>
           </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
+import { exportToCsv, datedFilename } from "@/lib/export-csv";
 
 interface User {
   id: string;
@@ -425,10 +426,31 @@ export default function AttendancePage() {
                 Attendance Records - {months[selectedMonth - 1]} {selectedYear}
               </h3>
               <div className="flex gap-2">
-                <button className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg">
+                <button
+                  onClick={() =>
+                    exportToCsv(
+                      datedFilename(`attendance-${selectedUser?.fullname || selectedUser?.email || "report"}`),
+                      attendance,
+                      [
+                        { key: "date", label: "Date" },
+                        { key: (r) => getDayName(r.date), label: "Day" },
+                        { key: (r) => r.checkInTime || "", label: "Check In" },
+                        { key: (r) => r.checkOutTime || "", label: "Check Out" },
+                        { key: (r) => r.hoursWorked ?? 0, label: "Hours" },
+                        { key: (r) => r.overtimeHours ?? 0, label: "Overtime" },
+                        { key: "status", label: "Status" },
+                        { key: (r) => r.notes || "", label: "Notes" },
+                      ]
+                    )
+                  }
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
+                >
                   📥 Export
                 </button>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
                   🖨️ Print Report
                 </button>
               </div>

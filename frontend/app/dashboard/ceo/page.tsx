@@ -95,12 +95,12 @@ export default function CEODashboard() {
   };
 
   const stats = [
-    { label: t("totalRevenue"), value: formatCurrency(dashboardStats.totalRevenue), icon: "💰", color: "bg-green-500" },
-    { label: t("totalCenters"), value: dashboardStats.totalCenters.toString(), icon: "🏢", color: "bg-blue-500" },
-    { label: t("totalStudents"), value: dashboardStats.totalStudents.toLocaleString(), icon: "👨‍🎓", color: "bg-purple-500" },
-    { label: t("totalTeachers"), value: dashboardStats.totalTeachers.toLocaleString(), icon: "👨‍🏫", color: "bg-indigo-500" },
-    { label: t("enrollments"), value: dashboardStats.totalEnrollments.toLocaleString(), icon: "📝", color: "bg-teal-500" },
-    { label: t("growthRate"), value: dashboardStats.growthRate > 0 ? `+${dashboardStats.growthRate}%` : "N/A", icon: "📈", color: "bg-yellow-500" },
+    { label: t("totalRevenue"), value: formatCurrency(dashboardStats.totalRevenue), icon: "💰", color: "bg-green-500", href: "/dashboard/ceo/finance" },
+    { label: t("totalCenters"), value: dashboardStats.totalCenters.toString(), icon: "🏢", color: "bg-blue-500", href: "/dashboard/ceo/centers" },
+    { label: t("totalStudents"), value: dashboardStats.totalStudents.toLocaleString(), icon: "👨‍🎓", color: "bg-purple-500", href: "/dashboard/academy/students" },
+    { label: t("totalTeachers"), value: dashboardStats.totalTeachers.toLocaleString(), icon: "👨‍🏫", color: "bg-indigo-500", href: "/dashboard/academy/teachers" },
+    { label: t("enrollments"), value: dashboardStats.totalEnrollments.toLocaleString(), icon: "📝", color: "bg-teal-500", href: "/dashboard/academy/enrollments" },
+    { label: t("growthRate"), value: dashboardStats.growthRate > 0 ? `+${dashboardStats.growthRate}%` : "N/A", icon: "📈", color: "bg-yellow-500", href: "/dashboard/ceo/analytics" },
   ];
 
   if (loading) {
@@ -112,7 +112,7 @@ export default function CEODashboard() {
       <div><h1 className="text-3xl font-bold text-gray-800">{t("ceoDashboard")}</h1><p className="text-gray-600">{t("executiveOverview")}</p></div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {stats.map((s, i) => (
-          <div key={i} className="bg-white rounded-xl shadow-lg p-6">
+          <div key={i} onClick={() => (s as any).href && (window.location.href = (s as any).href)} className="bg-white rounded-xl shadow-lg p-6 cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all">
             <div className="flex items-center justify-between">
               <div><p className="text-gray-500 text-sm">{s.label}</p><p className="text-3xl font-bold">{s.value}</p></div>
               <div className={`${s.color} p-4 rounded-full text-2xl`}>{s.icon}</div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../lib/api";
+import { exportToCsv, datedFilename } from "../../../lib/export-csv";
 
 interface Activity {
   id: string;
@@ -106,6 +107,16 @@ export default function ActivitiesPage() {
     return date.toLocaleDateString();
   };
 
+  const handleExport = () => {
+    exportToCsv(datedFilename("activity-log"), filteredActivities, [
+      { key: "type", label: "Type" },
+      { key: "title", label: "Title" },
+      { key: "description", label: "Description" },
+      { key: (a) => a.userName ?? "", label: "User" },
+      { key: "createdAt", label: "Date" },
+    ]);
+  };
+
   const filteredActivities = activities.filter((activity) => {
     const q = searchTerm.toLowerCase();
     const matchesSearch =
@@ -150,7 +161,10 @@ export default function ActivitiesPage() {
             >
               🔄 Refresh
             </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+            <button
+              onClick={handleExport}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
               📥 Export
             </button>
           </div>

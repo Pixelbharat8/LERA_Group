@@ -72,80 +72,24 @@ export default function ChairmanDashboard() {
       let settingsData: any[] = [];
       let rolesData: any[] = [];
 
-      if (usersRes?.ok) {
-        const data = await usersRes.json();
-        usersData = Array.isArray(data) ? data : data.data || [];
-        setUsers(usersData);
-      }
-      if (centersRes?.ok) {
-        const data = await centersRes.json();
-        centersData = Array.isArray(data) ? data : data.data || [];
-        setCenters(centersData);
-      }
-      if (deptsRes?.ok) {
-        const data = await deptsRes.json();
-        deptsData = Array.isArray(data) ? data : data.data || [];
-        setDepartments(deptsData);
-      }
-      if (coursesRes?.ok) {
-        const data = await coursesRes.json();
-        coursesData = Array.isArray(data) ? data : data.data || [];
-        setCourses(coursesData);
-      }
-      if (settingsRes?.ok) {
-        const data = await settingsRes.json();
-        settingsData = Array.isArray(data) ? data : data.data || [];
-        setSettings(settingsData);
-      }
-      if (rolesRes?.ok) {
-        const data = await rolesRes.json();
-        rolesData = Array.isArray(data) ? data : data.data || [];
-        setRoles(rolesData);
-      }
+      // apiFetch returns PARSED data (array or {data|content}), not a raw Response —
+      // so normalise directly instead of checking .ok / .json() (which never matched
+      // and left these counts stuck at 0).
+      const parseList = (res: any): any[] =>
+        Array.isArray(res) ? res : (res?.data || res?.content || []);
 
-      // Parse students
-      let studentsData: any[] = [];
-      if (studentsRes?.ok) {
-        const data = await studentsRes.json();
-        studentsData = Array.isArray(data) ? data : data.content || data.data || [];
-        setStudents(studentsData);
-      } else if (Array.isArray(studentsRes)) {
-        studentsData = studentsRes;
-        setStudents(studentsData);
-      }
+      usersData = parseList(usersRes); setUsers(usersData);
+      centersData = parseList(centersRes); setCenters(centersData);
+      deptsData = parseList(deptsRes); setDepartments(deptsData);
+      coursesData = parseList(coursesRes); setCourses(coursesData);
+      settingsData = parseList(settingsRes); setSettings(settingsData);
+      rolesData = parseList(rolesRes); setRoles(rolesData);
 
-      // Parse enrollments
-      let enrollmentsData: any[] = [];
-      if (enrollmentsRes?.ok) {
-        const data = await enrollmentsRes.json();
-        enrollmentsData = Array.isArray(data) ? data : data.data || [];
-        setEnrollments(enrollmentsData);
-      } else if (Array.isArray(enrollmentsRes)) {
-        enrollmentsData = enrollmentsRes;
-        setEnrollments(enrollmentsData);
-      }
-
-      // Parse payments
-      let paymentsData: any[] = [];
-      if (paymentsRes?.ok) {
-        const data = await paymentsRes.json();
-        paymentsData = Array.isArray(data) ? data : data.data || [];
-        setPayments(paymentsData);
-      } else if (Array.isArray(paymentsRes)) {
-        paymentsData = paymentsRes;
-        setPayments(paymentsData);
-      }
-
-      // Parse activity logs
-      let activityData: any[] = [];
-      if (activityRes?.ok) {
-        const data = await activityRes.json();
-        activityData = Array.isArray(data) ? data : data.data || data.content || [];
-        setActivityLogs(activityData);
-      } else if (Array.isArray(activityRes)) {
-        activityData = activityRes;
-        setActivityLogs(activityData);
-      }
+      // Parse students / enrollments / payments / activity (apiFetch returns parsed data).
+      const studentsData = parseList(studentsRes); setStudents(studentsData);
+      const enrollmentsData = parseList(enrollmentsRes); setEnrollments(enrollmentsData);
+      const paymentsData = parseList(paymentsRes); setPayments(paymentsData);
+      const activityData = parseList(activityRes); setActivityLogs(activityData);
 
       // Calculate stats from fetched data (not from state)
       const totalRevenue = paymentsData
@@ -344,15 +288,15 @@ export default function ChairmanDashboard() {
       
       {/* Quick Stats - expanded with Students, Enrollments, Revenue */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title={t("totalUsers")} value={users.length} icon="👥" color="blue" />
-        <StatCard title={t("totalStudents")} value={students.length} icon="👨‍🎓" color="green" />
-        <StatCard title={t("centersTab")} value={centers.length} icon="🏢" color="purple" />
-        <StatCard title={t("courses")} value={courses.length} icon="📚" color="orange" />
+        <StatCard title={t("totalUsers")} value={users.length} icon="👥" color="blue" onClick={() => setActiveTab("users")} />
+        <StatCard title={t("totalStudents")} value={students.length} icon="👨‍🎓" color="green" onClick={() => setActiveTab("students")} />
+        <StatCard title={t("centersTab")} value={centers.length} icon="🏢" color="purple" onClick={() => setActiveTab("centers")} />
+        <StatCard title={t("courses")} value={courses.length} icon="📚" color="orange" onClick={() => setActiveTab("courses")} />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title={t("departmentsTab")} value={departments.length} icon="🏛️" color="purple" />
-        <StatCard title={t("enrollments")} value={enrollments.length} icon="�" color="blue" />
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <StatCard title={t("departmentsTab")} value={departments.length} icon="🏛️" color="purple" onClick={() => setActiveTab("departments")} />
+        <StatCard title={t("enrollments")} value={enrollments.length} icon="📝" color="blue" onClick={() => setActiveTab("students")} />
+        <div onClick={() => (window.location.href = "/dashboard/finance")} className="bg-white rounded-xl shadow-lg p-6 cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-2xl">💰</div>
             <div>
@@ -361,7 +305,7 @@ export default function ChairmanDashboard() {
             </div>
           </div>
         </div>
-        <StatCard title={t("pendingApprovalsCount")} value={pendingApprovals.length} icon="⏳" color="red" />
+        <StatCard title={t("pendingApprovalsCount")} value={pendingApprovals.length} icon="⏳" color="red" onClick={() => setActiveTab("approvals")} />
       </div>
 
       {/* Quick Actions */}
@@ -436,7 +380,7 @@ export default function ChairmanDashboard() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">👥 {t("usersRolesManagement")}</h2>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+        <button onClick={() => (window.location.href = "/dashboard/chairman/users")} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
           {t("addNewUser")}
         </button>
       </div>
@@ -549,7 +493,7 @@ export default function ChairmanDashboard() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">🏢 {t("centersManagement")}</h2>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+        <button onClick={() => (window.location.href = "/dashboard/chairman/centers")} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
           {t("addNewCenter")}
         </button>
       </div>
@@ -587,7 +531,7 @@ export default function ChairmanDashboard() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">🏛️ {t("departmentsManagement")}</h2>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+        <button onClick={() => (window.location.href = "/dashboard/chairman/departments")} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
           {t("addDepartment")}
         </button>
       </div>
@@ -630,7 +574,7 @@ export default function ChairmanDashboard() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">📚 {t("coursesAndPrograms")}</h2>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+        <button onClick={() => (window.location.href = "/dashboard/chairman/courses")} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
           {t("addCourse")}
         </button>
       </div>
@@ -667,7 +611,7 @@ export default function ChairmanDashboard() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">⚙️ {t("systemSettings")}</h2>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+        <button onClick={() => (window.location.href = "/dashboard/chairman/settings")} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
           {t("addSetting")}
         </button>
       </div>
@@ -998,7 +942,7 @@ export default function ChairmanDashboard() {
 }
 
 // Helper Components
-function StatCard({ title, value, icon, color }: { title: string; value: number; icon: string; color: string }) {
+function StatCard({ title, value, icon, color, onClick }: { title: string; value: number; icon: string; color: string; onClick?: () => void }) {
   const colors: Record<string, string> = {
     blue: "bg-blue-500",
     green: "bg-green-500",
@@ -1008,7 +952,7 @@ function StatCard({ title, value, icon, color }: { title: string; value: number;
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
+    <div onClick={onClick} className={`bg-white rounded-xl shadow-lg p-6 ${onClick ? "cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all" : ""}`}>
       <div className="flex items-center gap-4">
         <div className={`w-12 h-12 ${colors[color]} rounded-xl flex items-center justify-center text-2xl`}>
           {icon}

@@ -27,6 +27,7 @@ export default function MediaManager() {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filter, setFilter] = useState<"all" | "image" | "video" | "document">("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [newMedia, setNewMedia] = useState({
     name: "",
@@ -75,7 +76,14 @@ export default function MediaManager() {
     }
   };
 
-  const filteredMedia = filter === "all" ? media : media.filter(m => m.mediaType === filter);
+  const filteredMedia = media
+    .filter((m) => filter === "all" || m.mediaType === filter)
+    .filter((m) => {
+      const q = searchTerm.trim().toLowerCase();
+      if (!q) return true;
+      return [(m as any).name, (m as any).fileName, (m as any).title, (m as any).url, (m as any).altText]
+        .some((v) => String(v || "").toLowerCase().includes(q));
+    });
 
   const handleDelete = async (ids: string[]) => {
     if (confirm(`Are you sure you want to delete ${ids.length} item(s)?`)) {
@@ -192,9 +200,11 @@ export default function MediaManager() {
             ))}
           </div>
           <div className="flex items-center gap-4">
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Search files..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
             <div className="flex border rounded-lg overflow-hidden">

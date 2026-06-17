@@ -23,6 +23,8 @@ export default function CentersManagement() {
   const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   
   const [formData, setFormData] = useState({
     name: "",
@@ -172,12 +174,18 @@ export default function CentersManagement() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900">All Centers</h2>
             <div className="flex items-center gap-3">
-              <input 
+              <input
                 type="text"
                 placeholder="Search centers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               />
-              <select className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
@@ -198,13 +206,21 @@ export default function CentersManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {centers.length === 0 ? (
+              {(() => {
+                const q = searchTerm.trim().toLowerCase();
+                const filteredCenters = centers.filter((c) => {
+                  const matchesSearch = !q || [c.name, c.code, c.city, (c as any).email, (c as any).address]
+                    .some((v) => String(v || "").toLowerCase().includes(q));
+                  const matchesStatus = statusFilter === "all" || String(c.status || "").toLowerCase() === statusFilter;
+                  return matchesSearch && matchesStatus;
+                });
+                return filteredCenters.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                    No centers found. Add your first center!
+                    {centers.length === 0 ? "No centers found. Add your first center!" : "No centers match your filters."}
                   </td>
                 </tr>
-              ) : centers.map((center) => (
+              ) : filteredCenters.map((center) => (
                 <tr key={center.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div>
@@ -265,7 +281,8 @@ export default function CentersManagement() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              ));
+              })()}
             </tbody>
           </table>
         </div>

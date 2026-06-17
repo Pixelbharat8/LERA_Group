@@ -15,6 +15,13 @@ export default function ProfilePage() {
     phone: "",
     email: "",
   });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const userDataStr = Cookies.get("userData");
@@ -53,6 +60,60 @@ export default function ProfilePage() {
       alert("Failed to update profile");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword) {
+      alert("Please enter your current and new password");
+      return;
+    }
+    if (passwordData.newPassword.length < 6) {
+      alert("New password must be at least 6 characters");
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      alert("New password and confirmation do not match");
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      await apiFetch(`/api/users/me/change-password`, {
+        method: "PUT",
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
+      alert("Password updated successfully!");
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error) {
+      console.error("Failed to update password:", error);
+      alert("Failed to update password");
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user?.id) return;
+    if (!confirm("Are you sure you want to delete your account? This cannot be undone.")) return;
+
+    setDeleting(true);
+    try {
+      await apiFetch(`/api/users/${user.id}`, {
+        method: "DELETE",
+      });
+      Cookies.remove("userData");
+      Cookies.remove("token");
+      alert("Account deleted.");
+      router.push("/auth/login");
+    } catch (error) {
+      console.error("Failed to delete account:", error);
+      alert("Failed to delete account");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -166,6 +227,8 @@ export default function ProfilePage() {
             <input
               type="password"
               placeholder="Enter current password"
+              value={passwordData.currentPassword}
+              onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
               className="w-full px-4 py-2 border rounded-lg"
             />
           </div>
@@ -176,6 +239,8 @@ export default function ProfilePage() {
             <input
               type="password"
               placeholder="Enter new password"
+              value={passwordData.newPassword}
+              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
               className="w-full px-4 py-2 border rounded-lg"
             />
           </div>
@@ -186,11 +251,17 @@ export default function ProfilePage() {
             <input
               type="password"
               placeholder="Confirm new password"
+              value={passwordData.confirmPassword}
+              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
               className="w-full px-4 py-2 border rounded-lg"
             />
           </div>
-          <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
-            Update Password
+          <button
+            onClick={handleUpdatePassword}
+            disabled={updatingPassword}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+          >
+            {updatingPassword ? "Updating..." : "Update Password"}
           </button>
         </div>
       </div>
@@ -201,8 +272,12 @@ export default function ProfilePage() {
         <p className="text-sm text-red-600 mb-4">
           Once you delete your account, there is no going back. Please be certain.
         </p>
-        <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-          Delete Account
+        <button
+          onClick={handleDeleteAccount}
+          disabled={deleting}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+        >
+          {deleting ? "Deleting..." : "Delete Account"}
         </button>
       </div>
     </div>

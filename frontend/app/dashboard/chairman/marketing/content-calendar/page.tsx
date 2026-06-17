@@ -132,6 +132,19 @@ export default function ContentCalendarPage() {
     }
   };
 
+  const handleSchedulePost = async (post: ContentPost) => {
+    try {
+      await apiFetch(`/api/social-media-posts/${post.id}/schedule`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduledAt: post.scheduledAt }),
+      });
+      await fetchPosts();
+    } catch (error) {
+      console.error("Error scheduling post:", error);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PUBLISHED": return "bg-green-100 text-green-700";
@@ -364,7 +377,10 @@ export default function ContentCalendarPage() {
                   <div className="flex flex-col gap-2">
                     <button className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">Edit</button>
                     {post.status === "DRAFT" && (
-                      <button className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg">
+                      <button
+                        onClick={() => handleSchedulePost(post)}
+                        className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg"
+                      >
                         Schedule
                       </button>
                     )}

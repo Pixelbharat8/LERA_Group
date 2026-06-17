@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
+import { exportToCsv, exportToExcel, datedFilename } from "../../../../lib/export-csv";
 
 interface AnalyticsData {
   totalStudents: number;
@@ -193,6 +194,42 @@ export default function ChairmanAnalyticsPage() {
 
   const getMaxValue = (data: ChartData[]) => Math.max(...data.map(d => d.value));
 
+  // Export the headline KPI metrics as an Excel-openable worksheet.
+  const handleExportReport = () => {
+    const rows = [
+      { metric: "Total Students", value: analytics.totalStudents },
+      { metric: "Active Students", value: analytics.activeStudents },
+      { metric: "Teachers", value: analytics.totalTeachers },
+      { metric: "Active Courses", value: analytics.totalCourses },
+      { metric: "Total Revenue", value: analytics.totalRevenue },
+      { metric: "Monthly Revenue", value: analytics.monthlyRevenue },
+      { metric: "Enrollment Growth %", value: analytics.enrollmentGrowth },
+      { metric: "Revenue Growth %", value: analytics.revenueGrowth },
+      { metric: "Attendance Rate %", value: analytics.attendanceRate },
+      { metric: "Completion Rate %", value: analytics.completionRate },
+      { metric: "Student Retention %", value: analytics.studentRetention },
+    ];
+    exportToExcel(datedFilename("analytics-report"), rows, [
+      { key: "metric", label: "Metric" },
+      { key: "value", label: "Value" },
+    ]);
+  };
+
+  // Export all trend/breakdown series as a single CSV.
+  const handleExportAllData = () => {
+    const rows = [
+      ...enrollmentTrend.map((d) => ({ section: "Enrollment Trend", label: d.label, value: d.value })),
+      ...revenueTrend.map((d) => ({ section: "Revenue Trend (₫M)", label: d.label, value: d.value })),
+      ...coursePerformance.map((d) => ({ section: "Course Performance", label: d.label, value: d.value })),
+      ...centerPerformance.map((d) => ({ section: "Center Performance", label: d.label, value: d.value })),
+    ];
+    exportToCsv(datedFilename("analytics-all-data"), rows, [
+      { key: "section", label: "Section" },
+      { key: "label", label: "Label" },
+      { key: "value", label: "Value" },
+    ]);
+  };
+
   // Render a month-over-month delta with sign + colour; blank when we have no baseline.
   const Delta = ({ value }: { value: number }) => {
     if (!value) return null;
@@ -239,7 +276,7 @@ export default function ChairmanAnalyticsPage() {
                 <option value="this_year">This Year</option>
                 <option value="all_time">All Time</option>
               </select>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+              <button onClick={handleExportReport} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
                 📥 Export Report
               </button>
             </div>
@@ -443,10 +480,10 @@ export default function ChairmanAnalyticsPage() {
               <p className="text-blue-100">Generate custom reports with detailed breakdowns by center, course, or time period.</p>
             </div>
             <div className="flex gap-3">
-              <button className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition">
+              <button onClick={() => { window.location.href = "/dashboard/chairman/reports"; }} className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition">
                 📊 Custom Report
               </button>
-              <button className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition">
+              <button onClick={handleExportAllData} className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition">
                 📥 Export All Data
               </button>
             </div>

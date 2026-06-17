@@ -12,10 +12,10 @@ export default function SuperAdminDashboard() {
   const { t } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState([
-    { labelKey: "totalCenters", value: "...", icon: "🏢", color: "bg-blue-500" },
-    { labelKey: "totalStudents", value: "...", icon: "👨‍🎓", color: "bg-green-500" },
-    { labelKey: "totalTeachers", value: "...", icon: "👨‍🏫", color: "bg-purple-500" },
-    { labelKey: "monthlyRevenue", value: "...", icon: "💰", color: "bg-yellow-500" },
+    { labelKey: "totalCenters", value: "...", icon: "🏢", color: "bg-blue-500", href: "/dashboard/superadmin/centers" },
+    { labelKey: "totalStudents", value: "...", icon: "👨‍🎓", color: "bg-green-500", href: "/dashboard/academy/students" },
+    { labelKey: "totalTeachers", value: "...", icon: "👨‍🏫", color: "bg-purple-500", href: "/dashboard/academy/teachers" },
+    { labelKey: "monthlyRevenue", value: "...", icon: "💰", color: "bg-yellow-500", href: "/dashboard/finance" },
   ]);
   const [recentActivity, setRecentActivity] = useState<Array<{action: string, detail: string, time: string}>>([]);
   const [loading, setLoading] = useState(true);
@@ -75,10 +75,10 @@ export default function SuperAdminDashboard() {
         };
 
         setStats([
-          { labelKey: "totalCenters", value: centerCount.toLocaleString(), icon: "🏢", color: "bg-blue-500" },
-          { labelKey: "totalStudents", value: studentCount.toLocaleString(), icon: "👨‍🎓", color: "bg-green-500" },
-          { labelKey: "totalTeachers", value: teacherCount.toLocaleString(), icon: "👨‍🏫", color: "bg-purple-500" },
-          { labelKey: "monthlyRevenue", value: formatRevenue(monthlyRevenue), icon: "💰", color: "bg-yellow-500" },
+          { labelKey: "totalCenters", value: centerCount.toLocaleString(), icon: "🏢", color: "bg-blue-500", href: "/dashboard/superadmin/centers" },
+          { labelKey: "totalStudents", value: studentCount.toLocaleString(), icon: "👨‍🎓", color: "bg-green-500", href: "/dashboard/academy/students" },
+          { labelKey: "totalTeachers", value: teacherCount.toLocaleString(), icon: "👨‍🏫", color: "bg-purple-500", href: "/dashboard/academy/teachers" },
+          { labelKey: "monthlyRevenue", value: formatRevenue(monthlyRevenue), icon: "💰", color: "bg-yellow-500", href: "/dashboard/finance" },
         ]);
 
         // Add recent payments as activity
@@ -198,9 +198,10 @@ export default function SuperAdminDashboard() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => (
-            <div
+            <Link
               key={index}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow"
+              href={(stat as any).href || "#"}
+              className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-md hover:-translate-y-0.5 transition-all block cursor-pointer"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -211,7 +212,7 @@ export default function SuperAdminDashboard() {
                   {stat.icon}
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 

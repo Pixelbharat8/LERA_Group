@@ -3,7 +3,6 @@ package com.lera.identity_service.service;
 import com.lera.identity_service.entity.Center;
 import com.lera.identity_service.repository.CenterRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,13 +78,12 @@ public class CenterService {
         if (opt.isEmpty()) {
             return false;
         }
-        Center row = opt.get();
-        try {
-            centerRepository.delete(row);
-            centerRepository.flush();
-            return true;
-        } catch (DataIntegrityViolationException ex) {
-            Center c = centerRepository.findById(id).orElseThrow();
+        Center c = opt.get();
+        // Centres are referenced by users/students/classes (FK), so a hard DELETE would
+        // violate constraints AND mark the transaction rollback-only (which previously made
+        // the soft-delete fallback fail → "unexpected error"). Soft-delete directly instead:
+        // mark DELETED and free the unique code. getAllCenters() already hides DELETED rows.
+        if (!"DELETED".equalsIgnoreCase(c.getStatus())) {
             String suffix = "_DEL_" + UUID.randomUUID().toString().substring(0, 8);
             String base = c.getCode() != null ? c.getCode() : "X";
             int max = 50;
@@ -95,8 +93,8 @@ public class CenterService {
             c.setCode(base + suffix);
             c.setStatus("DELETED");
             centerRepository.save(c);
-            return true;
         }
+        return true;
     }
     
     @Transactional

@@ -63,15 +63,19 @@ export default function FinanceDashboardPage() {
     try {
       const dashboardUrl = buildCenterFilterUrl('/api/finance/dashboard', shouldFilterByCenter ? userCenterId : null);
       const centersUrl = buildCenterFilterUrl('/api/finance/revenue/by-center', shouldFilterByCenter ? userCenterId : null);
-      const [dashboardData, centersData] = await Promise.all([
+      const [dashboardData, centersData, allCenters] = await Promise.all([
         apiFetch(dashboardUrl).catch(() => null),
-        apiFetch(centersUrl).catch(() => [])
+        apiFetch(centersUrl).catch(() => []),
+        apiFetch('/api/centers').catch(() => [])  // resolve real centre names (payment svc only has the UUID)
       ]);
+      const centerNameById = new Map(
+        (Array.isArray(allCenters) ? allCenters : []).map((c: any) => [String(c.id), c.name])
+      );
 
       if (dashboardData) {
         setStats({
           totalRevenue: dashboardData.totalRevenue || 0,
-          monthlyRevenue: dashboardData.totalRevenue || 0,
+          monthlyRevenue: dashboardData.thisMonthRevenue ?? dashboardData.totalRevenue ?? 0,
           outstandingBalance: dashboardData.outstandingAmount || 0,
           refundedAmount: dashboardData.refundedAmount || 0,
           collectionRate: dashboardData.invoiceStats?.paid > 0 ? 
@@ -97,11 +101,11 @@ export default function FinanceDashboardPage() {
       if (Array.isArray(centersData) && centersData.length > 0) {
         setCenterRevenue(centersData.map((c: any) => ({
           id: c.centerId || c.id,
-          name: c.centerName || c.name || 'Unknown Center',
-          revenue: c.totalRevenue || 0,
-          students: c.invoiceCount || 0,
-          collected: c.totalRevenue || 0,
-          outstanding: 0
+          name: c.centerName || centerNameById.get(String(c.centerId || c.id)) || c.name || 'Unknown Center',
+          revenue: Number(c.totalRevenue) || 0,
+          students: Number(c.studentCount ?? c.invoiceCount) || 0,
+          collected: Number(c.totalRevenue) || 0,
+          outstanding: Number(c.outstanding) || 0
         })));
       } else {
         setCenterRevenue([]);
