@@ -5,7 +5,7 @@ COPY pom.xml .
 COPY src ./src
 RUN mvn -DskipTests package
 
-FROM eclipse-temurin:17-jdk-jammy
+FROM eclipse-temurin:25-jdk-jammy
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 # Healthcheck client (curl) + non-root user (uid 1001)
