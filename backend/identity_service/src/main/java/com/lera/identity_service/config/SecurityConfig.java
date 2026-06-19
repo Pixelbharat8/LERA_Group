@@ -1,6 +1,7 @@
 package com.lera.identity_service.config;
 
 import com.lera.identity_service.security.JwtAuthenticationFilter;
+import com.lera.identity_service.security.PermissionGateFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +29,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final PermissionGateFilter permissionGateFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -61,7 +63,8 @@ public class SecurityConfig {
                     response.getWriter().write("{\"success\":false,\"message\":\"Authentication required\"}");
                 })
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(permissionGateFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

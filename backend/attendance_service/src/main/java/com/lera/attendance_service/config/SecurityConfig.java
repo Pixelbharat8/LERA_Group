@@ -2,6 +2,7 @@ package com.lera.attendance_service.config;
 
 import com.lera.attendance_service.security.InternalApiKeyAuthFilter;
 import com.lera.attendance_service.security.JwtAuthenticationFilter;
+import com.lera.attendance_service.security.PermissionGateFilter;
 
 import java.util.Arrays;
 import java.util.List;
@@ -27,11 +28,14 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final InternalApiKeyAuthFilter internalApiKeyAuthFilter;
+    private final PermissionGateFilter permissionGateFilter;
 
     public SecurityConfig(
-            JwtAuthenticationFilter jwtAuthenticationFilter, InternalApiKeyAuthFilter internalApiKeyAuthFilter) {
+            JwtAuthenticationFilter jwtAuthenticationFilter, InternalApiKeyAuthFilter internalApiKeyAuthFilter,
+            PermissionGateFilter permissionGateFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.internalApiKeyAuthFilter = internalApiKeyAuthFilter;
+        this.permissionGateFilter = permissionGateFilter;
     }
 
     @Bean
@@ -58,7 +62,8 @@ public class SecurityConfig {
                 })
             )
             .addFilterBefore(internalApiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(permissionGateFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

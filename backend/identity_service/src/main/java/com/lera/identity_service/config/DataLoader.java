@@ -22,6 +22,7 @@ public class DataLoader implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final com.lera.identity_service.repository.RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${lera.seed.admin-password:}")
@@ -40,6 +41,56 @@ public class DataLoader implements CommandLineRunner {
         createDefaultRoles();
         createAdminUser();
         createChairmanAndCEO();
+        seedRolePermissions();
+    }
+
+    // Permission catalog (must match permissions table codes).
+    private static final java.util.List<String> ALL_CODES = java.util.List.of(
+        "users.view","users.create","users.edit","users.delete",
+        "students.view","students.create","students.edit","students.delete",
+        "teachers.view","teachers.create","teachers.edit","teachers.delete",
+        "classes.view","classes.create","classes.edit","classes.delete",
+        "attendance.view","attendance.mark","attendance.edit",
+        "finance.view","finance.create","finance.approve",
+        "reports.view","reports.export",
+        "settings.view","settings.edit");
+    private static final java.util.List<String> VIEW_CODES = java.util.List.of(
+        "users.view","students.view","teachers.view","classes.view",
+        "attendance.view","finance.view","reports.view","settings.view");
+
+    /**
+     * Seed sensible role→permission defaults for every role that has none yet (idempotent).
+     * GENEROUS by design: the PermissionGateFilter only SUBTRACTS from the existing role floor,
+     * so defaults must not block anything a role can already do. Every role gets all *.view so
+     * no GET is ever blocked; managers/admins get full sets. The Chairman then removes codes via
+     * the Roles & Permissions grid to actually restrict a role. CHAIRMAN already seeded → skipped.
+     */
+    private void seedRolePermissions() {
+        java.util.Map<String, java.util.List<String>> byRole = new java.util.HashMap<>();
+        for (String r : java.util.List.of("SUPER_ADMIN","ADMIN","CHAIRMAN","CEO","DIRECTOR",
+                "CENTER_MANAGER","CENTER_ADMIN","ACADEMIC_MANAGER")) {
+            byRole.put(r, ALL_CODES);
+        }
+        java.util.List<String> acct = new java.util.ArrayList<>(VIEW_CODES);
+        acct.addAll(java.util.List.of("finance.create","finance.approve","reports.export"));
+        byRole.put("ACCOUNTANT", acct);
+        java.util.List<String> teach = new java.util.ArrayList<>(VIEW_CODES);
+        teach.addAll(java.util.List.of("attendance.mark","attendance.edit"));
+        for (String r : java.util.List.of("TEACHER","TEACHING_ASSISTANT","TA")) byRole.put(r, teach);
+        for (String r : java.util.List.of("STAFF","PARENT","STUDENT")) byRole.put(r, VIEW_CODES);
+
+        byRole.forEach((roleName, codes) -> roleRepository.findByName(roleName).ifPresent(role -> {
+            if (rolePermissionRepository.findByRoleId(role.getId()).isEmpty()) {
+                for (String code : codes) {
+                    com.lera.identity_service.entity.RolePermission rp =
+                            new com.lera.identity_service.entity.RolePermission();
+                    rp.setRoleId(role.getId());
+                    rp.setPermissionCode(code);
+                    rolePermissionRepository.save(rp);
+                }
+                log.info("Seeded {} permissions for role {}", codes.size(), roleName);
+            }
+        }));
     }
 
     /**

@@ -134,7 +134,7 @@ export default function ChairmanRolesPage() {
         method: "PUT",
         body: JSON.stringify({ permissions: selectedRolePermissions }),
       });
-      alert("Permissions updated successfully!");
+      alert("Permissions updated. Access changes take effect across all services within ~15 seconds (Chairman & Super Admin always keep full access).");
       setShowPermissionsModal(false);
       setEditingRole(null);
       fetchData();
@@ -496,6 +496,10 @@ export default function ChairmanRolesPage() {
               </h3>
               <p className="text-sm text-white/80 mt-1">
                 Select users and set permissions
+              </p>
+              <p className="text-xs text-white/90 mt-2 bg-white/10 rounded px-2 py-1">
+                ⚡ Now enforced on the backend — changes apply across all services within ~15 seconds.
+                Chairman &amp; Super Admin always keep full access.
               </p>
             </div>
             

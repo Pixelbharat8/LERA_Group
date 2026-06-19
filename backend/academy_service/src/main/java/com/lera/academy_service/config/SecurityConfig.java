@@ -2,6 +2,7 @@ package com.lera.academy_service.config;
 
 import com.lera.academy_service.security.InternalApiKeyAuthFilter;
 import com.lera.academy_service.security.JwtAuthenticationFilter;
+import com.lera.academy_service.security.PermissionGateFilter;
 
 import java.util.Arrays;
 import java.util.List;
@@ -30,14 +31,17 @@ public class SecurityConfig {
 
     private final InternalApiKeyAuthFilter internalApiKeyAuthFilter;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final PermissionGateFilter permissionGateFilter;
     private final Environment environment;
 
     public SecurityConfig(
             InternalApiKeyAuthFilter internalApiKeyAuthFilter,
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            PermissionGateFilter permissionGateFilter,
             Environment environment) {
         this.internalApiKeyAuthFilter = internalApiKeyAuthFilter;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.permissionGateFilter = permissionGateFilter;
         this.environment = environment;
     }
 
@@ -96,7 +100,8 @@ public class SecurityConfig {
                 })
             )
             .addFilterBefore(internalApiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(permissionGateFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
