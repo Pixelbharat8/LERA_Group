@@ -118,8 +118,12 @@ export default function TeacherAttendancePage() {
     try {
       setLoading(true);
       const enrollments = await apiFetch(`/api/enrollments?classId=${classId}`, {}, { silent: true }).catch(() => []);
+      // Dedupe by studentId — a class can have duplicate enrollment rows, which would
+      // otherwise show the same student many times in the attendance list.
       const studentIds = Array.isArray(enrollments)
-        ? enrollments.map((e: { studentId?: string }) => e.studentId).filter((id): id is string => Boolean(id))
+        ? Array.from(new Set(
+            enrollments.map((e: { studentId?: string }) => e.studentId).filter((id): id is string => Boolean(id))
+          ))
         : [];
       const studentsData = await Promise.all(
         studentIds.map(async (id: string) => apiFetch(`/api/students/${id}`, {}, { silent: true }).catch(() => null))

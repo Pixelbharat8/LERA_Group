@@ -90,7 +90,15 @@ export default function SelfServicePortal() {
   function printPayslip(p: any) {
     const cur = p.currency || "VND";
     const fmt = (v: any) => (v == null ? "—" : `${Number(v).toLocaleString()} ${cur}`);
-    const gross = (Number(p.baseSalary) || 0) + (Number(p.bonus) || 0);
+    // Part-time / hourly staff are paid hourlyRate × hours; this is the teachingAmount the
+    // backend computes. Include it in the gross so the payslip reconciles to net pay.
+    const hours = Number(p.teachingHours) || 0;
+    const rate = Number(p.hourlyRate) || 0;
+    const teachingAmount = Number(p.teachingAmount) || (hours * rate);
+    const hourlyRow = (hours > 0 || teachingAmount > 0)
+      ? `<tr><td>Teaching pay (${hours} hrs × ${fmt(rate)})</td><td class="r">${fmt(teachingAmount)}</td></tr>`
+      : "";
+    const gross = (Number(p.baseSalary) || 0) + teachingAmount + (Number(p.bonus) || 0);
     const w = window.open("", "_blank", "width=720,height=900");
     if (!w) return;
     w.document.write(`<!doctype html><html><head><title>Payslip ${p.payPeriodStart || ""}</title>
@@ -103,6 +111,7 @@ export default function SelfServicePortal() {
       <div class="muted">Pay period: ${p.payPeriodStart || "—"} → ${p.payPeriodEnd || "—"} · Status: <span class="badge">${p.status || "—"}</span></div>
       <table>
         <tr><td>Base salary</td><td class="r">${fmt(p.baseSalary)}</td></tr>
+        ${hourlyRow}
         <tr><td>Bonus</td><td class="r">${fmt(p.bonus)}</td></tr>
         <tr><td>Gross</td><td class="r">${fmt(gross)}</td></tr>
         <tr><td>Deductions</td><td class="r">- ${fmt(p.deductions)}</td></tr>
@@ -167,6 +176,7 @@ export default function SelfServicePortal() {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pay period</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Base</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hours × rate</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bonus</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Deductions</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Net pay</th>
@@ -176,11 +186,16 @@ export default function SelfServicePortal() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {payslips.length === 0 ? (
-                    <tr><td colSpan={7} className="px-6 py-10 text-center text-gray-500">No payslips yet.</td></tr>
+                    <tr><td colSpan={8} className="px-6 py-10 text-center text-gray-500">No payslips yet.</td></tr>
                   ) : payslips.map((p) => (
                     <tr key={p.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-gray-700">{p.payPeriodStart || "—"} → {p.payPeriodEnd || "—"}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{money(p.baseSalary, p.currency)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                        {(Number(p.teachingHours) || 0) > 0 || (Number(p.teachingAmount) || 0) > 0
+                          ? <span title={`${Number(p.teachingHours) || 0} hrs × ${money(p.hourlyRate, p.currency)}`}>{money(p.teachingAmount ?? (Number(p.teachingHours) || 0) * (Number(p.hourlyRate) || 0), p.currency)}</span>
+                          : "—"}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{money(p.bonus, p.currency)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{money(p.deductions, p.currency)}</td>
                       <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{money(p.totalAmount, p.currency)}</td>
@@ -282,13 +297,27 @@ export default function SelfServicePortal() {
                 {viewPayslip.payPeriodStart || "—"} → {viewPayslip.payPeriodEnd || "—"}
                 <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${statusPill(viewPayslip.status)}`}>{viewPayslip.status}</span>
               </div>
-              <div className="divide-y">
-                <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Base salary</span><span>{money(viewPayslip.baseSalary, viewPayslip.currency)}</span></div>
-                <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Bonus</span><span>{money(viewPayslip.bonus, viewPayslip.currency)}</span></div>
-                <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Gross</span><span>{money((Number(viewPayslip.baseSalary) || 0) + (Number(viewPayslip.bonus) || 0), viewPayslip.currency)}</span></div>
-                <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Deductions</span><span className="text-red-600">- {money(viewPayslip.deductions, viewPayslip.currency)}</span></div>
-                <div className="flex justify-between py-3 text-base font-bold border-t-2 border-gray-900"><span>Net pay</span><span>{money(viewPayslip.totalAmount, viewPayslip.currency)}</span></div>
-              </div>
+              {(() => {
+                const hours = Number(viewPayslip.teachingHours) || 0;
+                const rate = Number(viewPayslip.hourlyRate) || 0;
+                const teaching = Number(viewPayslip.teachingAmount) || hours * rate;
+                const gross = (Number(viewPayslip.baseSalary) || 0) + teaching + (Number(viewPayslip.bonus) || 0);
+                return (
+                  <div className="divide-y">
+                    <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Base salary</span><span>{money(viewPayslip.baseSalary, viewPayslip.currency)}</span></div>
+                    {(hours > 0 || teaching > 0) && (
+                      <div className="flex justify-between py-2 text-sm">
+                        <span className="text-gray-500">Teaching pay <span className="text-gray-400">({hours} hrs × {money(rate, viewPayslip.currency)})</span></span>
+                        <span>{money(teaching, viewPayslip.currency)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Bonus</span><span>{money(viewPayslip.bonus, viewPayslip.currency)}</span></div>
+                    <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Gross</span><span>{money(gross, viewPayslip.currency)}</span></div>
+                    <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Deductions</span><span className="text-red-600">- {money(viewPayslip.deductions, viewPayslip.currency)}</span></div>
+                    <div className="flex justify-between py-3 text-base font-bold border-t-2 border-gray-900"><span>Net pay</span><span>{money(viewPayslip.totalAmount, viewPayslip.currency)}</span></div>
+                  </div>
+                );
+              })()}
             </div>
             <footer className="flex justify-end gap-2 border-t px-5 py-3">
               <button onClick={() => setViewPayslip(null)} className="h-9 rounded-md border border-gray-300 px-3 text-sm hover:bg-gray-50">Close</button>

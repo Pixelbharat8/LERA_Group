@@ -11,6 +11,8 @@ import {
 
 export default function TeacherStudentsPage() {
   const [students, setStudents] = useState<RosterStudent[]>([]);
+  const [classList, setClassList] = useState<{ id: string; className: string }[]>([]);
+  const [classFilter, setClassFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,6 +32,7 @@ export default function TeacherStudentsPage() {
         return;
       }
       const classes = await loadScopedClasses("teacher", teacherEntityId);
+      setClassList(classes.map((c) => ({ id: c.id, className: c.className })));
       const roster = await loadRosterStudentsForClasses(
         classes.map((c) => ({ id: c.id, className: c.className }))
       );
@@ -43,13 +46,17 @@ export default function TeacherStudentsPage() {
     }
   };
 
-  const filteredStudents = students.filter(
-    (student) =>
-      student.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.studentCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.className.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStudents = students.filter((student) => {
+    const matchesClass = !classFilter || student.className === classFilter;
+    const q = searchTerm.toLowerCase();
+    const matchesSearch =
+      !q ||
+      student.fullname.toLowerCase().includes(q) ||
+      student.studentCode.toLowerCase().includes(q) ||
+      student.email?.toLowerCase().includes(q) ||
+      student.className.toLowerCase().includes(q);
+    return matchesClass && matchesSearch;
+  });
 
   if (loading) {
     return (
@@ -85,14 +92,26 @@ export default function TeacherStudentsPage() {
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">{error}</div>
       )}
 
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="bg-white rounded-lg shadow p-4 flex flex-col md:flex-row gap-3">
         <input
           type="text"
           placeholder="Search by name, code, email, or class..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
+        <select
+          value={classFilter}
+          onChange={(e) => setClassFilter(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent md:w-64"
+        >
+          <option value="">All my classes ({students.length})</option>
+          {classList.map((c) => (
+            <option key={c.id} value={c.className}>
+              {c.className} ({students.filter((s) => s.className === c.className).length})
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

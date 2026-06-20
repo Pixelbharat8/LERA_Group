@@ -10,11 +10,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -136,13 +140,28 @@ public class PayrollGenerationService {
     /**
      * Fetch all staff (TEACHER, TA, STAFF) from Identity Service
      */
+    /**
+     * Build an HttpEntity that forwards the caller's JWT so downstream services
+     * (identity, attendance) authenticate the request. Without this, those calls
+     * 401 and payroll generation silently finds 0 staff / 0 hours.
+     */
+    private HttpEntity<Void> forwardAuth() {
+        HttpHeaders headers = new HttpHeaders();
+        var attrs = RequestContextHolder.getRequestAttributes();
+        if (attrs instanceof ServletRequestAttributes sra) {
+            String auth = sra.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
+            if (auth != null && !auth.isBlank()) headers.set(HttpHeaders.AUTHORIZATION, auth);
+        }
+        return new HttpEntity<>(headers);
+    }
+
     private List<Map<String, Object>> fetchStaff() {
         try {
             String url = identityServiceUrl + "/api/users";
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
-                    null,
+                    forwardAuth(),
                     new ParameterizedTypeReference<List<Map<String, Object>>>() {}
             );
 
@@ -176,7 +195,7 @@ public class PayrollGenerationService {
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
-                    null,
+                    forwardAuth(),
                     new ParameterizedTypeReference<Map<String, Object>>() {}
             );
 

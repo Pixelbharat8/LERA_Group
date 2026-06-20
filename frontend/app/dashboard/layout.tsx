@@ -1321,7 +1321,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  <span>{item.icon}</span>
+                  {/* item.name already begins with the emoji; don't also render item.icon (double emoji) */}
                   <span>{item.name}</span>
                 </Link>
               )}

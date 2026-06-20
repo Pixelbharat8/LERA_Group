@@ -171,7 +171,8 @@ export default function TeacherClassesPage() {
 
       // --- Students (real) ---
       const enrollmentsArray = Array.isArray(enrollments) ? enrollments : [];
-      const studentIds = enrollmentsArray.map((e: any) => e.studentId).filter(Boolean);
+      // Dedupe — duplicate enrollment rows must not show the same student multiple times.
+      const studentIds = Array.from(new Set(enrollmentsArray.map((e: any) => e.studentId).filter(Boolean)));
       const studentsData = await Promise.all(
         studentIds.map((id: string) => apiFetch(`/api/students/${id}`, {}, { silent: true }).catch(() => null))
       );

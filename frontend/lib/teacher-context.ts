@@ -59,7 +59,10 @@ export async function loadScopedClasses(
       const enrollments = (await apiFetch(`/api/enrollments?classId=${c.id}`, {}, { silent: true }).catch(() => [])) as {
         studentId?: string;
       }[];
-      const count = Array.isArray(enrollments) ? enrollments.length : 0;
+      // Count DISTINCT students — duplicate enrollment rows shouldn't inflate the class size.
+      const count = Array.isArray(enrollments)
+        ? new Set(enrollments.map((e) => e.studentId).filter(Boolean)).size
+        : 0;
       return mapClassFromApi(c, {
         enrollmentCount: count,
         programName: programById.get(String(c.programId)) || "",
