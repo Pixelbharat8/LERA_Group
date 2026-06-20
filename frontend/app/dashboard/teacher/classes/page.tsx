@@ -113,8 +113,15 @@ export default function TeacherClassesPage() {
       });
       setClasses(mappedClasses);
       if (mappedClasses.length > 0) {
-        setSelectedClass(mappedClasses[0]);
-        fetchClassDetail(mappedClasses[0].id, mappedClasses[0]);
+        // Deep-link: if opened from the dashboard schedule (?classId=…), open that class
+        // (its curriculum + materials); otherwise default to the first class.
+        const wantId =
+          typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("classId")
+            : null;
+        const target = mappedClasses.find((c) => c.id === wantId) || mappedClasses[0];
+        setSelectedClass(target);
+        fetchClassDetail(target.id, target);
       }
     } catch (err) {
       console.error(err);

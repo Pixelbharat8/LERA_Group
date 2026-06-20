@@ -45,6 +45,7 @@ export default function TeacherDashboard() {
   });
   type ScheduleRow = {
     id: string;
+    classId: string;
     time: string;
     className: string;
     room: string;
@@ -96,6 +97,7 @@ export default function TeacherDashboard() {
           const cls = classById.get(String(s.classId));
           return {
             id: String(s.id ?? `${s.classId}-${s.startTime ?? ""}`),
+            classId: String(s.classId ?? ""),
             time: String(s.startTime || "").slice(0, 5) || "—",
             className: cls?.className || cls?.name || "Class",
             room: cls?.room || "",
@@ -137,10 +139,10 @@ export default function TeacherDashboard() {
   }, [router]);
 
   const stats = [
-    { label: t("myClasses"), value: statsData.myClasses.toString(), icon: "📚", color: "bg-blue-500" },
-    { label: t("myStudents"), value: statsData.myStudents.toString(), icon: "👨‍🎓", color: "bg-green-500" },
-    { label: t("todaySessions"), value: statsData.todaySessions.toString(), icon: "📅", color: "bg-purple-500" },
-    { label: t("pendingAttendance"), value: statsData.pendingAttendance.toString(), icon: "✅", color: "bg-orange-500" },
+    { label: t("myClasses"), value: statsData.myClasses.toString(), icon: "📚", color: "bg-blue-500", href: "/dashboard/teacher/classes" },
+    { label: t("myStudents"), value: statsData.myStudents.toString(), icon: "👨‍🎓", color: "bg-green-500", href: "/dashboard/teacher/students" },
+    { label: t("todaySessions"), value: statsData.todaySessions.toString(), icon: "📅", color: "bg-purple-500", href: "/dashboard/teacher/schedule" },
+    { label: t("pendingAttendance"), value: statsData.pendingAttendance.toString(), icon: "✅", color: "bg-orange-500", href: "/dashboard/teacher/attendance" },
   ];
 
   if (loading) {
@@ -166,7 +168,7 @@ export default function TeacherDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+          <Link key={index} href={stat.href} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl hover:-translate-y-0.5 transition-all block cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">{stat.label}</p>
@@ -176,7 +178,7 @@ export default function TeacherDashboard() {
                 {stat.icon}
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -205,7 +207,11 @@ export default function TeacherDashboard() {
             {todaySchedule.map((row) => {
               const badge = statusBadge(row.status);
               return (
-                <div key={row.id} className={`flex items-center p-4 ${badge.rowBg} rounded-lg`}>
+                <Link
+                  key={row.id}
+                  href={row.classId ? `/dashboard/teacher/classes?classId=${row.classId}` : "/dashboard/teacher/classes"}
+                  className={`flex items-center p-4 ${badge.rowBg} rounded-lg hover:ring-2 hover:ring-blue-300 transition cursor-pointer`}
+                >
                   <div className={`${badge.time} font-bold mr-4`}>{row.time}</div>
                   <div className="flex-1">
                     <p className="font-medium">{row.className}</p>
@@ -215,8 +221,9 @@ export default function TeacherDashboard() {
                         .join(" • ")}
                     </p>
                   </div>
+                  <span className="text-xs text-blue-600 mr-3">Open curriculum & materials →</span>
                   <span className={`px-3 py-1 ${badge.pill} rounded-full text-sm`}>{badge.label}</span>
-                </div>
+                </Link>
               );
             })}
           </div>
