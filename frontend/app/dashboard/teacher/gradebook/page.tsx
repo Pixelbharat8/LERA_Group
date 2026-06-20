@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { resolveMyTeacherId } from "@/lib/teacher-context";
 
 interface Row { studentId: string; studentName: string; score: number | null; percentage: number | null; grade: string | null; passed: boolean | null; }
 
@@ -18,12 +19,22 @@ export default function GradebookPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  useEffect(() => { apiFetch("/api/classes").then((d) => setClasses(Array.isArray(d) ? d : [])).catch(() => {}); }, []);
+  // Teachers can't list all classes (the bare /api/classes 403s with "centerId required");
+  // use the teacher-scoped endpoint so the gradebook actually shows the teacher's own classes.
+  useEffect(() => {
+    (async () => {
+      const tid = await resolveMyTeacherId();
+      if (!tid) { setClasses([]); return; }
+      apiFetch(`/api/classes?teacherId=${tid}`, {}, { silent: true })
+        .then((d) => setClasses(Array.isArray(d) ? d : []))
+        .catch(() => {});
+    })();
+  }, []);
 
   useEffect(() => {
     setExams([]); setExamId(""); setRows([]);
     if (!classId) return;
-    apiFetch(`/api/exams?classId=${classId}`).then((d) => setExams(Array.isArray(d) ? d : [])).catch(() => {});
+    apiFetch(`/api/exams?classId=${classId}`, {}, { silent: true }).then((d) => setExams(Array.isArray(d) ? d : [])).catch(() => {});
   }, [classId]);
 
   useEffect(() => {

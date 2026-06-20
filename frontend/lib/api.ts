@@ -139,7 +139,7 @@ export function hasAuthSession(): boolean {
 export async function apiFetch(
   path: string,
   init: RequestInit = {},
-  opts: { anonymous?: boolean } = {}
+  opts: { anonymous?: boolean; silent?: boolean } = {}
 ) {
   let res = await doFetch(path, init);
 
@@ -170,8 +170,9 @@ export async function apiFetch(
     const finalMsg = typeof msg === "string" ? msg : "Request failed";
     // Surface non-401 errors to the global toast container. Callers can still
     // catch the throw for their own UX; this just guarantees something is shown.
-    // Anonymous (public-page) calls stay silent — they degrade to defaults.
-    if (typeof window !== "undefined" && !opts.anonymous) {
+    // Anonymous (public-page) and silent (background/optional) calls stay quiet —
+    // they degrade to defaults without nagging the user with a toast.
+    if (typeof window !== "undefined" && !opts.anonymous && !opts.silent) {
       window.dispatchEvent(new CustomEvent("lera:error", { detail: { message: finalMsg } }));
     }
     throw new Error(finalMsg);

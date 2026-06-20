@@ -42,8 +42,8 @@ export async function loadScopedClasses(
 ): Promise<ReturnType<typeof mapClassFromApi>[]> {
   const param = scope === "teacher" ? `teacherId=${entityId}` : `taId=${entityId}`;
   const [classesRaw, programsRaw] = await Promise.all([
-    apiFetch(`/api/classes?${param}`).catch(() => []),
-    apiFetch("/api/programs/active").catch(() => []),
+    apiFetch(`/api/classes?${param}`, {}, { silent: true }).catch(() => []),
+    apiFetch("/api/programs/active", {}, { silent: true }).catch(() => []),
   ]);
   const classesArr = Array.isArray(classesRaw) ? classesRaw : [];
   const programsArr = Array.isArray(programsRaw) ? programsRaw : [];
@@ -56,7 +56,7 @@ export async function loadScopedClasses(
 
   return Promise.all(
     classesArr.map(async (c: Record<string, unknown>) => {
-      const enrollments = (await apiFetch(`/api/enrollments?classId=${c.id}`).catch(() => [])) as {
+      const enrollments = (await apiFetch(`/api/enrollments?classId=${c.id}`, {}, { silent: true }).catch(() => [])) as {
         studentId?: string;
       }[];
       const count = Array.isArray(enrollments) ? enrollments.length : 0;

@@ -77,7 +77,7 @@ export default function TeacherDashboard() {
         countTodaySessionsForClasses(classIds),
         Promise.all(
           classIds.map((id) =>
-            apiFetch(`/api/class-sessions?classId=${id}`).catch(() => [])
+            apiFetch(`/api/class-sessions?classId=${id}`, {}, { silent: true }).catch(() => [])
           )
         ),
       ]);

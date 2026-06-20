@@ -85,12 +85,14 @@ export default function TeacherPermissionSlipsPage() {
 
       const slipBatches = await Promise.all([
         ...scopedClasses.map((c) =>
-          apiFetch(`/api/permission-slips?classId=${encodeURIComponent(c.id)}`).catch(() => [])
+          apiFetch(`/api/permission-slips?classId=${encodeURIComponent(c.id)}`, {}, { silent: true }).catch(() => [])
         ),
         ...(centerId
           ? [
               apiFetch(
-                `/api/permission-slips?centerId=${encodeURIComponent(centerId)}`
+                `/api/permission-slips?centerId=${encodeURIComponent(centerId)}`,
+                {},
+                { silent: true }
               ).catch(() => []),
             ]
           : []),

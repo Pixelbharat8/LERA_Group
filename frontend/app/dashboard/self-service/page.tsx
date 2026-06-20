@@ -36,11 +36,11 @@ export default function SelfServicePortal() {
     setError(null);
     try {
       const [pay, reqs, bal, att, broadcasts] = await Promise.all([
-        apiFetch(`/api/payroll/user/${userId}`).catch(() => []),
-        apiFetch(`/api/leave-requests/user/${userId}`).catch(() => []),
-        apiFetch(`/api/leave-balance/${userId}`).catch(() => null),
-        apiFetch(`/api/attendance/user/${userId}/summary`).catch(() => null),
-        apiFetch(`/api/broadcasts`).catch(() => []),
+        apiFetch(`/api/payroll/user/${userId}`, {}, { silent: true }).catch(() => []),
+        apiFetch(`/api/leave-requests/user/${userId}`, {}, { silent: true }).catch(() => []),
+        apiFetch(`/api/leave-balance/${userId}`, {}, { silent: true }).catch(() => null),
+        apiFetch(`/api/attendance/user/${userId}/summary`, {}, { silent: true }).catch(() => null),
+        apiFetch(`/api/broadcasts`, {}, { silent: true }).catch(() => []),
       ]);
       setPayslips(Array.isArray(pay) ? pay : []);
       setLeaveRequests(Array.isArray(reqs) ? reqs : []);

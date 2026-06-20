@@ -40,23 +40,35 @@ const TONE_CLASS: Record<ToastTone, string> = {
 export function ToastContainer() {
   const [toasts, setToasts] = React.useState<ToastEvent[]>([]);
 
+  // Most one toast per distinct message at a time, and never more than this many
+  // on screen — so a burst of identical failures (e.g. several background list
+  // calls 403-ing at once) collapses into a single toast instead of a red wall.
+  const MAX_VISIBLE = 3;
+
   React.useEffect(() => {
+    function push(message: string, tone: ToastTone, ttl: number) {
+      const id = Date.now() + Math.random();
+      setToasts((prev) => {
+        // Dedupe: if the same message is already showing, don't stack another.
+        if (prev.some((t) => t.message === message)) return prev;
+        const next = [...prev, { id, message, tone }];
+        // Cap: drop the oldest so we never flood the corner.
+        return next.length > MAX_VISIBLE ? next.slice(next.length - MAX_VISIBLE) : next;
+      });
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, ttl);
+    }
+
     function onToast(e: Event) {
       const detail = (e as CustomEvent<ToastEvent>).detail;
       if (!detail) return;
-      setToasts((prev) => [...prev, detail]);
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== detail.id));
-      }, 4000);
+      push(detail.message, detail.tone, 4000);
     }
 
     function onError(e: Event) {
       const detail = (e as CustomEvent<{ message?: string }>).detail;
-      const msg = detail?.message || "Unexpected error";
-      setToasts((prev) => [...prev, { id: Date.now() + Math.random(), message: msg, tone: "error" }]);
-      setTimeout(() => {
-        setToasts((prev) => (prev.length ? prev.slice(1) : prev));
-      }, 5000);
+      push(detail?.message || "Unexpected error", "error", 5000);
     }
 
     window.addEventListener(EVENT, onToast as EventListener);

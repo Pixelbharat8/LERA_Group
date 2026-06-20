@@ -203,13 +203,13 @@ export default function TeacherGradesPage() {
         loadExamsForClassIds(classIdList),
         loadExamResultsForClassIds(classIdList),
         teacherEntityId
-          ? apiFetch(`/api/assignments/teacher/${teacherEntityId}`).catch(() => [])
+          ? apiFetch(`/api/assignments/teacher/${teacherEntityId}`, {}, { silent: true }).catch(() => [])
           : Promise.resolve([]),
       ]);
 
       const enrollmentLists = await Promise.all(
         scopedClasses.map((c) =>
-          apiFetch(`/api/enrollments?classId=${c.id}`).catch(() => [])
+          apiFetch(`/api/enrollments?classId=${c.id}`, {}, { silent: true }).catch(() => [])
         )
       );
       const studentIds = Array.from(
@@ -221,7 +221,7 @@ export default function TeacherGradesPage() {
         )
       );
       const studentsData = await Promise.all(
-        studentIds.map((id) => apiFetch(`/api/students/${id}`).catch(() => null))
+        studentIds.map((id) => apiFetch(`/api/students/${id}`, {}, { silent: true }).catch(() => null))
       );
 
       setClasses(

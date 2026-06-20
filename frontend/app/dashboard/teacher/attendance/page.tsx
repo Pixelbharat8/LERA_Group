@@ -65,14 +65,14 @@ export default function TeacherAttendancePage() {
   const loadHistory = async (classId: string) => {
     setHistoryLoading(true);
     try {
-      const sessions = await apiFetch(`/api/class-sessions?classId=${classId}`).catch(() => []);
+      const sessions = await apiFetch(`/api/class-sessions?classId=${classId}`, {}, { silent: true }).catch(() => []);
       const recent = (Array.isArray(sessions) ? sessions : [])
         .filter((s: any) => s?.sessionDate)
         .sort((a: any, b: any) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime())
         .slice(0, 8);
       const rows: HistoryRow[] = await Promise.all(
         recent.map(async (s: any) => {
-          const marks = await apiFetch(`/api/session-attendance/session/${s.id}`).catch(() => []);
+          const marks = await apiFetch(`/api/session-attendance/session/${s.id}`, {}, { silent: true }).catch(() => []);
           const arr = Array.isArray(marks) ? marks : [];
           const present = arr.filter((m: any) => ["PRESENT", "LATE"].includes(String(m.status).toUpperCase())).length;
           const absent = arr.filter((m: any) => String(m.status).toUpperCase() === "ABSENT").length;
@@ -117,12 +117,12 @@ export default function TeacherAttendancePage() {
   const fetchStudents = async (classId: string, date: string) => {
     try {
       setLoading(true);
-      const enrollments = await apiFetch(`/api/enrollments?classId=${classId}`).catch(() => []);
+      const enrollments = await apiFetch(`/api/enrollments?classId=${classId}`, {}, { silent: true }).catch(() => []);
       const studentIds = Array.isArray(enrollments)
         ? enrollments.map((e: { studentId?: string }) => e.studentId).filter((id): id is string => Boolean(id))
         : [];
       const studentsData = await Promise.all(
-        studentIds.map(async (id: string) => apiFetch(`/api/students/${id}`).catch(() => null))
+        studentIds.map(async (id: string) => apiFetch(`/api/students/${id}`, {}, { silent: true }).catch(() => null))
       );
       const valid = studentsData.filter(Boolean) as { id: string; fullname?: string; studentCode?: string }[];
       setStudents(

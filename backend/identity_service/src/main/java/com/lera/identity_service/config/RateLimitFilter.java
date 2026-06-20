@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class RateLimitFilter implements Filter {
 
-    private static final int MAX_REQUESTS_PER_MINUTE = 100;
+    private static final int MAX_REQUESTS_PER_MINUTE = 600;
 
     private final LoadingCache<String, AtomicInteger> requestCounts = Caffeine.newBuilder()
             .expireAfterWrite(1, TimeUnit.MINUTES)

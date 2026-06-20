@@ -86,7 +86,7 @@ export default function TeacherClassesPage() {
       // Pull today's sessions per class so "attendance pending" is REAL, not static.
       const sessionLists = await Promise.all(
         mapped.map((c) =>
-          apiFetch(`/api/class-sessions?classId=${c.id}`).catch(() => [])
+          apiFetch(`/api/class-sessions?classId=${c.id}`, {}, { silent: true }).catch(() => [])
         )
       );
       const mappedClasses: Class[] = mapped.map((c, i) => {
@@ -132,9 +132,9 @@ export default function TeacherClassesPage() {
     setGrades([]);
     try {
       const [enrollments, sessionList, lessonPlans] = await Promise.all([
-        apiFetch(`/api/enrollments?classId=${classId}`).catch(() => []),
-        apiFetch(`/api/class-sessions?classId=${classId}`).catch(() => []),
-        apiFetch(`/api/lesson-plans?classId=${classId}`).catch(() => []),
+        apiFetch(`/api/enrollments?classId=${classId}`, {}, { silent: true }).catch(() => []),
+        apiFetch(`/api/class-sessions?classId=${classId}`, {}, { silent: true }).catch(() => []),
+        apiFetch(`/api/lesson-plans?classId=${classId}`, {}, { silent: true }).catch(() => []),
       ]);
 
       // --- Sessions (real) ---
@@ -173,7 +173,7 @@ export default function TeacherClassesPage() {
       const enrollmentsArray = Array.isArray(enrollments) ? enrollments : [];
       const studentIds = enrollmentsArray.map((e: any) => e.studentId).filter(Boolean);
       const studentsData = await Promise.all(
-        studentIds.map((id: string) => apiFetch(`/api/students/${id}`).catch(() => null))
+        studentIds.map((id: string) => apiFetch(`/api/students/${id}`, {}, { silent: true }).catch(() => null))
       );
       const validStudents: Student[] = studentsData.filter(Boolean).map((s: any) => ({
         id: s.id,
@@ -188,7 +188,7 @@ export default function TeacherClassesPage() {
       // --- Grades (real, per student for this class) ---
       const gradeRows: GradeRow[] = await Promise.all(
         validStudents.map(async (st) => {
-          const res = await apiFetch(`/api/grades?studentId=${st.id}&classId=${classId}`).catch(() => []);
+          const res = await apiFetch(`/api/grades?studentId=${st.id}&classId=${classId}`, {}, { silent: true }).catch(() => []);
           const arr = Array.isArray(res) ? res : [];
           const pcts = arr
             .map((g: any) => Number(g.percentage ?? g.score))
