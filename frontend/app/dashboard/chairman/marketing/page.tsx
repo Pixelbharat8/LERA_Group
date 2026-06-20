@@ -7,7 +7,9 @@ import { apiFetch } from "../../../../lib/api";
 interface QuickStat {
   label: string;
   value: string;
-  change: number;
+  // Real trend/secondary metric from the backend, or null when none exists
+  // (we never fabricate a percentage).
+  change: number | null;
   icon: string;
   color: string;
 }
@@ -49,55 +51,17 @@ const sections = [
 
 export default function ChairmanMarketingPage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState<QuickStat[]>([
-    { label: "Total Followers", value: "31.2K", change: 11.2, icon: "👥", color: "bg-blue-500" },
-    { label: "Monthly Engagement", value: "29.6K", change: 18.5, icon: "💬", color: "bg-green-500" },
-    { label: "Active Campaigns", value: "4", change: 0, icon: "📣", color: "bg-purple-500" },
-    { label: "Total Ad Spend", value: "₫115.5M", change: -5.2, icon: "💰", color: "bg-orange-500" },
-  ]);
-  const [platforms, setPlatforms] = useState([
-    { name: "Facebook", icon: "📘", followers: "12.5K", growth: "+8.5%" },
-    { name: "Instagram", icon: "📸", followers: "8.3K", growth: "+12.3%" },
-    { name: "TikTok", icon: "🎵", followers: "5.1K", growth: "+28.5%" },
-    { name: "Zalo", icon: "💬", followers: "3.2K", growth: "+5.2%" },
-  ]);
-  const [recentActivity, setRecentActivity] = useState([
-    { type: "post", platform: "📘", title: "New Year Enrollment post published", time: "2 hours ago", status: "success" },
-    { type: "campaign", platform: "📸", title: "Summer Camp Promo reached 50% budget", time: "5 hours ago", status: "warning" },
-    { type: "milestone", platform: "🎵", title: "TikTok reached 5,000 followers!", time: "1 day ago", status: "success" },
-    { type: "schedule", platform: "💬", title: "3 posts scheduled for this week", time: "1 day ago", status: "info" },
-  ]);
-  const [upcomingPosts, setUpcomingPosts] = useState([
-    { title: "Student Success Story", date: "Jan 9, 2:00 PM", platforms: "📘📸💬" },
-    { title: "Behind the Scenes", date: "Jan 10, 6:00 PM", platforms: "🎵📸" },
-    { title: "Weekly Tips", date: "Jan 11, 10:00 AM", platforms: "📘" },
-  ]);
+  // All values come from the backend — no hardcoded fallbacks. Empty until loaded.
+  const [stats, setStats] = useState<QuickStat[]>([]);
+  const [platforms, setPlatforms] = useState<{ name: string; icon: string; followers: string; growth: string }[]>([]);
+  const [recentActivity, setRecentActivity] = useState<{ type: string; platform: string; title: string; time: string; status: string }[]>([]);
+  const [upcomingPosts, setUpcomingPosts] = useState<{ title: string; date: string; platforms: string }[]>([]);
 
   useEffect(() => {
     fetchMarketingStats();
-    fetchPlatforms();
     fetchRecentActivity();
     fetchUpcomingPosts();
   }, []);
-
-  const fetchPlatforms = async () => {
-    try {
-      const data = await apiFetch("/api/social-platforms");
-      if (Array.isArray(data) && data.length > 0) {
-        const platformIcons: Record<string, string> = {
-          facebook: "📘", instagram: "📸", tiktok: "🎵", zalo: "💬", youtube: "📺", twitter: "🐦"
-        };
-        setPlatforms(data.map((p: any) => ({
-          name: p.platformName || p.name,
-          icon: platformIcons[p.platformName?.toLowerCase()] || "📱",
-          followers: p.followerCount >= 1000 ? `${(p.followerCount / 1000).toFixed(1)}K` : String(p.followerCount || 0),
-          growth: `+${p.growthRate || 0}%`,
-        })));
-      }
-    } catch (e) {
-      console.log("Using default platforms");
-    }
-  };
 
   const fetchRecentActivity = async () => {
     try {
@@ -137,40 +101,62 @@ export default function ChairmanMarketingPage() {
     }
   };
 
+  const fmtK = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n));
+
   const fetchMarketingStats = async () => {
     try {
-      let activeCampaigns = 4;
-      let totalSpend = 115500000;
-      let totalLikes = 29600;
-      let totalReach = 31200;
-
-      // Fetch campaign stats - apiFetch returns data directly
-      try {
-        const campaigns = await apiFetch("/api/marketing-campaigns");
-        if (Array.isArray(campaigns)) {
-          activeCampaigns = campaigns.filter((c: Record<string, string>) => c.status === "ACTIVE").length;
-          totalSpend = campaigns.reduce((sum: number, c: Record<string, number>) => sum + (c.spentAmount || 0), 0);
-        }
-      } catch (e) {
-        console.log("Using default campaign stats");
+      // Campaigns → active count + real spend (sum of spentAmount)
+      let activeCampaigns = 0;
+      let totalSpend = 0;
+      const campaigns = await apiFetch("/api/marketing-campaigns", {}, { silent: true }).catch(() => []);
+      if (Array.isArray(campaigns)) {
+        activeCampaigns = campaigns.filter((c: any) => c.status === "ACTIVE").length;
+        totalSpend = campaigns.reduce((sum: number, c: any) => sum + (Number(c.spentAmount) || 0), 0);
       }
 
-      // Fetch post stats
-      try {
-        const postStats = await apiFetch("/api/social-media-posts/stats");
-        if (postStats) {
-          totalLikes = postStats.totalLikes || 0;
-          totalReach = postStats.totalReach || 0;
+      // Post stats → real reach + engagement (likes + comments + shares) + engagement rate
+      let totalReach = 0, totalLikes = 0, totalComments = 0, totalShares = 0;
+      let engagementRate: number | null = null;
+      const postStats = await apiFetch("/api/social-media-posts/stats", {}, { silent: true }).catch(() => null);
+      if (postStats) {
+        totalReach = Number(postStats.totalReach) || 0;
+        totalLikes = Number(postStats.totalLikes) || 0;
+        totalComments = Number(postStats.totalComments) || 0;
+        totalShares = Number(postStats.totalShares) || 0;
+        engagementRate = typeof postStats.engagementRate === "number" ? postStats.engagementRate : null;
+      }
+      const engagement = totalLikes + totalComments + totalShares;
+
+      // Platforms → render the overview list AND compute a real follower-weighted growth rate
+      let avgGrowth: number | null = null;
+      const plat = await apiFetch("/api/social-platforms", {}, { silent: true }).catch(() => []);
+      if (Array.isArray(plat) && plat.length > 0) {
+        const icons: Record<string, string> = {
+          facebook: "📘", instagram: "📸", tiktok: "🎵", zalo: "💬", youtube: "📺", twitter: "🐦", linkedin: "💼", google: "🔍",
+        };
+        setPlatforms(
+          plat
+            .filter((p: any) => (Number(p.followerCount) || 0) > 0)
+            .sort((a: any, b: any) => (Number(b.followerCount) || 0) - (Number(a.followerCount) || 0))
+            .map((p: any) => ({
+              name: p.displayName || p.platformName || p.name,
+              icon: icons[String(p.platformName).toLowerCase()] || "📱",
+              followers: fmtK(Number(p.followerCount) || 0),
+              growth: `${(Number(p.growthRate) || 0) >= 0 ? "+" : ""}${Number(p.growthRate) || 0}%`,
+            }))
+        );
+        const totalFollowers = plat.reduce((s: number, p: any) => s + (Number(p.followerCount) || 0), 0);
+        if (totalFollowers > 0) {
+          const weighted = plat.reduce((s: number, p: any) => s + (Number(p.growthRate) || 0) * (Number(p.followerCount) || 0), 0);
+          avgGrowth = Math.round((weighted / totalFollowers) * 10) / 10;
         }
-      } catch (e) {
-        console.log("Using default post stats");
       }
 
       setStats([
-        { label: "Total Reach", value: totalReach >= 1000 ? `${(totalReach / 1000).toFixed(1)}K` : String(totalReach), change: 11.2, icon: "👥", color: "bg-blue-500" },
-        { label: "Total Engagement", value: totalLikes >= 1000 ? `${(totalLikes / 1000).toFixed(1)}K` : String(totalLikes), change: 18.5, icon: "💬", color: "bg-green-500" },
-        { label: "Active Campaigns", value: String(activeCampaigns), change: 0, icon: "📣", color: "bg-purple-500" },
-        { label: "Total Ad Spend", value: `₫${(totalSpend / 1000000).toFixed(1)}M`, change: -5.2, icon: "💰", color: "bg-orange-500" },
+        { label: "Total Reach", value: fmtK(totalReach), change: avgGrowth, icon: "👥", color: "bg-blue-500" },
+        { label: "Total Engagement", value: fmtK(engagement), change: engagementRate, icon: "💬", color: "bg-green-500" },
+        { label: "Active Campaigns", value: String(activeCampaigns), change: null, icon: "📣", color: "bg-purple-500" },
+        { label: "Total Ad Spend", value: `₫${(totalSpend / 1000000).toFixed(1)}M`, change: null, icon: "💰", color: "bg-orange-500" },
       ]);
     } catch (error) {
       console.error("Error fetching marketing stats:", error);
@@ -221,9 +207,11 @@ export default function ChairmanMarketingPage() {
                 <div className={`w-10 h-10 ${stat.color} rounded-lg flex items-center justify-center text-white text-xl`}>
                   {stat.icon}
                 </div>
-                <span className={`text-sm font-medium ${stat.change >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {stat.change >= 0 ? "↑" : "↓"} {Math.abs(stat.change)}%
-                </span>
+                {stat.change != null && (
+                  <span className={`text-sm font-medium ${stat.change >= 0 ? "text-green-600" : "text-red-600"}`}>
+                    {stat.change >= 0 ? "↑" : "↓"} {Math.abs(stat.change)}%
+                  </span>
+                )}
               </div>
               <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
               <div className="text-sm text-gray-500">{stat.label}</div>
@@ -264,6 +252,9 @@ export default function ChairmanMarketingPage() {
               </Link>
             </div>
             <div className="divide-y divide-gray-100">
+              {!isLoading && recentActivity.length === 0 && (
+                <div className="p-6 text-center text-sm text-gray-400">No recent activity yet.</div>
+              )}
               {recentActivity.map((activity, i) => (
                 <div key={i} className="p-4 flex items-center gap-4">
                   <div className="text-2xl">{activity.platform}</div>
@@ -288,6 +279,9 @@ export default function ChairmanMarketingPage() {
                 <h2 className="font-bold text-gray-900">📱 Platform Overview</h2>
               </div>
               <div className="p-4 space-y-3">
+                {!isLoading && platforms.length === 0 && (
+                  <div className="py-4 text-center text-sm text-gray-400">No connected platforms.</div>
+                )}
                 {platforms.map((platform) => (
                   <div key={platform.name} className="flex items-center justify-between py-2">
                     <div className="flex items-center gap-3">
@@ -296,7 +290,7 @@ export default function ChairmanMarketingPage() {
                     </div>
                     <div className="flex items-center gap-4">
                       <span className="text-gray-600">{platform.followers}</span>
-                      <span className="text-green-600 text-sm">{platform.growth}</span>
+                      <span className={`text-sm ${platform.growth.startsWith("-") ? "text-red-600" : "text-green-600"}`}>{platform.growth}</span>
                     </div>
                   </div>
                 ))}
@@ -320,6 +314,9 @@ export default function ChairmanMarketingPage() {
                 </Link>
               </div>
               <div className="p-4 space-y-3">
+                {!isLoading && upcomingPosts.length === 0 && (
+                  <div className="py-4 text-center text-sm text-gray-400">No scheduled posts.</div>
+                )}
                 {upcomingPosts.map((post, i) => (
                   <div key={i} className="flex items-center justify-between py-2">
                     <div>
