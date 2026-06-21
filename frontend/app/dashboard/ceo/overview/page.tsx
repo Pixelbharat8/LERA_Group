@@ -115,6 +115,10 @@ export default function CEODashboardPage() {
               <span>Reports & Analytics</span>
               <span>→</span>
             </Link>
+            <Link href="/dashboard/ceo/growth" className="flex items-center justify-between p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 font-medium">
+              <span>📈 Growth & Marketing KPIs</span>
+              <span>→</span>
+            </Link>
             <Link href="/dashboard/superadmin/centers" className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
               <span>Center Performance</span>
               <span>→</span>
