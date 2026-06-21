@@ -28,6 +28,7 @@ import org.springframework.data.domain.Pageable;
 public class SocialMediaPostController {
 
     private final SocialMediaPostRepository socialMediaPostRepository;
+    private final com.lera.social_media_service.service.SocialMediaPublisher socialMediaPublisher;
 
     @GetMapping
     public ResponseEntity<List<SocialMediaPost>> getAllPosts(
@@ -179,14 +180,36 @@ public class SocialMediaPostController {
             @AuthenticationPrincipal AuthUser authUser) {
         SocialMediaSecurity.assertOrgWideMutate(authUser);
         return socialMediaPostRepository.findById(id).map(post -> {
-            log.info(
-                    "Post id={} marked published in LERA; external network publish is not implemented.",
-                    id);
-            post.setStatus("published");
-            post.setPublishedAt(LocalDateTime.now());
+            // Actually publish to the connected networks (Graph API etc.). force=true so an
+            // explicit "Publish now" ignores the per-platform auto-post toggle.
+            Map<String, String> results = socialMediaPublisher.publishPost(post, true);
+            boolean anyPosted = results.values().stream().anyMatch(v -> v.startsWith("posted"));
+            boolean anyError = results.values().stream().anyMatch(v -> v.startsWith("error"));
+
             post.setUpdatedAt(LocalDateTime.now());
-            return ResponseEntity.ok(socialMediaPostRepository.save(post));
-        }).orElse(ResponseEntity.notFound().build());
+            log.info("Publish post {} -> {}", id, results);
+            if (anyPosted) {
+                post.setStatus("published");
+                post.setPublishedAt(LocalDateTime.now());
+                post.setPublishError(anyError ? summarize(results) : null);
+                return ResponseEntity.ok(socialMediaPostRepository.save(post));
+            }
+            // Nothing actually went out — persist the failure, then surface the reason cleanly.
+            post.setStatus("failed");
+            post.setPublishError(summarize(results));
+            socialMediaPostRepository.save(post);
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_GATEWAY, summarize(results));
+        }).orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND, "Post not found"));
+    }
+
+    private static String summarize(Map<String, String> results) {
+        String s = results.entrySet().stream()
+                .map(e -> e.getKey() + ": " + e.getValue())
+                .collect(java.util.stream.Collectors.joining("; "));
+        // publish_error is VARCHAR(255) — keep it within bounds.
+        return s.length() > 250 ? s.substring(0, 250) : s;
     }
 
     @PutMapping("/{id}/approve")

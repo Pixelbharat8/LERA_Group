@@ -102,6 +102,7 @@ public class SocialPlatformController {
         SocialMediaSecurity.assertOrgWideMutate(authUser);
         return socialPlatformRepository.findById(id).map(platform -> {
             platform.setIsConnected(true);
+            platform.setAutoPost(true); // enable scheduled auto-posting once credentials are in place
             if (credentials.get("accessToken") != null) platform.setAccessToken(credentials.get("accessToken"));
             if (credentials.get("refreshToken") != null) platform.setRefreshToken(credentials.get("refreshToken"));
             if (credentials.get("pageId") != null) platform.setPageId(credentials.get("pageId"));

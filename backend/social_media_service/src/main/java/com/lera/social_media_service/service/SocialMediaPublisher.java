@@ -20,84 +20,83 @@ public class SocialMediaPublisher {
     private final TikTokApiClient tikTokApiClient;
     private final YouTubeApiClient youTubeApiClient;
     
-    /**
-     * Publish a post to all specified platforms
-     */
+    /** Scheduler entry point — only auto-posts platforms that opted in. */
     public void publishPost(SocialMediaPost post) {
+        publishPost(post, false);
+    }
+
+    /**
+     * Publish a post to all its platforms. Returns a per-platform result map
+     * (e.g. {"facebook": "posted: 123_456", "instagram": "skipped: not connected"}).
+     * When {@code force} is true (a manual "Publish now"), the per-platform auto-post
+     * toggle is ignored — the user explicitly asked to publish.
+     */
+    public Map<String, String> publishPost(SocialMediaPost post, boolean force) {
+        Map<String, String> results = new java.util.LinkedHashMap<>();
         String[] platforms = post.getPlatforms();
         if (platforms == null || platforms.length == 0) {
-            log.warn("No platforms specified for post: {}", post.getId());
-            return;
+            results.put("_", "no platforms specified");
+            return results;
         }
-        
         for (String platformName : platforms) {
+            String key = platformName.toLowerCase();
             try {
-                publishToPlatform(post, platformName.toLowerCase());
+                results.put(key, publishToPlatform(post, key, force));
             } catch (Exception e) {
                 log.error("Failed to publish to {}: {}", platformName, e.getMessage());
+                results.put(key, "error: " + e.getMessage());
             }
         }
+        return results;
     }
-    
-    private void publishToPlatform(SocialMediaPost post, String platformName) {
-        SocialPlatform platform = socialPlatformRepository.findByPlatformName(platformName)
-                .orElseThrow(() -> new RuntimeException("Platform not found: " + platformName));
-        
-        if (!platform.getIsConnected()) {
-            log.warn("Platform {} is not connected, skipping", platformName);
-            return;
-        }
-        
-        if (!platform.getAutoPost()) {
-            log.info("Auto-post disabled for {}, skipping", platformName);
-            return;
-        }
-        
+
+    private String publishToPlatform(SocialMediaPost post, String platformName, boolean force) {
+        SocialPlatform platform = socialPlatformRepository.findByPlatformName(platformName).orElse(null);
+        if (platform == null) return "skipped: platform not registered";
+        if (!Boolean.TRUE.equals(platform.getIsConnected())) return "skipped: not connected";
+        if (!force && !Boolean.TRUE.equals(platform.getAutoPost())) return "skipped: auto-post off";
         String accessToken = platform.getAccessToken();
-        if (accessToken == null || accessToken.isEmpty()) {
-            log.error("No access token for platform: {}", platformName);
-            return;
-        }
-        
+        if (accessToken == null || accessToken.isEmpty()) return "skipped: no access token";
+
         Map<String, Object> result;
-        
         switch (platformName) {
             case "facebook":
                 result = facebookApiClient.publishPost(post, platform);
                 if (result != null && result.get("id") != null) {
                     post.setFacebookPostId((String) result.get("id"));
+                    return "posted: " + result.get("id");
                 }
-                break;
-                
+                return "error: no post id returned";
+
             case "instagram":
                 result = instagramApiClient.publishPost(post, platform);
                 if (result != null && result.get("id") != null) {
                     post.setInstagramPostId((String) result.get("id"));
+                    return "posted: " + result.get("id");
                 }
-                break;
-                
+                return "error: no post id returned";
+
             case "tiktok":
                 result = tikTokApiClient.publishPost(post, platform);
                 if (result != null && result.get("id") != null) {
                     post.setTiktokPostId((String) result.get("id"));
+                    return "posted: " + result.get("id");
                 }
-                break;
-                
+                return "error: no post id returned";
+
             case "youtube":
                 result = youTubeApiClient.publishVideo(post, platform);
                 if (result != null && result.get("id") != null) {
                     post.setYoutubeVideoId((String) result.get("id"));
+                    return "posted: " + result.get("id");
                 }
-                break;
-                
+                return "error: no video id returned";
+
             case "zalo":
-                log.info("Zalo posting not yet implemented");
-                break;
-                
+                return "skipped: Zalo publishing not implemented";
+
             default:
-                log.warn("Unknown platform: {}", platformName);
+                return "skipped: " + platformName + " publishing not implemented";
         }
-        
-        log.info("Published to {}: {}", platformName, post.getId());
     }
 }

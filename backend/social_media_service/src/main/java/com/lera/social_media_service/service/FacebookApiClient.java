@@ -64,13 +64,13 @@ public class FacebookApiClient {
                 log.info("Successfully posted to Facebook, post ID: {}", response.getBody().get("id"));
                 return response.getBody();
             }
-            
-            log.error("Facebook API returned non-success status: {}", response.getStatusCode());
-            return null;
-            
+            throw new RuntimeException("Facebook API returned " + response.getStatusCode());
+
         } catch (Exception e) {
+            // Propagate the real Graph API error (e.g. invalid token) so callers can report it
+            // honestly instead of silently "succeeding" with no actual post.
             log.error("Error posting to Facebook: {}", e.getMessage());
-            return null;
+            throw new RuntimeException("Facebook publish failed: " + e.getMessage(), e);
         }
     }
     

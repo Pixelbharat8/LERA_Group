@@ -143,10 +143,13 @@ export default function ContentCalendarPage() {
 
   const handlePublishPost = async (postId: string) => {
     try {
-      await apiFetch(`/api/social-media-posts/${postId}/publish`, { method: "PUT" });
+      await apiFetch(`/api/social-media-posts/${postId}/publish`, { method: "PUT" }, { silent: true });
       await fetchPosts();
-    } catch (error) {
-      console.error("Error publishing post:", error);
+      alert("Published to the connected network(s).");
+    } catch (error: any) {
+      await fetchPosts();
+      // Surface the real reason (e.g. "facebook: skipped: not connected" or a Graph API error).
+      alert(error?.message || "Could not publish. Connect the platform first, then try again.");
     }
   };
 
