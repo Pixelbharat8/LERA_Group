@@ -6,10 +6,13 @@ import com.lera.social_media_service.security.AuthUser;
 import com.lera.social_media_service.security.SocialMediaSecurity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 import jakarta.validation.Valid;
 
 import java.time.LocalDateTime;
@@ -27,6 +30,7 @@ import org.springframework.data.domain.Page;
 public class SocialPlatformController {
     
     private final SocialPlatformRepository socialPlatformRepository;
+    private final RestTemplate restTemplate;
     
     @GetMapping
     public ResponseEntity<List<SocialPlatform>> getAllPlatforms(Pageable pageable) {
@@ -119,19 +123,66 @@ public class SocialPlatformController {
         }).orElse(ResponseEntity.notFound().build());
     }
     
+    /**
+     * Pull LIVE metrics from the provider. Implemented for Facebook/Instagram via the
+     * Graph API: requires the platform to be connected first with a real Page ID + Page
+     * Access Token (PUT /{id}/connect). Returns a clear 400 if not connected, and never
+     * fabricates numbers — the follower count is whatever the Graph API returns.
+     */
     @PutMapping("/{id}/sync")
     public ResponseEntity<SocialPlatform> syncPlatform(
             @PathVariable UUID id,
             @AuthenticationPrincipal AuthUser authUser) {
         SocialMediaSecurity.assertOrgWideMutate(authUser);
-        return socialPlatformRepository.findById(id).map(platform -> {
-            log.info(
-                    "Platform sync for id={} — external follower/metric APIs are not implemented; lastSyncAt updated locally only.",
-                    id);
+        SocialPlatform platform = socialPlatformRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Platform not found"));
+
+        String name = platform.getPlatformName() == null ? "" : platform.getPlatformName().toLowerCase();
+        if (!name.equals("facebook") && !name.equals("instagram")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Live sync is implemented for Facebook/Instagram (Meta Graph API). "
+                            + platform.getPlatformName() + " needs its own provider integration.");
+        }
+        if (isBlank(platform.getAccessToken()) || isBlank(platform.getPageId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Connect " + platform.getPlatformName() + " first with a valid Page ID and Page Access Token, then sync.");
+        }
+
+        try {
+            String url = String.format(
+                    "https://graph.facebook.com/v19.0/%s?fields=fan_count,followers_count,name&access_token=%s",
+                    platform.getPageId(), platform.getAccessToken());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> resp = restTemplate.getForObject(url, Map.class);
+            if (resp == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Empty response from the Graph API");
+            }
+            Object followers = resp.get("followers_count");
+            if (followers == null) followers = resp.get("fan_count");
+            if (followers == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                        "Graph API returned no follower count — check the token scopes (pages_read_engagement / read_insights).");
+            }
+            int now = ((Number) followers).intValue();
+            int prev = platform.getFollowerCount() == null ? 0 : platform.getFollowerCount();
+            if (prev > 0) {
+                // Real growth vs the last synced value (rounded to 0.1%).
+                platform.setGrowthRate(Math.round((now - prev) * 1000.0 / prev) / 10.0);
+            }
+            platform.setFollowerCount(now);
             platform.setLastSyncAt(LocalDateTime.now());
+            log.info("Synced {} from Graph API: {} followers", name, now);
             return ResponseEntity.ok(socialPlatformRepository.save(platform));
-        }).orElse(ResponseEntity.notFound().build());
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Graph API sync failed for platform {}", id, e);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "Graph API call failed: " + e.getMessage());
+        }
     }
+
+    private static boolean isBlank(String s) { return s == null || s.isBlank(); }
     
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePlatform(

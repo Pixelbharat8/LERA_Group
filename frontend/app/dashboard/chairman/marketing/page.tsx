@@ -283,7 +283,11 @@ export default function ChairmanMarketingPage() {
                   <div className="py-4 text-center text-sm text-gray-400">No connected platforms.</div>
                 )}
                 {platforms.map((platform) => (
-                  <div key={platform.name} className="flex items-center justify-between py-2">
+                  <Link
+                    key={platform.name}
+                    href={`/dashboard/chairman/marketing/social-media?platform=${encodeURIComponent(platform.name.toLowerCase())}`}
+                    className="flex items-center justify-between py-2 px-2 -mx-2 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+                  >
                     <div className="flex items-center gap-3">
                       <span className="text-xl">{platform.icon}</span>
                       <span className="font-medium text-gray-900">{platform.name}</span>
@@ -292,7 +296,7 @@ export default function ChairmanMarketingPage() {
                       <span className="text-gray-600">{platform.followers}</span>
                       <span className={`text-sm ${platform.growth.startsWith("-") ? "text-red-600" : "text-green-600"}`}>{platform.growth}</span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
               <div className="p-4 border-t border-gray-100">

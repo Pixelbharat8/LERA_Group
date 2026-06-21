@@ -121,27 +121,31 @@ export default function SocialMediaPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const settings: { key: string; value: string }[] = [];
+      // Every setting must carry category "social" — the read endpoint (/map/social)
+      // filters by category, so settings saved without it never come back (links
+      // appeared not to persist).
+      const settings: { key: string; value: string; category: string }[] = [];
+      const cat = "social";
 
       // Platform settings
       platforms.forEach((p) => {
-        settings.push({ key: `social_${p.id}_url`, value: p.url });
-        settings.push({ key: `social_${p.id}_enabled`, value: String(p.enabled) });
+        settings.push({ key: `social_${p.id}_url`, value: p.url, category: cat });
+        settings.push({ key: `social_${p.id}_enabled`, value: String(p.enabled), category: cat });
       });
 
       // Pixel settings
       pixels.forEach((px) => {
-        settings.push({ key: `pixel_${px.id}`, value: px.pixelId });
+        settings.push({ key: `pixel_${px.id}`, value: px.pixelId, category: cat });
       });
 
       // Sharing defaults
-      settings.push({ key: "og_title", value: sharingDefaults.ogTitle });
-      settings.push({ key: "og_title_vi", value: sharingDefaults.ogTitleVi });
-      settings.push({ key: "og_description", value: sharingDefaults.ogDescription });
-      settings.push({ key: "og_description_vi", value: sharingDefaults.ogDescriptionVi });
-      settings.push({ key: "og_image", value: sharingDefaults.ogImage });
-      settings.push({ key: "twitter_card", value: sharingDefaults.twitterCard });
-      settings.push({ key: "twitter_handle", value: sharingDefaults.twitterHandle });
+      settings.push({ key: "og_title", value: sharingDefaults.ogTitle, category: cat });
+      settings.push({ key: "og_title_vi", value: sharingDefaults.ogTitleVi, category: cat });
+      settings.push({ key: "og_description", value: sharingDefaults.ogDescription, category: cat });
+      settings.push({ key: "og_description_vi", value: sharingDefaults.ogDescriptionVi, category: cat });
+      settings.push({ key: "og_image", value: sharingDefaults.ogImage, category: cat });
+      settings.push({ key: "twitter_card", value: sharingDefaults.twitterCard, category: cat });
+      settings.push({ key: "twitter_handle", value: sharingDefaults.twitterHandle, category: cat });
 
       await apiFetch("/api/cms-settings/batch", {
         method: "PUT",
