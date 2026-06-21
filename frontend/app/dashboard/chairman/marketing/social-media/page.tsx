@@ -5,7 +5,8 @@ import Link from "next/link";
 import { apiFetch } from "../../../../../lib/api";
 
 interface SocialPlatform {
-  id: string;
+  id: string;            // slug, e.g. "facebook"
+  realId?: string;       // backend UUID (needed for connect/sync)
   name: string;
   icon: string;
   color: string;
@@ -13,6 +14,10 @@ interface SocialPlatform {
   enabled: boolean;
   followers?: string;
   engagement?: string;
+  connected?: boolean;   // live: has a stored access token
+  pageId?: string;
+  followerCount?: number; // live follower count from last sync
+  lastSyncAt?: string;
 }
 
 interface SocialPixel {
@@ -26,6 +31,9 @@ export default function SocialMediaPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"platforms" | "pixels" | "sharing">("platforms");
+  // Live connect/sync state
+  const [connectForm, setConnectForm] = useState<{ id: string; pageId: string; token: string } | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
 
   const [platforms, setPlatforms] = useState<SocialPlatform[]>([
     { id: "facebook", name: "Facebook", icon: "📘", color: "#1877F2", url: "", enabled: true, followers: "12.5K", engagement: "4.2%" },
@@ -61,19 +69,25 @@ export default function SocialMediaPage() {
 
   const fetchSettings = async () => {
     try {
-      // First try to fetch from social-platforms API
-      const platformsData = await apiFetch("/api/social-platforms/active").catch(() => []);
+      // Fetch the real backend platforms (UUIDs + live connection state) and merge in.
+      const platformsData = await apiFetch("/api/social-platforms", {}, { silent: true }).catch(() => []);
       if (Array.isArray(platformsData) && platformsData.length > 0) {
         const updatedPlatforms = platforms.map((p) => {
-          const apiPlatform = platformsData.find((ap: Record<string, unknown>) => 
-            (ap.platformName as string || "").toLowerCase() === p.id.toLowerCase()
+          const ap = platformsData.find((x: any) =>
+            (x.platformName as string || "").toLowerCase() === p.id.toLowerCase()
           );
-          if (apiPlatform) {
+          if (ap) {
+            const fc = Number(ap.followerCount) || 0;
             return {
               ...p,
-              url: apiPlatform.pageUrl as string || "",
-              enabled: apiPlatform.isActive as boolean ?? true,
-              followers: apiPlatform.followers as string || p.followers,
+              realId: ap.id as string,
+              url: (ap.pageUrl as string) || p.url,
+              enabled: (ap.isActive as boolean) ?? true,
+              connected: !!ap.isConnected,
+              pageId: (ap.pageId as string) || "",
+              followerCount: fc,
+              lastSyncAt: (ap.lastSyncAt as string) || "",
+              followers: fc >= 1000 ? `${(fc / 1000).toFixed(1)}K` : String(fc),
             };
           }
           return p;
@@ -166,6 +180,53 @@ export default function SocialMediaPage() {
 
   const updatePixel = (id: string, field: keyof SocialPixel, value: string | boolean) => {
     setPixels((prev) => prev.map((px) => (px.id === id ? { ...px, [field]: value } : px)));
+  };
+
+  // Store the Page ID + access token on the backend so a sync can pull live data.
+  const handleConnect = async (p: SocialPlatform) => {
+    if (!connectForm) return;
+    if (!p.realId) { alert(`${p.name} isn't registered in the backend yet.`); return; }
+    if (!connectForm.pageId.trim() || !connectForm.token.trim()) {
+      alert("Enter both the Page ID and the Page Access Token.");
+      return;
+    }
+    try {
+      await apiFetch(`/api/social-platforms/${p.realId}/connect`, {
+        method: "PUT",
+        body: JSON.stringify({ pageId: connectForm.pageId.trim(), accessToken: connectForm.token.trim() }),
+      });
+      setConnectForm(null);
+      await fetchSettings();
+      alert(`${p.name} connected. Click “Sync now” to pull live data.`);
+    } catch (e: any) {
+      alert(e?.message || "Could not connect.");
+    }
+  };
+
+  // Pull live metrics from the provider (Facebook/Instagram Graph API).
+  const handleSync = async (p: SocialPlatform) => {
+    if (!p.realId) return;
+    setSyncing(p.id);
+    try {
+      await apiFetch(`/api/social-platforms/${p.realId}/sync`, { method: "PUT" });
+      await fetchSettings();
+      alert(`${p.name} synced from the provider.`);
+    } catch (e: any) {
+      // Surfaces the backend's honest message, e.g. "Connect facebook first…".
+      alert(e?.message || "Sync failed.");
+    } finally {
+      setSyncing(null);
+    }
+  };
+
+  const handleDisconnect = async (p: SocialPlatform) => {
+    if (!p.realId) return;
+    try {
+      await apiFetch(`/api/social-platforms/${p.realId}/disconnect`, { method: "PUT" });
+      await fetchSettings();
+    } catch (e: any) {
+      alert(e?.message || "Could not disconnect.");
+    }
   };
 
   if (isLoading) {
@@ -275,6 +336,68 @@ export default function SocialMediaPage() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         disabled={!platform.enabled}
                       />
+
+                      {/* Live connection — Facebook/Instagram pull real follower data via the Graph API */}
+                      <div className="mt-3 border-t border-gray-100 pt-3">
+                        <div className="flex items-center flex-wrap gap-2">
+                          {platform.connected ? (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                              ● Connected{platform.lastSyncAt ? ` · synced ${new Date(platform.lastSyncAt).toLocaleDateString()}` : ""}
+                            </span>
+                          ) : (
+                            <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">○ Not connected</span>
+                          )}
+                          {(platform.id === "facebook" || platform.id === "instagram") ? (
+                            <>
+                              <button
+                                onClick={() => handleSync(platform)}
+                                disabled={syncing === platform.id || !platform.realId}
+                                className="text-xs px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                              >
+                                {syncing === platform.id ? "Syncing…" : "Sync now"}
+                              </button>
+                              <button
+                                onClick={() => setConnectForm(connectForm?.id === platform.id ? null : { id: platform.id, pageId: platform.pageId || "", token: "" })}
+                                className="text-xs px-3 py-1 rounded-lg border border-gray-300 hover:bg-gray-50"
+                              >
+                                {platform.connected ? "Reconnect" : "Connect"}
+                              </button>
+                              {platform.connected && (
+                                <button onClick={() => handleDisconnect(platform)} className="text-xs px-3 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">
+                                  Disconnect
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-400">Live sync available for Facebook &amp; Instagram</span>
+                          )}
+                        </div>
+                        {connectForm?.id === platform.id && (
+                          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <input
+                              value={connectForm.pageId}
+                              onChange={(e) => setConnectForm({ ...connectForm, pageId: e.target.value })}
+                              placeholder="Page ID (e.g. 1029384756)"
+                              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                            <input
+                              value={connectForm.token}
+                              onChange={(e) => setConnectForm({ ...connectForm, token: e.target.value })}
+                              placeholder="Page Access Token"
+                              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                            <div className="sm:col-span-2 flex items-center gap-2 flex-wrap">
+                              <button onClick={() => handleConnect(platform)} className="text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700">
+                                Save &amp; connect
+                              </button>
+                              <button onClick={() => setConnectForm(null)} className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50">
+                                Cancel
+                              </button>
+                              <span className="text-xs text-gray-400">Token is stored on the server and used to pull live followers.</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     {platform.url && (
                       <a
@@ -295,13 +418,15 @@ export default function SocialMediaPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white">
                 <div className="text-3xl mb-1">📊</div>
-                <div className="text-2xl font-bold">33.9K</div>
+                <div className="text-2xl font-bold">
+                  {(() => { const t = platforms.reduce((s, p) => s + (p.followerCount || 0), 0); return t >= 1000 ? `${(t / 1000).toFixed(1)}K` : String(t); })()}
+                </div>
                 <div className="text-blue-100 text-sm">Total Followers</div>
               </div>
               <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white">
-                <div className="text-3xl mb-1">💬</div>
-                <div className="text-2xl font-bold">5.6%</div>
-                <div className="text-green-100 text-sm">Avg Engagement</div>
+                <div className="text-3xl mb-1">🔗</div>
+                <div className="text-2xl font-bold">{platforms.filter((p) => p.connected).length}</div>
+                <div className="text-green-100 text-sm">Connected (live)</div>
               </div>
               <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
                 <div className="text-3xl mb-1">🔗</div>
