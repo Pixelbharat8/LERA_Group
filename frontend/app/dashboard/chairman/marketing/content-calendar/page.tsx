@@ -37,6 +37,7 @@ export default function ContentCalendarPage() {
   const [posts, setPosts] = useState<ContentPost[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [newPost, setNewPost] = useState<Partial<ContentPost>>({
     title: "",
@@ -89,6 +90,27 @@ export default function ContentCalendarPage() {
     }
   };
 
+  // Open the modal pre-filled to edit an existing post.
+  const startEdit = (post: ContentPost) => {
+    setEditingId(post.id);
+    setNewPost({
+      title: post.title,
+      content: post.content,
+      platform: post.platform,
+      mediaUrl: post.mediaUrl,
+      mediaType: post.mediaType,
+      scheduledAt: post.scheduledAt ? String(post.scheduledAt).slice(0, 16) : "",
+      status: post.status,
+    });
+    setShowCreateModal(true);
+  };
+
+  const closeModal = () => {
+    setShowCreateModal(false);
+    setEditingId(null);
+    setNewPost({ title: "", content: "", platform: ["facebook"], mediaUrl: "", mediaType: "image", scheduledAt: "", status: "DRAFT" });
+  };
+
   const handleCreatePost = async () => {
     try {
       const postData = {
@@ -101,25 +123,21 @@ export default function ContentCalendarPage() {
         status: newPost.status?.toLowerCase() || "draft",
       };
 
-      await apiFetch("/api/social-media-posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(postData),
-      });
+      // Update when editing, create otherwise.
+      await apiFetch(
+        editingId ? `/api/social-media-posts/${editingId}` : "/api/social-media-posts",
+        {
+          method: editingId ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(postData),
+        }
+      );
 
       await fetchPosts();
-      setShowCreateModal(false);
-      setNewPost({
-        title: "",
-        content: "",
-        platform: ["facebook"],
-        mediaUrl: "",
-        mediaType: "image",
-        scheduledAt: "",
-        status: "DRAFT",
-      });
+      closeModal();
     } catch (error) {
-      console.error("Error creating post:", error);
+      console.error(editingId ? "Error updating post:" : "Error creating post:", error);
+      alert((error as any)?.message || "Could not save the post.");
     }
   };
 
@@ -375,7 +393,7 @@ export default function ContentCalendarPage() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <button className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">Edit</button>
+                    <button onClick={() => startEdit(post)} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">Edit</button>
                     {post.status === "DRAFT" && (
                       <button
                         onClick={() => handleSchedulePost(post)}
@@ -397,8 +415,8 @@ export default function ContentCalendarPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 overflow-hidden max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
-              <h2 className="text-lg font-bold text-gray-900">Create New Post</h2>
-              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
+              <h2 className="text-lg font-bold text-gray-900">{editingId ? "Edit Post" : "Create New Post"}</h2>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
                 ✕
               </button>
             </div>
