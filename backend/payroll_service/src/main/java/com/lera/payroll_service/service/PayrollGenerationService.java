@@ -96,8 +96,18 @@ public class PayrollGenerationService {
 
             BigDecimal totalAmount = baseSalary.add(teachingAmount).add(bonus).subtract(deductions);
 
-            // 4. Create PayrollRecord with all fields populated
-            PayrollRecord payroll = new PayrollRecord();
+            // 4. Find-or-create the PayrollRecord — re-running generation for the same period
+            //    must UPDATE the existing row, not insert a duplicate.
+            PayrollRecord existing = payrollRepository
+                    .findByTeacherIdAndPayPeriodStartAndPayPeriodEnd(staffId, periodStart, periodEnd)
+                    .orElse(null);
+            // Never overwrite a payslip that's already been approved or paid.
+            if (existing != null && ("PAID".equalsIgnoreCase(existing.getStatus())
+                    || "APPROVED".equalsIgnoreCase(existing.getStatus()))) {
+                generated.add(existing);
+                continue;
+            }
+            PayrollRecord payroll = existing != null ? existing : new PayrollRecord();
             payroll.setTeacherId(staffId);
             payroll.setTeacherName(staffName);
             payroll.setCenterName(centerName);
