@@ -40,6 +40,34 @@ public class PayrollGenerationService {
     @Value("${attendance.service.url:http://localhost:8085}")
     private String attendanceServiceUrl;
 
+    @Value("${academy.service.url:http://localhost:8082}")
+    private String academyServiceUrl;
+
+    /**
+     * Map a staff USER id -> TEACHER ENTITY id. teacher_sessions are keyed by the teacher
+     * entity id (teachers.id), but staff come from identity keyed by user id — so we resolve
+     * via academy's /api/teachers (which carries both id and userId).
+     */
+    private Map<String, String> fetchUserToTeacherEntityMap() {
+        Map<String, String> map = new java.util.HashMap<>();
+        try {
+            ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+                    academyServiceUrl + "/api/teachers", HttpMethod.GET, forwardAuth(),
+                    new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+            List<Map<String, Object>> teachers = response.getBody();
+            if (teachers != null) {
+                for (Map<String, Object> t : teachers) {
+                    Object uid = t.get("userId");
+                    Object tid = t.get("id");
+                    if (uid != null && tid != null) map.put(uid.toString(), tid.toString());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not load teacher entity map from academy: {}", e.getMessage());
+        }
+        return map;
+    }
+
     /**
      * Generate payroll for all staff (teachers, TAs, staff) based on attendance hours and salary configs.
      * This integrates with:
@@ -55,6 +83,9 @@ public class PayrollGenerationService {
         // 1. Fetch all staff (TEACHER, TA, STAFF) from Identity Service
         List<Map<String, Object>> staff = fetchStaff();
         log.info("Found {} staff members to process for payroll", staff.size());
+
+        // user id -> teacher entity id, so we can look up teaching hours (keyed by teacher entity id)
+        Map<String, String> userToTeacher = fetchUserToTeacherEntityMap();
 
         List<PayrollRecord> generated = new ArrayList<>();
 
@@ -80,7 +111,10 @@ public class PayrollGenerationService {
             // 2. Fetch teaching hours from NEW Teacher Sessions endpoint (for TEACHER and TA roles)
             BigDecimal teachingHours = BigDecimal.ZERO;
             if ("TEACHER".equals(roleName) || "TA".equals(roleName)) {
-                teachingHours = fetchTeachingHoursFromSessions(staffId, periodStart, periodEnd);
+                // Resolve the teacher entity id (sessions are keyed by it); fall back to the
+                // user id so nothing breaks if the mapping is missing.
+                String teacherEntityId = userToTeacher.getOrDefault(staffId.toString(), staffId.toString());
+                teachingHours = fetchTeachingHoursFromSessions(UUID.fromString(teacherEntityId), periodStart, periodEnd);
             }
 
             // 3. Get staff salary config from database (or use defaults)
