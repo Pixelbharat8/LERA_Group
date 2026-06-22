@@ -31,15 +31,15 @@ public class PayrollRecord {
     private LocalDate payPeriodEnd;
     
     @Column(name = "base_salary", precision = 12, scale = 2)
-    @Positive
+    @PositiveOrZero // 0 is valid for purely-hourly (no fixed base) employees
     private BigDecimal baseSalary;
-    
+
     @Column(name = "teaching_hours", precision = 6, scale = 2)
     @PositiveOrZero
     private BigDecimal teachingHours;
-    
+
     @Column(name = "hourly_rate", precision = 10, scale = 2)
-    @Positive
+    @PositiveOrZero // 0 is valid for fixed-salary (non-hourly) employees
     private BigDecimal hourlyRate;
     
     @Column(name = "teaching_amount", precision = 12, scale = 2)

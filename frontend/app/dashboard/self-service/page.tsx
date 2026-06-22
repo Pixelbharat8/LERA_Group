@@ -96,7 +96,7 @@ export default function SelfServicePortal() {
     const rate = Number(p.hourlyRate) || 0;
     const teachingAmount = Number(p.teachingAmount) || (hours * rate);
     const hourlyRow = (hours > 0 || teachingAmount > 0)
-      ? `<tr><td>Teaching pay (${hours} hrs × ${fmt(rate)})</td><td class="r">${fmt(teachingAmount)}</td></tr>`
+      ? `<tr><td>Hourly pay (${hours} hrs × ${fmt(rate)})</td><td class="r">${fmt(teachingAmount)}</td></tr>`
       : "";
     const gross = (Number(p.baseSalary) || 0) + teachingAmount + (Number(p.bonus) || 0);
     const w = window.open("", "_blank", "width=720,height=900");
@@ -307,7 +307,7 @@ export default function SelfServicePortal() {
                     <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Base salary</span><span>{money(viewPayslip.baseSalary, viewPayslip.currency)}</span></div>
                     {(hours > 0 || teaching > 0) && (
                       <div className="flex justify-between py-2 text-sm">
-                        <span className="text-gray-500">Teaching pay <span className="text-gray-400">({hours} hrs × {money(rate, viewPayslip.currency)})</span></span>
+                        <span className="text-gray-500">Hourly pay <span className="text-gray-400">({hours} hrs × {money(rate, viewPayslip.currency)})</span></span>
                         <span>{money(teaching, viewPayslip.currency)}</span>
                       </div>
                     )}

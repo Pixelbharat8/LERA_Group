@@ -44,6 +44,13 @@ public class TeacherSalaryConfig {
     @Builder.Default
     @PositiveOrZero
     private BigDecimal sessionRate = BigDecimal.ZERO;
+
+    // Contracted hours per pay period — used to compute hourly pay for NON-teaching staff,
+    // who have no teaching-session record to derive hours from.
+    @Column(name = "standard_hours", precision = 8, scale = 2)
+    @Builder.Default
+    @PositiveOrZero
+    private BigDecimal standardHours = BigDecimal.ZERO;
     
     @Column(name = "salary_type", length = 20)
     @Builder.Default

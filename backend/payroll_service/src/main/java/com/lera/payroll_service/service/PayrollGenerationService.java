@@ -108,21 +108,24 @@ public class PayrollGenerationService {
                 }
             }
 
-            // 2. Fetch teaching hours from NEW Teacher Sessions endpoint (for TEACHER and TA roles)
-            BigDecimal teachingHours = BigDecimal.ZERO;
-            if ("TEACHER".equals(roleName) || "TA".equals(roleName)) {
-                // Resolve the teacher entity id (sessions are keyed by it); fall back to the
-                // user id so nothing breaks if the mapping is missing.
-                String teacherEntityId = userToTeacher.getOrDefault(staffId.toString(), staffId.toString());
-                teachingHours = fetchTeachingHoursFromSessions(UUID.fromString(teacherEntityId), periodStart, periodEnd);
-            }
-
-            // 3. Get staff salary config from database (or use defaults)
+            // 2. Salary config (per employee — keyed by staff id, works for ANY role), or defaults.
             TeacherSalaryConfig config = salaryConfigRepository.findByTeacherId(staffId)
                     .orElse(getDefaultSalaryConfig());
-
             BigDecimal baseSalary = config.getBaseSalary() != null ? config.getBaseSalary() : BigDecimal.ZERO;
             BigDecimal hourlyRate = config.getHourlyRate() != null ? config.getHourlyRate() : BigDecimal.ZERO;
+            String salaryType = config.getSalaryType() != null ? config.getSalaryType() : "HOURLY";
+
+            // 3. Hours worked this period — source depends on the employee:
+            //    teachers/TAs get ACTUAL hours from teaching sessions; every other hourly
+            //    employee uses their contracted standardHours from the salary config (there is
+            //    no staff time-clock to derive worked hours from).
+            BigDecimal teachingHours = BigDecimal.ZERO;
+            if ("TEACHER".equals(roleName) || "TA".equals(roleName)) {
+                String teacherEntityId = userToTeacher.getOrDefault(staffId.toString(), staffId.toString());
+                teachingHours = fetchTeachingHoursFromSessions(UUID.fromString(teacherEntityId), periodStart, periodEnd);
+            } else if ("HOURLY".equalsIgnoreCase(salaryType) && config.getStandardHours() != null) {
+                teachingHours = config.getStandardHours();
+            }
 
             BigDecimal teachingAmount = hourlyRate.multiply(teachingHours != null ? teachingHours : BigDecimal.ZERO);
             BigDecimal bonus = BigDecimal.ZERO;
