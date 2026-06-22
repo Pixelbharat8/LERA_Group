@@ -83,6 +83,10 @@ public class LeadNoteController {
             @Valid @RequestBody LeadNote note,
             @AuthenticationPrincipal AuthUser authUser) {
         requireAccessibleLead(authUser, note.getLeadId());
+        // created_by is NOT NULL — stamp the author from the authenticated user.
+        if (note.getCreatedBy() == null && authUser != null) {
+            note.setCreatedBy(authUser.getUserId());
+        }
         return ResponseEntity.ok(leadNoteService.create(note));
     }
 
