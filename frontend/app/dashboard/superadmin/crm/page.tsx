@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 
 interface Lead {
@@ -200,9 +201,14 @@ export default function CRMManagement() {
           <h1 className="text-2xl font-bold text-gray-900">CRM Management</h1>
           <p className="text-gray-500">Manage leads, clients, and sales pipeline</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-          + Add Lead
-        </button>
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/superadmin/crm/team-performance" className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium">
+            🏆 Team Performance
+          </Link>
+          <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            + Add Lead
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
