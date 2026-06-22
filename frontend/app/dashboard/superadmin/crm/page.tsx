@@ -202,6 +202,9 @@ export default function CRMManagement() {
           <p className="text-gray-500">Manage leads, clients, and sales pipeline</p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/dashboard/superadmin/crm/pipeline" className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium">
+            🧲 Pipeline
+          </Link>
           <Link href="/dashboard/superadmin/crm/team-performance" className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium">
             🏆 Team Performance
           </Link>
