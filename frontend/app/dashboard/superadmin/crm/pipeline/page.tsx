@@ -32,8 +32,57 @@ export default function LeadPipelinePage() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Lead detail drawer
+  const [selected, setSelected] = useState<Lead | null>(null);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [noteText, setNoteText] = useState("");
+  const [noteType, setNoteType] = useState("GENERAL");
+  const [drawerLoading, setDrawerLoading] = useState(false);
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    setDrawerLoading(true);
+    Promise.all([
+      apiFetch(`/api/lead-activities/lead/${selected.id}`, {}, { silent: true }).catch(() => []),
+      apiFetch(`/api/lead-notes/lead/${selected.id}`, {}, { silent: true }).catch(() => []),
+    ]).then(([a, n]) => {
+      setActivities(Array.isArray(a) ? a : []);
+      setNotes(Array.isArray(n) ? n : []);
+    }).finally(() => setDrawerLoading(false));
+  }, [selected]);
+
+  async function addNote() {
+    if (!selected || !noteText.trim()) return;
+    try {
+      await apiFetch("/api/lead-notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadId: selected.id, note: noteText.trim(), noteType }),
+      }, { silent: true });
+      setNoteText("");
+      const n = await apiFetch(`/api/lead-notes/lead/${selected.id}`, {}, { silent: true }).catch(() => []);
+      setNotes(Array.isArray(n) ? n : []);
+    } catch (e: any) {
+      alert(e?.message || "Could not add the note.");
+    }
+  }
+
+  async function changeStatus(stage: string) {
+    if (!selected) return;
+    const lead = leads.find((l) => l.id === selected.id) || selected;
+    setLeads((ls) => ls.map((l) => (l.id === selected.id ? { ...l, status: stage } : l)));
+    setSelected({ ...selected, status: stage });
+    try {
+      await apiFetch(`/api/leads/${selected.id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...lead, status: stage }),
+      }, { silent: true });
+      await load();
+    } catch (e: any) { alert(e?.message || "Could not update status."); }
+  }
 
   async function load() {
     setLoading(true);
@@ -117,7 +166,8 @@ export default function LeadPipelinePage() {
                       draggable
                       onDragStart={() => setDragId(l.id)}
                       onDragEnd={() => { setDragId(null); setOverStage(null); }}
-                      className={`bg-white rounded-lg border border-gray-200 shadow-sm p-3 cursor-grab active:cursor-grabbing hover:shadow ${dragId === l.id ? "opacity-50" : ""}`}
+                      onClick={() => setSelected(l)}
+                      className={`bg-white rounded-lg border border-gray-200 shadow-sm p-3 cursor-pointer hover:shadow hover:ring-1 hover:ring-blue-300 ${dragId === l.id ? "opacity-50" : ""}`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="font-medium text-gray-900 text-sm">{l.studentName || l.parentName || "Lead"}</div>
@@ -137,6 +187,85 @@ export default function LeadPipelinePage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Lead detail drawer */}
+      {selected && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={() => setSelected(null)}>
+          <div className="w-full max-w-md bg-white h-full shadow-xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-5 border-b sticky top-0 bg-white flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">{selected.studentName || selected.parentName || "Lead"}</h2>
+                <p className="text-sm text-gray-500">{selected.parentName && selected.studentName ? `Parent: ${selected.parentName}` : ""}</p>
+              </div>
+              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-gray-400 block text-xs">Phone</span>{selected.parentPhone || "—"}</div>
+                <div><span className="text-gray-400 block text-xs">Score</span>{selected.score ?? "—"}</div>
+                <div><span className="text-gray-400 block text-xs">Temperature</span><span className={`px-2 py-0.5 rounded-full text-xs ${temp(selected.temperature)}`}>{String(selected.temperature || "—").toUpperCase()}</span></div>
+                <div><span className="text-gray-400 block text-xs">Stage</span>
+                  <select value={norm(selected.status)} onChange={(e) => changeStatus(e.target.value)}
+                    className="mt-1 border border-gray-300 rounded px-2 py-1 text-sm w-full">
+                    {STAGES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-800 text-sm mb-2">Add note</h3>
+                <div className="flex gap-2 mb-2">
+                  <select value={noteType} onChange={(e) => setNoteType(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm">
+                    {["GENERAL", "CALL", "MEETING", "EMAIL", "IMPORTANT"].map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <button onClick={addNote} disabled={!noteText.trim()} className="px-3 py-1 rounded bg-blue-600 text-white text-sm disabled:opacity-50">Add</button>
+                </div>
+                <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={2} placeholder="Log a call, note a follow-up…"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+
+              {drawerLoading ? <p className="text-sm text-gray-400">Loading…</p> : (
+                <>
+                  {notes.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-gray-800 text-sm mb-2">Notes</h3>
+                      <div className="space-y-2">
+                        {notes.map((n) => (
+                          <div key={n.id} className="bg-gray-50 rounded-lg p-3 text-sm">
+                            <div className="flex justify-between text-xs text-gray-400 mb-1">
+                              <span>{n.noteType || "GENERAL"}</span>
+                              <span>{n.createdAt ? new Date(n.createdAt).toLocaleString() : ""}</span>
+                            </div>
+                            <div className="text-gray-700">{n.note}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-semibold text-gray-800 text-sm mb-2">Activity timeline</h3>
+                    {activities.length === 0 ? <p className="text-sm text-gray-400">No activity yet.</p> : (
+                      <div className="space-y-2">
+                        {activities.map((a) => (
+                          <div key={a.id} className="flex gap-3 text-sm">
+                            <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                            <div>
+                              <div className="text-gray-800">{a.activityTitle || a.activityType}</div>
+                              {a.description && <div className="text-gray-500 text-xs">{a.description}</div>}
+                              <div className="text-gray-400 text-xs">{a.activityDate ? new Date(a.activityDate).toLocaleString() : ""}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
