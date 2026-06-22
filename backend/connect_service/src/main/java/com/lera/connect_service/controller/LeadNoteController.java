@@ -83,10 +83,14 @@ public class LeadNoteController {
             @Valid @RequestBody LeadNote note,
             @AuthenticationPrincipal AuthUser authUser) {
         requireAccessibleLead(authUser, note.getLeadId());
-        // created_by is NOT NULL — stamp the author from the authenticated user.
+        // created_by / created_at / updated_at are NOT NULL but aren't set when the body is
+        // deserialized — stamp them here (author from the authenticated user).
         if (note.getCreatedBy() == null && authUser != null) {
             note.setCreatedBy(authUser.getUserId());
         }
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        if (note.getCreatedAt() == null) note.setCreatedAt(now);
+        if (note.getUpdatedAt() == null) note.setUpdatedAt(now);
         return ResponseEntity.ok(leadNoteService.create(note));
     }
 
