@@ -115,16 +115,21 @@ public class PayrollGenerationService {
             BigDecimal hourlyRate = config.getHourlyRate() != null ? config.getHourlyRate() : BigDecimal.ZERO;
             String salaryType = config.getSalaryType() != null ? config.getSalaryType() : "HOURLY";
 
-            // 3. Hours worked this period — source depends on the employee:
-            //    teachers/TAs get ACTUAL hours from teaching sessions; every other hourly
-            //    employee uses their contracted standardHours from the salary config (there is
-            //    no staff time-clock to derive worked hours from).
+            // 3. Hours worked this period. FULL-TIME / FIXED employees are paid a flat base
+            //    salary with no hourly component. Only HOURLY/HYBRID/SESSION employees accrue
+            //    hours: teachers/TAs from ACTUAL teaching sessions; any other such employee
+            //    from their contracted standardHours (there is no staff time-clock).
+            boolean paidHourly = "HOURLY".equalsIgnoreCase(salaryType)
+                    || "HYBRID".equalsIgnoreCase(salaryType)
+                    || "SESSION".equalsIgnoreCase(salaryType);
             BigDecimal teachingHours = BigDecimal.ZERO;
-            if ("TEACHER".equals(roleName) || "TA".equals(roleName)) {
-                String teacherEntityId = userToTeacher.getOrDefault(staffId.toString(), staffId.toString());
-                teachingHours = fetchTeachingHoursFromSessions(UUID.fromString(teacherEntityId), periodStart, periodEnd);
-            } else if ("HOURLY".equalsIgnoreCase(salaryType) && config.getStandardHours() != null) {
-                teachingHours = config.getStandardHours();
+            if (paidHourly) {
+                if ("TEACHER".equals(roleName) || "TA".equals(roleName)) {
+                    String teacherEntityId = userToTeacher.getOrDefault(staffId.toString(), staffId.toString());
+                    teachingHours = fetchTeachingHoursFromSessions(UUID.fromString(teacherEntityId), periodStart, periodEnd);
+                } else if (config.getStandardHours() != null) {
+                    teachingHours = config.getStandardHours();
+                }
             }
 
             BigDecimal teachingAmount = hourlyRate.multiply(teachingHours != null ? teachingHours : BigDecimal.ZERO);
