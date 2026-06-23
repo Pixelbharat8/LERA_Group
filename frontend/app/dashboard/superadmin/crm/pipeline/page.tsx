@@ -61,6 +61,7 @@ export default function LeadPipelinePage() {
   const [followups, setFollowups] = useState<any[]>([]);
   const [seqId, setSeqId] = useState(SEQUENCES[0].id);
   const [enrolling, setEnrolling] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
   const [drawerLoading, setDrawerLoading] = useState(false);
 
   useEffect(() => { load(); }, []);
@@ -127,6 +128,44 @@ export default function LeadPipelinePage() {
       setNotes(Array.isArray(n) ? n : []);
     } catch (e: any) {
       alert(e?.message || "Could not add the note.");
+    }
+  }
+
+  // AI-draft a follow-up message from the lead's context (real draft when the gateway has an
+  // OpenAI key; a sensible fallback otherwise). Result drops into the note box to edit/send.
+  async function aiDraft() {
+    if (!selected) return;
+    setAiBusy(true);
+    try {
+      const who = selected.studentName || selected.parentName || "the student";
+      const ctx = [
+        `Student/lead: ${who}`,
+        selected.parentName ? `Parent: ${selected.parentName}` : "",
+        `Stage: ${norm(selected.status)}`,
+        selected.temperature ? `Interest: ${selected.temperature}` : "",
+        notes[0]?.note ? `Latest note: ${notes[0].note}` : "",
+      ].filter(Boolean).join("; ");
+      const res: any = await apiFetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemPrompt: "You are a warm, concise admissions advisor at LERA English Academy. Draft a short, friendly follow-up message (2-4 sentences) to a parent to move this lead forward to enrolment. No placeholders.",
+          message: `Write the next follow-up message for this lead. Context: ${ctx}.`,
+        }),
+      }, { silent: true }).catch(() => null);
+      if (res?.message) {
+        setNoteText(String(res.message).trim());
+        if (res.usingRealAI === false) {
+          // Honest signal: gateway has no OpenAI key, so this is a generic draft.
+          setNoteType("EMAIL");
+        }
+      } else {
+        alert("AI draft unavailable.");
+      }
+    } catch (e: any) {
+      alert(e?.message || "AI draft failed.");
+    } finally {
+      setAiBusy(false);
     }
   }
 
@@ -281,6 +320,9 @@ export default function LeadPipelinePage() {
                   <select value={noteType} onChange={(e) => setNoteType(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm">
                     {["GENERAL", "CALL", "MEETING", "EMAIL", "IMPORTANT"].map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
+                  <button onClick={aiDraft} disabled={aiBusy} title="AI-draft a follow-up message" className="px-3 py-1 rounded bg-purple-600 text-white text-sm disabled:opacity-50">
+                    {aiBusy ? "…" : "✨ AI draft"}
+                  </button>
                   <button onClick={addNote} disabled={!noteText.trim()} className="px-3 py-1 rounded bg-blue-600 text-white text-sm disabled:opacity-50">Add</button>
                 </div>
                 <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={2} placeholder="Log a call, note a follow-up…"
