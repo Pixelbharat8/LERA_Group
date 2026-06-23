@@ -4,6 +4,7 @@ import com.lera.connect_service.entity.Followup;
 import com.lera.connect_service.entity.Lead;
 import com.lera.connect_service.repository.FollowupRepository;
 import com.lera.connect_service.repository.LeadRepository;
+import com.lera.connect_service.service.messaging.OutboundMessagingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,6 +32,7 @@ public class FollowupScheduler {
     private final LeadRepository leadRepository;
     private final NotificationService notificationService;
     private final EmailService emailService;
+    private final OutboundMessagingService outboundMessagingService;
 
     @Scheduled(fixedRate = 60_000)
     @Transactional
@@ -56,10 +58,17 @@ public class FollowupScheduler {
                             "FOLLOWUP");
                 }
 
-                // 2) EMAIL step -> email the parent (sends only if mail is enabled; logs otherwise).
-                if ("EMAIL".equalsIgnoreCase(f.getActionType())
+                // 2) Send on the step's channel. EMAIL -> EmailService; SMS/ZALO -> the outbound
+                //    messaging service (real provider when configured, recorded + skipped otherwise).
+                String channel = f.getActionType() == null ? "" : f.getActionType().toUpperCase();
+                if ("EMAIL".equals(channel)
                         && lead != null && lead.getParentEmail() != null && !lead.getParentEmail().isBlank()) {
                     emailService.sendSimpleEmail(lead.getParentEmail(), "LERA Academy", body);
+                } else if ("SMS".equals(channel) || "ZALO".equals(channel)) {
+                    outboundMessagingService.send(
+                            f.getLeadId(),
+                            lead != null ? lead.getParentPhone() : null,
+                            channel, body, null);
                 }
 
                 f.setStatus("DONE");
