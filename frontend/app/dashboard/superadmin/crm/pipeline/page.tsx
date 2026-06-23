@@ -15,6 +15,26 @@ const STAGES: { key: string; label: string; accent: string }[] = [
   { key: "LOST", label: "Lost", accent: "border-t-red-500" },
 ];
 
+// Multi-step follow-up sequences (cadences). Enrolling a lead creates a dated follow-up per step.
+const SEQUENCES: { id: string; name: string; steps: { day: number; channel: string; note: string }[] }[] = [
+  { id: "nurture", name: "New-lead nurture", steps: [
+    { day: 0, channel: "PHONE", note: "Intro call — welcome & needs" },
+    { day: 1, channel: "SMS", note: "Send centre info + trial-class link" },
+    { day: 3, channel: "EMAIL", note: "Programme details & pricing" },
+    { day: 7, channel: "PHONE", note: "Check interest, book trial" },
+  ] },
+  { id: "trial", name: "Trial follow-up", steps: [
+    { day: 0, channel: "SMS", note: "Confirm trial-class time" },
+    { day: 1, channel: "PHONE", note: "Trial feedback call" },
+    { day: 3, channel: "EMAIL", note: "Enrolment offer + next steps" },
+  ] },
+  { id: "reengage", name: "Re-engage cold lead", steps: [
+    { day: 0, channel: "EMAIL", note: "We miss you — new term starting" },
+    { day: 5, channel: "PHONE", note: "Personal check-in" },
+    { day: 10, channel: "SMS", note: "Last-chance enrolment offer" },
+  ] },
+];
+
 type Lead = {
   id: string;
   parentName?: string;
@@ -38,6 +58,9 @@ export default function LeadPipelinePage() {
   const [notes, setNotes] = useState<any[]>([]);
   const [noteText, setNoteText] = useState("");
   const [noteType, setNoteType] = useState("GENERAL");
+  const [followups, setFollowups] = useState<any[]>([]);
+  const [seqId, setSeqId] = useState(SEQUENCES[0].id);
+  const [enrolling, setEnrolling] = useState(false);
   const [drawerLoading, setDrawerLoading] = useState(false);
 
   useEffect(() => { load(); }, []);
@@ -48,11 +71,48 @@ export default function LeadPipelinePage() {
     Promise.all([
       apiFetch(`/api/lead-activities/lead/${selected.id}`, {}, { silent: true }).catch(() => []),
       apiFetch(`/api/lead-notes/lead/${selected.id}`, {}, { silent: true }).catch(() => []),
-    ]).then(([a, n]) => {
+      apiFetch(`/api/followups/lead/${selected.id}`, {}, { silent: true }).catch(() => []),
+    ]).then(([a, n, f]) => {
       setActivities(Array.isArray(a) ? a : []);
       setNotes(Array.isArray(n) ? n : []);
+      setFollowups(Array.isArray(f) ? f : []);
     }).finally(() => setDrawerLoading(false));
   }, [selected]);
+
+  function isoDatePlus(days: number) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  async function enrollSequence() {
+    if (!selected) return;
+    const seq = SEQUENCES.find((s) => s.id === seqId);
+    if (!seq) return;
+    setEnrolling(true);
+    try {
+      // Create one dated follow-up per step (channel = action type, due = today + day offset).
+      for (const step of seq.steps) {
+        await apiFetch("/api/followups", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leadId: selected.id,
+            actionType: step.channel,
+            notes: `[${seq.name}] ${step.note}`,
+            nextFollowupDate: isoDatePlus(step.day),
+          }),
+        }, { silent: true });
+      }
+      const f = await apiFetch(`/api/followups/lead/${selected.id}`, {}, { silent: true }).catch(() => []);
+      setFollowups(Array.isArray(f) ? f : []);
+      alert(`Enrolled in “${seq.name}” — ${seq.steps.length} follow-ups scheduled.`);
+    } catch (e: any) {
+      alert(e?.message || "Could not enroll in the sequence.");
+    } finally {
+      setEnrolling(false);
+    }
+  }
 
   async function addNote() {
     if (!selected || !noteText.trim()) return;
@@ -226,6 +286,37 @@ export default function LeadPipelinePage() {
                 <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={2} placeholder="Log a call, note a follow-up…"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
               </div>
+
+              {/* Sequences / cadences */}
+              <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+                <h3 className="font-semibold text-gray-800 text-sm mb-2">📨 Enroll in sequence</h3>
+                <div className="flex gap-2 items-center">
+                  <select value={seqId} onChange={(e) => setSeqId(e.target.value)} className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm bg-white">
+                    {SEQUENCES.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.steps.length} steps)</option>)}
+                  </select>
+                  <button onClick={enrollSequence} disabled={enrolling} className="px-3 py-1 rounded bg-blue-600 text-white text-sm disabled:opacity-50">
+                    {enrolling ? "…" : "Enroll"}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{SEQUENCES.find((s) => s.id === seqId)?.steps.map((s) => `D${s.day} ${s.channel}`).join(" · ")}</p>
+              </div>
+
+              {followups.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-gray-800 text-sm mb-2">Scheduled follow-ups</h3>
+                  <div className="space-y-1.5">
+                    {[...followups].sort((a, b) => String(a.nextFollowupDate || a.scheduledAt).localeCompare(String(b.nextFollowupDate || b.scheduledAt))).map((f) => (
+                      <div key={f.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{f.actionType}</span>
+                          <span className="text-gray-700">{f.notes}</span>
+                        </div>
+                        <span className="text-xs text-gray-400 shrink-0">{f.nextFollowupDate || (f.scheduledAt ? String(f.scheduledAt).slice(0, 10) : "")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {drawerLoading ? <p className="text-sm text-gray-400">Loading…</p> : (
                 <>

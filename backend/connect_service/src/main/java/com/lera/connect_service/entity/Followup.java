@@ -35,8 +35,26 @@ public class Followup {
     
     @Column(name = "outcome", length = 50)
     private String outcome; // INTERESTED, NOT_INTERESTED, CALLBACK, NO_ANSWER, CONVERTED
-    
+
+    // When this follow-up is due (NOT NULL in the table). Derived from nextFollowupDate
+    // if not given. Was previously unmapped, so every insert violated NOT NULL (409).
+    @Column(name = "scheduled_at", nullable = false)
+    private LocalDateTime scheduledAt;
+
+    @Column(name = "status", length = 30)
+    @Builder.Default
+    private String status = "PENDING"; // PENDING, DONE, SKIPPED
+
     @Column(name = "created_at")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
+        if (scheduledAt == null) {
+            scheduledAt = nextFollowupDate != null ? nextFollowupDate.atTime(9, 0) : LocalDateTime.now();
+        }
+        if (status == null) status = "PENDING";
+    }
 }
