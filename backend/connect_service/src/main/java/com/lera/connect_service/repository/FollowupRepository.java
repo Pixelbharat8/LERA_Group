@@ -13,8 +13,9 @@ import java.util.UUID;
 @Repository
 public interface FollowupRepository extends JpaRepository<Followup, UUID> {
 
-    /** Due, not-yet-actioned cadence steps — the auto-send scheduler picks these up. */
-    List<Followup> findByStatusAndScheduledAtLessThanEqual(String status, LocalDateTime when);
+    /** Due, not-yet-actioned cadence steps — the auto-send scheduler picks these up.
+     *  Bounded + oldest-first so a backlog drains steadily instead of firing all at once. */
+    List<Followup> findTop100ByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAsc(String status, LocalDateTime when);
 
     List<Followup> findByLeadId(UUID leadId);
     

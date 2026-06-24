@@ -37,11 +37,22 @@ public class FollowupScheduler {
     @Scheduled(fixedRate = 60_000)
     @Transactional
     public void processDueFollowups() {
-        List<Followup> due = followupRepository.findByStatusAndScheduledAtLessThanEqual("PENDING", LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        // Bounded, oldest-first so a backlog drains over several ticks rather than firing at once.
+        List<Followup> due = followupRepository
+                .findTop100ByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAsc("PENDING", now);
         if (due.isEmpty()) return;
 
-        int sent = 0;
+        LocalDateTime staleBefore = now.minusDays(7);
+        int sent = 0, skipped = 0;
         for (Followup f : due) {
+            // Don't fire steps that are days overdue (e.g. a long-dormant lead) — skip them quietly.
+            if (f.getScheduledAt() != null && f.getScheduledAt().isBefore(staleBefore)) {
+                f.setStatus("SKIPPED");
+                followupRepository.save(f);
+                skipped++;
+                continue;
+            }
             try {
                 Lead lead = f.getLeadId() != null ? leadRepository.findById(f.getLeadId()).orElse(null) : null;
                 String who = lead == null ? "lead"
@@ -80,7 +91,7 @@ public class FollowupScheduler {
                 followupRepository.save(f);
             }
         }
-        log.info("Auto-send: processed {} due follow-up(s)", sent);
+        log.info("Auto-send: sent {} due follow-up(s), skipped {} stale", sent, skipped);
     }
 
     /** Drop a leading "[Sequence name] " tag for the outbound message. */
