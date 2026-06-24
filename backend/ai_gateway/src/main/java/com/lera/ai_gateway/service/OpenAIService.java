@@ -11,13 +11,16 @@ import java.util.*;
 @Service
 public class OpenAIService {
 
-    @Value("${openai.api.key:}")
+    // Provider-agnostic config. Point AI_BASE_URL (+ optional AI_API_KEY) at any
+    // OpenAI-compatible /chat/completions endpoint — e.g. the in-house Axiom gateway.
+    // Falls back to the legacy openai.* keys, then to OpenAI's public API.
+    @Value("${ai.api-key:${openai.api.key:}}")
     private String openaiApiKey;
 
-    @Value("${openai.api.url:https://api.openai.com/v1/chat/completions}")
+    @Value("${ai.base-url:${openai.api.url:https://api.openai.com/v1/chat/completions}}")
     private String openaiApiUrl;
 
-    @Value("${openai.model:gpt-4o-mini}")
+    @Value("${ai.model:${openai.model:gpt-4o-mini}}")
     private String defaultModel;
 
     @Value("${openai.max-tokens:2000}")
@@ -33,7 +36,10 @@ public class OpenAIService {
      * Check if OpenAI API is configured
      */
     public boolean isConfigured() {
-        return openaiApiKey != null && !openaiApiKey.isEmpty();
+        boolean hasKey = openaiApiKey != null && !openaiApiKey.isEmpty();
+        // An internal gateway (e.g. Axiom) may not need a key — a custom base URL is enough.
+        boolean customEndpoint = openaiApiUrl != null && !openaiApiUrl.contains("api.openai.com");
+        return hasKey || customEndpoint;
     }
 
     /**
@@ -44,7 +50,7 @@ public class OpenAIService {
         if (!isConfigured()) {
             return Map.of(
                 "success", false,
-                "error", "OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.",
+                "error", "AI provider not configured. Set AI_BASE_URL (+ optional AI_API_KEY) to your gateway, e.g. Axiom.",
                 "message", generateFallbackResponse(message, systemPrompt)
             );
         }
@@ -52,7 +58,10 @@ public class OpenAIService {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(openaiApiKey);
+            // Only send a bearer token when one is configured (an internal gateway may not need it).
+            if (openaiApiKey != null && !openaiApiKey.isEmpty()) {
+                headers.setBearerAuth(openaiApiKey);
+            }
 
             List<Map<String, String>> messages = new ArrayList<>();
             
