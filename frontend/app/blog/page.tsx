@@ -67,7 +67,9 @@ const fallbackPosts: BlogPost[] = [
 
 export default function BlogPage() {
   const { language, t } = useLanguage();
-  const [posts, setPosts] = useState<BlogPost[]>(fallbackPosts);
+  // Real blog posts only — no dummy. Empty until the backend has published posts (the
+  // page shows a "No posts yet" state rather than fabricated articles).
+  const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
@@ -75,11 +77,9 @@ export default function BlogPage() {
     const fetchPosts = async () => {
       try {
         const data = await publicFetch("/api/blog/published");
-        if (Array.isArray(data) && data.length > 0) {
-          setPosts(data);
-        }
+        setPosts(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.log("Using fallback blog posts");
+        setPosts([]);
       }
       setIsLoading(false);
     };
