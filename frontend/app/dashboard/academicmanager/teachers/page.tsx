@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 import { buildCenterFilterUrl } from "../../../../lib/center-filter";
 import { useUserCenter } from "../../../hooks/useUserCenter";
+import PublicProfileFields from "../../../components/TeacherPublicProfileFields";
 
 interface Teacher {
   id: string;
@@ -46,8 +47,19 @@ export default function AcademicManagerTeachersPage() {
     yearsOfExperience: 0,
     nationality: "",
     bio: "",
-    centerId: ""
+    centerId: "",
+    displayName: "",
+    displayNameVi: "",
+    photoUrl: "",
+    bioVi: "",
+    isFeatured: false,
+    isNativeSpeaker: false
   });
+  const emptyForm = {
+    fullName: "", email: "", teacherCode: "", specialization: "", qualification: "",
+    yearsOfExperience: 0, nationality: "", bio: "", centerId: "",
+    displayName: "", displayNameVi: "", photoUrl: "", bioVi: "", isFeatured: false, isNativeSpeaker: false
+  };
 
   useEffect(() => {
     if (!userLoading) {
@@ -116,12 +128,18 @@ export default function AcademicManagerTeachersPage() {
           nationality: formData.nationality,
           bio: formData.bio,
           centerId: formData.centerId || null,
-          status: "ACTIVE"
+          status: "ACTIVE",
+          displayName: formData.displayName || null,
+          displayNameVi: formData.displayNameVi || null,
+          photoUrl: formData.photoUrl || null,
+          bioVi: formData.bioVi || null,
+          isFeatured: formData.isFeatured,
+          isNativeSpeaker: formData.isNativeSpeaker
         })
       });
       setTeachers([...teachers, newTeacher]);
       setShowAddModal(false);
-      setFormData({ fullName: "", email: "", teacherCode: "", specialization: "", qualification: "", yearsOfExperience: 0, nationality: "", bio: "", centerId: "" });
+      setFormData(emptyForm);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -151,7 +169,13 @@ export default function AcademicManagerTeachersPage() {
       yearsOfExperience: teacher.yearsOfExperience || 0,
       nationality: teacher.nationality || "",
       bio: teacher.bio || "",
-      centerId: teacher.centerId || ""
+      centerId: teacher.centerId || "",
+      displayName: (teacher as any).displayName || "",
+      displayNameVi: (teacher as any).displayNameVi || "",
+      photoUrl: (teacher as any).photoUrl || "",
+      bioVi: (teacher as any).bioVi || "",
+      isFeatured: (teacher as any).isFeatured ?? false,
+      isNativeSpeaker: (teacher as any).isNativeSpeaker ?? false
     });
     setShowEditModal(true);
   };
@@ -398,6 +422,8 @@ export default function AcademicManagerTeachersPage() {
                 />
               </div>
 
+              <PublicProfileFields formData={formData} setFormData={setFormData} />
+
               <div className="flex gap-3 mt-6">
                 <button
                   type="button"
@@ -502,6 +528,8 @@ export default function AcademicManagerTeachersPage() {
                   rows={3}
                 />
               </div>
+
+              <PublicProfileFields formData={formData} setFormData={setFormData} />
 
               <div className="flex gap-3 mt-6">
                 <button

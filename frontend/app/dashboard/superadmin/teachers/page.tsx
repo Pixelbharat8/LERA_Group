@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../../../../lib/api";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
+import TeacherPublicProfileFields from "../../../components/TeacherPublicProfileFields";
 
 interface Teacher {
   id: string;
@@ -17,6 +18,13 @@ interface Teacher {
   specialization?: string;
   qualification?: string;
   yearsOfExperience?: number;
+  // Public "Meet our Teachers" profile
+  displayName?: string;
+  displayNameVi?: string;
+  photoUrl?: string;
+  bioVi?: string;
+  isFeatured?: boolean;
+  isNativeSpeaker?: boolean;
 }
 
 export default function SuperAdminTeachersPage() {
@@ -330,7 +338,7 @@ export default function SuperAdminTeachersPage() {
       {/* Edit Modal */}
       {showEditModal && editingTeacher && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold mb-4">Edit Teacher</h3>
             <div className="space-y-4">
               <input
@@ -380,6 +388,7 @@ export default function SuperAdminTeachersPage() {
                 <option value="PENDING">Pending</option>
                 <option value="INACTIVE">Inactive</option>
               </select>
+              <TeacherPublicProfileFields formData={editingTeacher} setFormData={(v) => setEditingTeacher(v)} />
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowEditModal(false)} className="flex-1 px-4 py-2 border rounded-lg">Cancel</button>
