@@ -169,6 +169,12 @@ export default function PlacementPage() {
               <p className="text-sm text-gray-500 mt-2">
                 {language === "EN" ? `Rough score: ${score} / 16` : `Điểm tham khảo: ${score} / 16`}
               </p>
+              <Link
+                href="/courses"
+                className="inline-flex items-center gap-1 mt-4 text-blue-600 font-semibold hover:text-blue-700"
+              >
+                {language === "EN" ? "Explore matching courses" : "Khám phá khoá học phù hợp"} <span>→</span>
+              </Link>
             </div>
             <div className="space-y-3">
               <input
