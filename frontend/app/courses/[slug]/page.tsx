@@ -417,6 +417,16 @@ export default function CourseDetailPage() {
                   </span>
                 ) : null}
               </div>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link href={`/enroll?course=${course.code}`}
+                  className="inline-block px-6 py-2.5 bg-yellow-400 text-gray-900 font-bold rounded-full hover:bg-yellow-300 transition-colors">
+                  {language === "EN" ? "Enrol now" : "Đăng ký nhập học"}
+                </Link>
+                <Link href="/book-trial"
+                  className="inline-block px-6 py-2.5 bg-white/15 text-white font-semibold rounded-full hover:bg-white/25 transition-colors backdrop-blur-sm">
+                  {language === "EN" ? "Book a free trial" : "Học thử miễn phí"}
+                </Link>
+              </div>
             </div>
           </div>
         </div>

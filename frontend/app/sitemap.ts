@@ -44,6 +44,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/book-trial',
     '/placement',
     '/corporate',
+    '/enroll',
     '/faq',
     '/privacy',
     '/terms',

@@ -116,9 +116,12 @@ export default function PricingPage() {
                         </td>
                         <td className="px-5 py-4 text-gray-600 hidden md:table-cell">{c.maxClassSize ? `≤${c.maxClassSize}` : "—"}</td>
                         <td className="px-5 py-4 text-right font-bold text-[#0a1a5c] whitespace-nowrap">{fmt(c.price)}</td>
-                        <td className="px-5 py-4 text-right">
-                          <Link href={`/courses/${CODE_TO_SLUG[c.code] || ""}`} className="text-blue-600 font-semibold hover:text-blue-700 whitespace-nowrap">
-                            {EN ? "Details →" : "Chi tiết →"}
+                        <td className="px-5 py-4 text-right whitespace-nowrap">
+                          <Link href={`/courses/${CODE_TO_SLUG[c.code] || ""}`} className="text-gray-500 font-medium hover:text-gray-700 mr-4">
+                            {EN ? "Details" : "Chi tiết"}
+                          </Link>
+                          <Link href={`/enroll?course=${c.code}`} className="text-blue-600 font-semibold hover:text-blue-700">
+                            {EN ? "Enrol →" : "Đăng ký →"}
                           </Link>
                         </td>
                       </tr>

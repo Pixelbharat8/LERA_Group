@@ -133,6 +133,7 @@ export default function Footer() {
               <li><Link href="/" className="text-gray-400 hover:text-white transition-colors">{t("home")}</Link></li>
               <li><Link href="/courses" className="text-gray-400 hover:text-white transition-colors">{t("courses")}</Link></li>
               <li><Link href="/pricing" className="text-gray-400 hover:text-white transition-colors">{language === "VI" ? "Học phí" : "Pricing"}</Link></li>
+              <li><Link href="/enroll" className="text-gray-400 hover:text-white transition-colors">{language === "VI" ? "Đăng ký nhập học" : "Enrol online"}</Link></li>
               <li><Link href="/teachers" className="text-gray-400 hover:text-white transition-colors">{language === "VI" ? "Giáo viên" : "Teachers"}</Link></li>
               <li><Link href="/corporate" className="text-gray-400 hover:text-white transition-colors">{language === "VI" ? "Đào tạo doanh nghiệp" : "Corporate training"}</Link></li>
               <li><Link href="/about" className="text-gray-400 hover:text-white transition-colors">{t("about")}</Link></li>

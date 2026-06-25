@@ -25,6 +25,13 @@ export const CORPORATE_LEAD_CONTEXT = {
   utmCampaign: "corporate_inquiry",
 } as const;
 
+/** UTM for online course enrolment requests on `/enroll` — the highest-intent web funnel. */
+export const ENROLMENT_LEAD_CONTEXT = {
+  utmSource: "website",
+  utmMedium: "online_enrolment",
+  utmCampaign: "course_enrolment",
+} as const;
+
 export const FUNNEL_NOTES_PREFIX = "[Trial / placement funnel]";
 
 /** Product backlog from the English-centre audit (not in the placement+trial vertical slice). */
