@@ -45,7 +45,19 @@ export default function BlogPostPage() {
       try {
         const data = await publicFetch(`/api/blog/slug/${slug}`);
         if (data) {
-          setPost(data);
+          // Map entity field names (titleEn/contentEn/imageUrl …) to what this page renders.
+          setPost({
+            id: data.id,
+            title: data.title ?? data.titleEn,
+            titleVi: data.titleVi,
+            slug: data.slug,
+            content: data.content ?? data.contentEn,
+            contentVi: data.contentVi,
+            featuredImage: data.featuredImage ?? data.imageUrl,
+            author: data.author,
+            publishedAt: data.publishedAt,
+            category: data.category,
+          });
         } else {
           setNotFound(true);
         }

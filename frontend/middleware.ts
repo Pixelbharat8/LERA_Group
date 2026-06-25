@@ -50,6 +50,7 @@ export function middleware(request: NextRequest) {
   // Public sections where both the index and nested pages must be accessible without login.
   const publicRoutePrefixes = [
     "/about",
+    "/teachers",
     "/contact",
     "/courses",
     "/programs",

@@ -47,7 +47,10 @@ public class SecurityConfig {
 
     private boolean isProdProfile() {
         for (String p : environment.getActiveProfiles()) {
-            if ("prod".equalsIgnoreCase(p)) {
+            // Treat docker/staging as production-hardened too: deployment runs with
+            // SPRING_PROFILES_ACTIVE=docker, so swagger must be locked down there, not
+            // only under the literal "prod" profile (which is never active in deployment).
+            if ("prod".equalsIgnoreCase(p) || "docker".equalsIgnoreCase(p) || "staging".equalsIgnoreCase(p)) {
                 return true;
             }
         }
@@ -85,6 +88,8 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.GET, "/api/faqs/public").permitAll();
                 auth.requestMatchers(HttpMethod.GET, "/api/faqs/page/*").permitAll();
                 auth.requestMatchers(HttpMethod.GET, "/api/leadership-members/public").permitAll();
+                auth.requestMatchers(HttpMethod.GET, "/api/teachers/public").permitAll();
+                auth.requestMatchers(HttpMethod.GET, "/api/courses/code/*").permitAll();
                 // Public website CMS slices (single path segment — not GET /map which lists all keys)
                 auth.requestMatchers(HttpMethod.GET, "/api/cms-settings/map/*").permitAll();
                 auth.requestMatchers(HttpMethod.GET, "/api/cms-settings/value/*").permitAll();

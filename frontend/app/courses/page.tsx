@@ -273,7 +273,7 @@ export default function CoursesPage() {
                       </div>
                       {course.price && (
                         <div className="absolute top-3 right-3 bg-yellow-400 text-gray-900 text-xs px-3 py-1 rounded-full font-bold">
-                          {course.price.toLocaleString()}đ
+                          {new Intl.NumberFormat("vi-VN").format(course.price)}₫
                         </div>
                       )}
                     </div>

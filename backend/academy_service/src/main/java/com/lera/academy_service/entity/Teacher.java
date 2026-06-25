@@ -56,6 +56,17 @@ public class Teacher {
     @Column(name = "is_native_speaker")
     @Builder.Default
     private Boolean isNativeSpeaker = false;
+
+    // ----- Public directory fields ("Meet our Teachers") -----
+    // Name lives in the users table; a self-contained display name avoids a cross-service join.
+    @Column(name = "display_name")
+    private String displayName;
+
+    @Column(name = "display_name_vi")
+    private String displayNameVi;
+
+    @Column(name = "photo_url", columnDefinition = "TEXT")
+    private String photoUrl;
     
     @Column(name = "is_featured")
     @Builder.Default

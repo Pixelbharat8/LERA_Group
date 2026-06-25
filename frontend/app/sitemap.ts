@@ -7,15 +7,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages = [
     '',
     '/about',
+    '/teachers',
     '/contact',
     '/courses',
     '/centers',
     '/blog',
+    '/book-trial',
+    '/placement',
     '/faq',
     '/privacy',
     '/terms',
   ]
-  
+
   // Course pages
   const coursePages = [
     '/courses/lera-starters',
@@ -24,6 +27,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/courses/lera-teens',
     '/courses/ielts-sat',
     '/courses/business-english',
+    '/courses/conversation',
+    '/courses/phonics',
   ]
   
   const allPages = [...staticPages, ...coursePages]

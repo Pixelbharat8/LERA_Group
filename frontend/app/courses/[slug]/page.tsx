@@ -32,7 +32,12 @@ interface CourseData {
   benefits?: string[];
   benefitsVi?: string[];
   imageUrl?: string;
+  price?: number;
 }
+
+// Vietnamese-đồng formatting (e.g. 2.500.000₫)
+const formatPrice = (price?: number) =>
+  price == null ? "" : new Intl.NumberFormat("vi-VN").format(price) + "₫";
 
 // Slug to code mapping
 const slugToCode: Record<string, string> = {
@@ -229,7 +234,8 @@ export default function CourseDetailPage() {
             curriculumVi: foundCourse.curriculumVi || defaultCourseData[slug]?.curriculumVi || [],
             benefits: foundCourse.benefits || defaultCourseData[slug]?.benefits || [],
             benefitsVi: foundCourse.benefitsVi || defaultCourseData[slug]?.benefitsVi || [],
-            imageUrl: foundCourse.imageUrl
+            imageUrl: foundCourse.imageUrl,
+            price: foundCourse.price
           };
           setCourse(mappedCourse);
           
@@ -372,8 +378,20 @@ export default function CourseDetailPage() {
   const curriculum = language === "EN" ? (course.curriculum || []) : (course.curriculumVi || course.curriculum || []);
   const benefits = language === "EN" ? (course.benefits || []) : (course.benefitsVi || course.benefits || []);
 
+  const courseJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: course.name,
+    description: course.description,
+    provider: { "@type": "EducationalOrganization", name: "LERA Academy", url: "https://lera.edu.vn" },
+    ...(course.price ? {
+      offers: { "@type": "Offer", price: course.price, priceCurrency: "VND", category: "Tuition" },
+    } : {}),
+  };
+
   return (
     <div className="min-h-screen bg-white">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }} />
       <Header />
 
       {/* Hero Section */}
@@ -388,9 +406,17 @@ export default function CourseDetailPage() {
               <h1 className="text-4xl sm:text-5xl font-bold mb-2">
                 {language === "EN" ? course.name : (course.nameVi || course.name)}
               </h1>
-              <p className="text-xl text-white/90">
-                {language === "EN" ? `Ages ${getAgeDisplay(course)}` : `${getAgeDisplay(course)} tuổi`}
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-xl text-white/90">
+                  {language === "EN" ? `Ages ${getAgeDisplay(course)}` : `${getAgeDisplay(course)} tuổi`}
+                </p>
+                {course.price ? (
+                  <span className="inline-flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1 text-lg font-semibold">
+                    {formatPrice(course.price)}
+                    <span className="text-sm font-normal text-white/80">/ {language === "EN" ? "month" : "tháng"}</span>
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>

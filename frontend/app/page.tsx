@@ -89,7 +89,8 @@ export default function Home() {
     fetchAchievements();
     
     const interval = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % 3);
+      // Render modulos by the real testimonial count, so just advance unbounded-but-small.
+      setCurrentTestimonial((prev) => (prev + 1) % 1000);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -310,12 +311,8 @@ export default function Home() {
     }
   };
 
-  // Default testimonials if none from API
-  const displayTestimonials = testimonials.length > 0 ? testimonials : [
-    { name: "Nguyễn Minh Anh", role: t("parentOf") + " Bảo Ngọc, 8", text: t("testimonial1"), rating: 5, image: TESTIMONIAL_FACES[0] },
-    { name: "Trần Văn Hùng", role: t("parentOf") + " Minh Khang, 12", text: t("testimonial2"), rating: 5, image: TESTIMONIAL_FACES[1] },
-    { name: "Lê Thị Hương", role: t("parentOf") + " Gia Hân, 6", text: t("testimonial3"), rating: 5, image: TESTIMONIAL_FACES[2] },
-  ];
+  // Real published testimonials only — no fabricated parents. The section hides when empty.
+  const displayTestimonials = testimonials;
 
   // Default courses if none from API - Using LERA Academy images
   const displayCourses = courses.length > 0 ? courses : [
@@ -590,13 +587,18 @@ export default function Home() {
                 );
               }
               return stats.map((stat, idx) => {
-                // Parse the value to get numeric part for animation
+                // A "countable" stat is a plain number (optionally with + / , / spaces),
+                // e.g. "5000+" → animate. Quality tiles like "≤12", "100%" or "Cambridge"
+                // are rendered literally so their meaning isn't lost.
+                const isCountable = /^[0-9][0-9,\s]*\+?$/.test(stat.value.trim());
                 const numericValue = parseInt(stat.value.replace(/[^0-9]/g, "")) || 0;
                 const suffix = stat.value.includes("+") ? "+" : "";
                 return (
                   <div key={idx} className="text-center bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all p-6">
                     <div className="text-4xl sm:text-5xl font-extrabold text-[#0a1a5c] mb-2">
-                      <AnimatedCounter end={numericValue} suffix={suffix} />
+                      {isCountable
+                        ? <AnimatedCounter end={numericValue} suffix={suffix} />
+                        : <span>{stat.value}</span>}
                     </div>
                     <p className="text-gray-600 font-medium">{stat.label}</p>
                   </div>
@@ -805,6 +807,7 @@ export default function Home() {
       </section>
 
       {/* ===== TESTIMONIALS ===== */}
+      {displayTestimonials.length > 0 && (
       <section className="py-16 sm:py-24 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
@@ -847,6 +850,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ===== GALLERY ===== */}
       <section className="py-16 sm:py-24 bg-white">

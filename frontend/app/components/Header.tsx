@@ -34,8 +34,9 @@ interface HeaderSettings {
 const defaultMenuItems: MenuItem[] = [
   { id: "1", label: "Home", labelVi: "Trang Chủ", href: "/", order: 1, isActive: true },
   { id: "2", label: "Courses", labelVi: "Khóa Học", href: "/courses", order: 2, isActive: true },
-  { id: "2a", label: "Book a trial", labelVi: "Học thử", href: "/book-trial", order: 3, isActive: true },
-  { id: "3", label: "About", labelVi: "Về Chúng Tôi", href: "/about", order: 4, isActive: true },
+  { id: "2b", label: "Teachers", labelVi: "Giáo Viên", href: "/teachers", order: 3, isActive: true },
+  { id: "2a", label: "Book a trial", labelVi: "Học thử", href: "/book-trial", order: 4, isActive: true },
+  { id: "3", label: "About", labelVi: "Về Chúng Tôi", href: "/about", order: 5, isActive: true },
 ];
 
 const defaultSettings: HeaderSettings = {

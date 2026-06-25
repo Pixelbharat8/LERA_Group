@@ -77,7 +77,23 @@ export default function BlogPage() {
     const fetchPosts = async () => {
       try {
         const data = await publicFetch("/api/blog/published");
-        setPosts(Array.isArray(data) ? data : []);
+        // The API serializes entity fields (titleEn/excerptEn/imageUrl …) — map them to the
+        // names this page renders so real posts actually display.
+        const mapped = (Array.isArray(data) ? data : []).map((p: any) => ({
+          id: p.id,
+          title: p.title ?? p.titleEn,
+          titleVi: p.titleVi,
+          slug: p.slug,
+          excerpt: p.excerpt ?? p.excerptEn,
+          excerptVi: p.excerptVi,
+          content: p.content ?? p.contentEn,
+          contentVi: p.contentVi,
+          featuredImage: p.featuredImage ?? p.imageUrl,
+          author: p.author,
+          publishedAt: p.publishedAt,
+          category: p.category,
+        }));
+        setPosts(mapped);
       } catch (error) {
         setPosts([]);
       }

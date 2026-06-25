@@ -87,6 +87,37 @@ public class TeacherController {
     public ResponseEntity<List<Teacher>> getFeaturedTeachers() {
         return ResponseEntity.ok(teacherService.findFeatured());
     }
+
+    /**
+     * Public "Meet our Teachers" directory. Returns ONLY website-safe fields — never salary,
+     * hourly rate, contract, user id, email or phone. Active teachers only, featured first.
+     */
+    @GetMapping("/public")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<List<Map<String, Object>>> getPublicTeachers() {
+        List<Map<String, Object>> result = teacherService.findByStatus("ACTIVE").stream()
+                .sorted(Comparator
+                        .comparing((Teacher t) -> Boolean.TRUE.equals(t.getIsFeatured()) ? 0 : 1)
+                        .thenComparing(t -> t.getDisplayName() == null ? "" : t.getDisplayName()))
+                .map(t -> {
+                    Map<String, Object> e = new LinkedHashMap<>();
+                    e.put("id", t.getId());
+                    e.put("displayName", t.getDisplayName());
+                    e.put("displayNameVi", t.getDisplayNameVi());
+                    e.put("photoUrl", t.getPhotoUrl());
+                    e.put("specialization", t.getSpecialization());
+                    e.put("qualification", t.getQualification());
+                    e.put("yearsOfExperience", t.getYearsOfExperience());
+                    e.put("nationality", t.getNationality());
+                    e.put("isNativeSpeaker", t.getIsNativeSpeaker());
+                    e.put("isFeatured", t.getIsFeatured());
+                    e.put("bio", t.getBio());
+                    e.put("bioVi", t.getBioVi());
+                    return e;
+                })
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
     
     @GetMapping("/center/{centerId}/count")
     public ResponseEntity<Long> countTeachersByCenter(@PathVariable UUID centerId) {

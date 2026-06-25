@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import jakarta.validation.constraints.Positive;
 
@@ -53,9 +54,35 @@ public class CourseProgram {
     
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
-    
+
     @Column(length = 20)
     private String color;
+
+    // ----- Public course-detail fields (real, admin-editable) -----
+    @Column(name = "duration_weeks")
+    private Integer durationWeeks;
+
+    @Column(name = "sessions_per_week")
+    private Integer sessionsPerWeek;
+
+    @Column(name = "max_class_size")
+    private Integer maxClassSize;
+
+    @Convert(converter = StringListJsonConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private List<String> curriculum;
+
+    @Convert(converter = StringListJsonConverter.class)
+    @Column(name = "curriculum_vi", columnDefinition = "TEXT")
+    private List<String> curriculumVi;
+
+    @Convert(converter = StringListJsonConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private List<String> benefits;
+
+    @Convert(converter = StringListJsonConverter.class)
+    @Column(name = "benefits_vi", columnDefinition = "TEXT")
+    private List<String> benefitsVi;
     
     @Column(name = "is_featured")
     @Builder.Default
