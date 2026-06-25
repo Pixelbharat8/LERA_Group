@@ -64,6 +64,7 @@ export function middleware(request: NextRequest) {
     "/admissions",
     "/book-trial",
     "/placement",
+    "/corporate",
   ];
 
   if (

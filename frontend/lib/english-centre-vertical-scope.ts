@@ -18,6 +18,13 @@ export const PLACEMENT_QUIZ_LEAD_CONTEXT = {
   utmCampaign: "english_placement",
 } as const;
 
+/** UTM for corporate / B2B training enquiries on `/corporate` (distinct medium for CRM filters). */
+export const CORPORATE_LEAD_CONTEXT = {
+  utmSource: "website",
+  utmMedium: "corporate_training",
+  utmCampaign: "corporate_inquiry",
+} as const;
+
 export const FUNNEL_NOTES_PREFIX = "[Trial / placement funnel]";
 
 /** Product backlog from the English-centre audit (not in the placement+trial vertical slice). */
