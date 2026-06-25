@@ -67,22 +67,6 @@ export default function Header() {
   const [loggedInUser, setLoggedInUser] = useState<{ fullname: string; roleName: string; rolePath: string } | null>(null);
 
   useEffect(() => {
-    // #region agent log
-    fetch("/api/debug-log", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId: "d5b486",
-        runId: "pre-fix",
-        hypothesisId: "H0",
-        location: "frontend/app/components/Header.tsx:useEffect",
-        message: "Header mounted (client log relay check)",
-        data: { hasAuthSession: hasAuthSession() },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-
     fetchHeaderData();
     checkAuthState();
   }, []);

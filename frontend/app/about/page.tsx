@@ -5,7 +5,7 @@ import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { publicFetch } from "../../lib/api";
-import { HERO_IMAGES, TEAM_IMAGES } from "../../config/images";
+import { HERO_IMAGES } from "../../config/images";
 
 // Types for dynamic content
 interface Leader {
@@ -50,17 +50,16 @@ const defaultContent: AboutContent = {
   visionDesc: { EN: "To become the leading English education center in Vietnam, nurturing confident global citizens.", VI: "Trở thành trung tâm giáo dục tiếng Anh hàng đầu Việt Nam, nuôi dưỡng công dân toàn cầu tự tin." },
 };
 
-const defaultLeaders: Leader[] = [
-  { id: "1", name: "Dr. Nguyen Van A", role: "Founder & CEO", roleVi: "Nhà sáng lập & CEO", image: TEAM_IMAGES["founder"] },
-  { id: "2", name: "Ms. Tran Thi B", role: "Academic Director", roleVi: "Giám đốc học thuật", image: TEAM_IMAGES["academic-director"] },
-  { id: "3", name: "Mr. Le Van C", role: "Operations Director", roleVi: "Giám đốc vận hành", image: TEAM_IMAGES["operations-director"] },
-];
+// Real leadership only — populated from /api/leadership-members/public. No fabricated execs;
+// the section hides when there is no real data to show.
+const defaultLeaders: Leader[] = [];
 
+// Quality-led, boutique-honest tiles (no fabricated scale). CMS-overridable.
 const defaultStats: Stats = {
-  students: "10,000+",
-  teachers: "50+",
-  centers: "5",
-  satisfaction: "98%"
+  students: "≤12",
+  teachers: "100%",
+  centers: "Cambridge",
+  satisfaction: "2.5+"
 };
 
 export default function AboutPage() {
@@ -213,26 +212,27 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div className="p-6 bg-white rounded-2xl shadow-md">
-              <p className="text-4xl font-bold text-blue-600 mb-2">{stats.students}</p>
-              <p className="text-gray-600">{language === "EN" ? "Students" : "Học viên"}</p>
+              <p className="text-3xl sm:text-4xl font-bold text-blue-600 mb-2">{stats.students}</p>
+              <p className="text-gray-600">{language === "EN" ? "Students per class" : "Học viên mỗi lớp"}</p>
             </div>
             <div className="p-6 bg-white rounded-2xl shadow-md">
-              <p className="text-4xl font-bold text-blue-600 mb-2">{stats.teachers}</p>
-              <p className="text-gray-600">{language === "EN" ? "Native Teachers" : "Giáo viên bản ngữ"}</p>
+              <p className="text-3xl sm:text-4xl font-bold text-blue-600 mb-2">{stats.teachers}</p>
+              <p className="text-gray-600">{language === "EN" ? "Qualified teachers" : "Giáo viên đạt chuẩn"}</p>
             </div>
             <div className="p-6 bg-white rounded-2xl shadow-md">
-              <p className="text-4xl font-bold text-blue-600 mb-2">{stats.centers}</p>
-              <p className="text-gray-600">{language === "EN" ? "Centers" : "Cơ sở"}</p>
+              <p className="text-3xl sm:text-4xl font-bold text-blue-600 mb-2">{stats.centers}</p>
+              <p className="text-gray-600">{language === "EN" ? "Aligned curriculum" : "Chương trình chuẩn"}</p>
             </div>
             <div className="p-6 bg-white rounded-2xl shadow-md">
-              <p className="text-4xl font-bold text-blue-600 mb-2">{stats.satisfaction}</p>
-              <p className="text-gray-600">{language === "EN" ? "Satisfaction" : "Hài lòng"}</p>
+              <p className="text-3xl sm:text-4xl font-bold text-blue-600 mb-2">{stats.satisfaction}</p>
+              <p className="text-gray-600">{language === "EN" ? "Welcoming ages from" : "Đón nhận từ độ tuổi"}</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Leadership Section - Dynamic */}
+      {/* Leadership Section — shown only when real leadership data exists */}
+      {(isLoading || leaders.length > 0) && (
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
@@ -272,6 +272,7 @@ export default function AboutPage() {
           )}
         </div>
       </section>
+      )}
 
       {/* CTA Section */}
       <section className="py-16 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
