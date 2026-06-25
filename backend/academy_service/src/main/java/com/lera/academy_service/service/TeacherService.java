@@ -104,6 +104,13 @@ public class TeacherService {
             if (details.getContractType() != null) existing.setContractType(details.getContractType());
             if (details.getYearsOfExperience() != null) existing.setYearsOfExperience(details.getYearsOfExperience());
             if (details.getHourlyRate() != null) existing.setHourlyRate(details.getHourlyRate());
+            if (details.getNationality() != null) existing.setNationality(details.getNationality());
+            // Public "Meet our Teachers" profile fields (editable from the dashboard).
+            if (details.getDisplayName() != null) existing.setDisplayName(details.getDisplayName());
+            if (details.getDisplayNameVi() != null) existing.setDisplayNameVi(details.getDisplayNameVi());
+            if (details.getPhotoUrl() != null) existing.setPhotoUrl(details.getPhotoUrl());
+            if (details.getIsFeatured() != null) existing.setIsFeatured(details.getIsFeatured());
+            if (details.getIsNativeSpeaker() != null) existing.setIsNativeSpeaker(details.getIsNativeSpeaker());
             existing.setUpdatedAt(LocalDateTime.now());
             return teacherRepository.save(existing);
         });
