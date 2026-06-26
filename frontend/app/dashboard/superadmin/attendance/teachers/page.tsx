@@ -279,10 +279,10 @@ export default function TeacherAttendancePage() {
                       No attendance records found for {selectedDate}
                       <div className="mt-4">
                         <button
-                          onClick={() => alert("Would open bulk attendance marking modal")}
+                          onClick={() => fetchAttendance()}
                           className="text-blue-600 hover:text-blue-800 font-medium"
                         >
-                          + Add Attendance Records
+                          ↻ Refresh
                         </button>
                       </div>
                     </td>
@@ -314,35 +314,28 @@ export default function TeacherAttendancePage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {record.status === "NOT_MARKED" ? (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => markAttendance(record.teacherId, "PRESENT")}
-                              className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200"
-                            >
-                              Present
-                            </button>
-                            <button
-                              onClick={() => markAttendance(record.teacherId, "ABSENT")}
-                              className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200"
-                            >
-                              Absent
-                            </button>
-                            <button
-                              onClick={() => markAttendance(record.teacherId, "LATE")}
-                              className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs hover:bg-yellow-200"
-                            >
-                              Late
-                            </button>
-                          </div>
-                        ) : (
+                        {/* Always allow setting/changing status — the active one is highlighted.
+                            "Edit" is just re-marking; markAttendance upserts for teacher+date. */}
+                        <div className="flex gap-2">
                           <button
-                            onClick={() => alert(`Edit attendance for ${record.teacherName}`)}
-                            className="text-blue-600 hover:text-blue-800"
+                            onClick={() => markAttendance(record.teacherId, "PRESENT")}
+                            className={`px-2 py-1 rounded text-xs ${record.status === "PRESENT" ? "bg-green-600 text-white" : "bg-green-100 text-green-700 hover:bg-green-200"}`}
                           >
-                            Edit
+                            Present
                           </button>
-                        )}
+                          <button
+                            onClick={() => markAttendance(record.teacherId, "ABSENT")}
+                            className={`px-2 py-1 rounded text-xs ${record.status === "ABSENT" ? "bg-red-600 text-white" : "bg-red-100 text-red-700 hover:bg-red-200"}`}
+                          >
+                            Absent
+                          </button>
+                          <button
+                            onClick={() => markAttendance(record.teacherId, "LATE")}
+                            className={`px-2 py-1 rounded text-xs ${record.status === "LATE" ? "bg-yellow-500 text-white" : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"}`}
+                          >
+                            Late
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
