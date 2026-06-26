@@ -39,7 +39,10 @@ export default function FollowupsPage() {
         leadName: f.lead?.parentName || f.leadName || "Unknown Lead",
         type: f.actionType || f.action_type || f.type || "Call",
         date: f.nextFollowupDate?.split("T")[0] || f.next_followup_date || new Date().toISOString().split("T")[0],
-        time: "10:00",
+        // Real scheduled time from the timestamp (blank when the follow-up is date-only).
+        time: f.nextFollowupDate && String(f.nextFollowupDate).includes("T")
+          ? new Date(f.nextFollowupDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : "",
         status: f.outcome === "INTERESTED" ? "Scheduled" : f.outcome === "CALLBACK" ? "Pending" : f.outcome === "SCHEDULED_DEMO" ? "Scheduled" : f.outcome ? "Completed" : "Pending",
         notes: f.notes || ""
       })));

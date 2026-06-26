@@ -86,7 +86,9 @@ export default function LeadsPage() {
           phone: l.parentPhone || l.phone || "",
           email: l.parentEmail || l.email || "",
           source: l.utmSource || l.source || "Website",
-          assignedTo: "Sales Team",
+          // Real assignment state — no fabricated owner. Shows a name if the API provides one,
+          // else just whether the lead is assigned.
+          assignedTo: l.assignedToName || l.assignedUserName || (l.assignedTo || l.assigned_to ? "Assigned" : "Unassigned"),
           centerName: centersArr.find((c: Center) => c.id === l.centerId)?.name || "N/A",
           createdAt: l.createdAt?.split("T")[0] || "",
         }))

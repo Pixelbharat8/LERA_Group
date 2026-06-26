@@ -123,7 +123,14 @@ export default function CRMAnalyticsPage() {
         convertedLeads: converted,
         lostLeads: lost,
         conversionRate: leads.length > 0 ? Math.round((converted / leads.length) * 100) : 0,
-        avgTimeToConvert: 7, // Placeholder
+        // Real avg days from lead creation to conversion (0 when no converted leads with timestamps).
+        avgTimeToConvert: (() => {
+          const cv = leads.filter((l: any) => l.status === "CONVERTED" && l.createdAt && l.updatedAt);
+          if (!cv.length) return 0;
+          const totalDays = cv.reduce((s: number, l: any) =>
+            s + Math.max(0, (new Date(l.updatedAt).getTime() - new Date(l.createdAt).getTime()) / 864e5), 0);
+          return Math.round(totalDays / cv.length);
+        })(),
         leadsBySource: Object.entries(sourceMap).map(([source, count]) => ({ source, count })),
         leadsByCenter: Object.entries(centerMap).map(([center, count]) => ({ center, count })),
         monthlyTrend: Object.entries(monthlyData).map(([month, data]) => ({ month, ...data })),
