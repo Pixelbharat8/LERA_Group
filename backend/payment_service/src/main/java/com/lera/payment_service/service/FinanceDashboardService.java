@@ -220,19 +220,75 @@ public class FinanceDashboardService {
     }
 
     /**
-     * Operating expenses for a period. NOTE: payment_service has no expense/cost data source
-     * (no Expense entity or table — only incoming student payments). Rather than fabricate a
-     * number, this honestly returns 0 until an expense-tracking module is added. The CEO finance
-     * page renders this as the real "no expenses recorded yet" state instead of erroring.
+     * Operating expenses for a period — sourced from REAL teacher payroll (the {@code payroll}
+     * table in the shared DB). Teacher salaries are the academy's principal operating cost, so
+     * the finance P&amp;L uses them as the expense side (revenue − teacher payroll = profit/loss).
+     * Returns the period total plus a 12-month breakdown so the page can chart revenue vs expenses.
+     * Bucketed by the payroll record's {@code created_at} — the same basis revenue uses (payment
+     * created_at) so the two sides of the P&amp;L line up — and scoped to a centre when given.
      */
     public Map<String, Object> getExpenseSummary(String period, Integer year, UUID centerId) {
         LocalDate now = LocalDate.now();
         int y = (year != null) ? year : now.getYear();
+        String p = (period == null) ? "year" : period.toLowerCase();
+
+        LocalDate start;
+        LocalDate end;
+        switch (p) {
+            case "month": {
+                int m = (y == now.getYear()) ? now.getMonthValue() : 12;
+                start = LocalDate.of(y, m, 1); end = start.plusMonths(1); break;
+            }
+            case "quarter": {
+                int q = (y == now.getYear()) ? ((now.getMonthValue() - 1) / 3) * 3 + 1 : 10;
+                start = LocalDate.of(y, q, 1); end = start.plusMonths(3); break;
+            }
+            default: { start = LocalDate.of(y, 1, 1); end = start.plusYears(1); p = "year"; }
+        }
+
+        String centerClause = centerId != null ? " AND center_id = ? " : "";
+        // Period total
+        String totalSql = "SELECT COALESCE(SUM(total_amount),0) FROM payroll "
+                + "WHERE created_at::date >= ? "
+                + "AND created_at::date < ? " + centerClause;
+        Object[] totalArgs = centerId != null
+                ? new Object[]{ java.sql.Date.valueOf(start), java.sql.Date.valueOf(end), centerId }
+                : new Object[]{ java.sql.Date.valueOf(start), java.sql.Date.valueOf(end) };
+        BigDecimal total = jdbcTemplate.queryForObject(totalSql, BigDecimal.class, totalArgs);
+
+        // 12-month breakdown for the chart (whole year y, regardless of selected period)
+        LocalDate yStart = LocalDate.of(y, 1, 1);
+        String monthlySql = "SELECT to_char(created_at::date,'YYYY-MM') ym, "
+                + "COALESCE(SUM(total_amount),0) exp FROM payroll "
+                + "WHERE created_at::date >= ? "
+                + "AND created_at::date < ? " + centerClause
+                + " GROUP BY 1";
+        Object[] mArgs = centerId != null
+                ? new Object[]{ java.sql.Date.valueOf(yStart), java.sql.Date.valueOf(yStart.plusYears(1)), centerId }
+                : new Object[]{ java.sql.Date.valueOf(yStart), java.sql.Date.valueOf(yStart.plusYears(1)) };
+        Map<String, BigDecimal> byYm = new HashMap<>();
+        for (Map<String, Object> row : jdbcTemplate.queryForList(monthlySql, mArgs)) {
+            Object ym = row.get("ym");
+            if (ym != null) byYm.put(ym.toString(), new BigDecimal(row.get("exp").toString()));
+        }
+        DateTimeFormatter ymFmt = DateTimeFormatter.ofPattern("yyyy-MM");
+        DateTimeFormatter labelFmt = DateTimeFormatter.ofPattern("MMM");
+        List<Map<String, Object>> byMonth = new ArrayList<>();
+        for (int i = 0; i < 12; i++) {
+            LocalDate m = yStart.plusMonths(i);
+            Map<String, Object> e = new LinkedHashMap<>();
+            e.put("month", m.format(labelFmt));
+            e.put("expenses", byYm.getOrDefault(m.format(ymFmt), BigDecimal.ZERO));
+            byMonth.add(e);
+        }
+
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("total", BigDecimal.ZERO);
-        result.put("period", period == null ? "year" : period.toLowerCase());
+        result.put("total", total != null ? total : BigDecimal.ZERO);
+        result.put("byMonth", byMonth);
+        result.put("period", p);
         result.put("year", y);
-        result.put("tracked", false); // explicit: expense tracking not yet implemented
+        result.put("tracked", true);
+        result.put("source", "teacher_payroll");
         return result;
     }
 
