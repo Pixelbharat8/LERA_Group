@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "../context/LanguageContext";
 import { useWebsiteSettings } from "@/hooks/useWebsiteSettings";
 
 export default function FloatingCTA() {
   const { t, language } = useLanguage();
   const { getSetting } = useWebsiteSettings();
+  const pathname = usePathname() || "";
   const [isVisible, setIsVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   
@@ -33,6 +35,8 @@ export default function FloatingCTA() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Public marketing pages only — never on the internal dashboard or auth screens.
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/auth")) return null;
   if (!isVisible || ctaEnabled === 'no') return null;
 
   return (

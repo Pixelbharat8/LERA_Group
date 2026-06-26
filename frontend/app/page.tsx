@@ -4,7 +4,6 @@ import { useLanguage } from "./context/LanguageContext";
 import { useWebsiteSettings } from "@/hooks/useWebsiteSettings";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
-import FloatingCTA from "./components/FloatingCTA";
 import AnimatedCounter from "./components/AnimatedCounter";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -961,7 +960,6 @@ export default function Home() {
       </section>
 
       <Footer />
-      <FloatingCTA />
     </div>
   );
 }

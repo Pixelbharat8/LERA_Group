@@ -4,7 +4,7 @@ import { LanguageProvider } from './context/LanguageContext'
 import { WebsiteSettingsProvider } from '@/hooks/useWebsiteSettings'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastContainer } from '@/components/Toast'
-import FloatingContact from './components/FloatingContact'
+import FloatingCTA from './components/FloatingCTA'
 
 export const metadata: Metadata = {
   title: {
@@ -122,9 +122,10 @@ export default function RootLayout({
           <WebsiteSettingsProvider>
             <LanguageProvider>
               {children}
+              {/* Single global quick-contact / promo widget (public pages only; hides on dashboard) */}
+              <FloatingCTA />
             </LanguageProvider>
           </WebsiteSettingsProvider>
-          <FloatingContact />
           <ToastContainer />
         </ErrorBoundary>
       </body>
