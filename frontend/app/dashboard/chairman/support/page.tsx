@@ -66,75 +66,11 @@ export default function ChairmanSupportPage() {
         })));
       } else {
         // Demo FAQs
-        setFaqs([
-          {
-            id: "1",
-            question: "How do I add a new center location?",
-            answer: "Navigate to Settings > Centers > Add New Center. Fill in the required details including address, contact information, and operating hours. After saving, you can assign staff and configure resources for the new center.",
-            category: "Administration",
-          },
-          {
-            id: "2",
-            question: "How can I generate financial reports?",
-            answer: "Go to Reports Center and select the type of financial report you need. You can customize the date range, centers to include, and export format. Reports can be scheduled for automatic generation and email delivery.",
-            category: "Finance",
-          },
-          {
-            id: "3",
-            question: "How do I manage user permissions?",
-            answer: "Access Settings > Roles & Permissions to create custom roles or modify existing ones. You can assign specific permissions for each module and action. Changes take effect immediately for all users with that role.",
-            category: "Security",
-          },
-          {
-            id: "4",
-            question: "How can I view analytics across all centers?",
-            answer: "The Analytics dashboard provides a unified view of all centers. Use the filter options to compare performance between centers, view trends over time, and identify areas for improvement.",
-            category: "Analytics",
-          },
-          {
-            id: "5",
-            question: "How do I configure marketing campaigns?",
-            answer: "Navigate to Marketing > Ads & Campaigns to create and manage campaigns. You can set budgets, target audiences, and track ROI. The system integrates with major advertising platforms for unified management.",
-            category: "Marketing",
-          },
-        ]);
+        setFaqs([]); // no demo fallback
       }
 
       // Demo tickets
-      setTickets([
-        {
-          id: "1",
-          subject: "Dashboard loading slowly",
-          description: "The main dashboard takes more than 5 seconds to load",
-          status: "in_progress",
-          priority: "high",
-          category: "Performance",
-          createdAt: "2026-01-07T10:30:00",
-          updatedAt: "2026-01-08T09:15:00",
-          assignedTo: "Tech Support Team",
-        },
-        {
-          id: "2",
-          subject: "Need help with report customization",
-          description: "I want to create a custom report that shows enrollment by age group",
-          status: "open",
-          priority: "medium",
-          category: "Feature Request",
-          createdAt: "2026-01-06T14:20:00",
-          updatedAt: "2026-01-06T14:20:00",
-        },
-        {
-          id: "3",
-          subject: "Payment integration issue",
-          description: "Bank transfer payments not reflecting in the system",
-          status: "resolved",
-          priority: "urgent",
-          category: "Technical",
-          createdAt: "2026-01-05T08:45:00",
-          updatedAt: "2026-01-06T11:30:00",
-          assignedTo: "Finance Team",
-        },
-      ]);
+      setTickets([]); // No support-ticket backend yet; show empty state, not demo tickets.
     } catch (error) {
       console.error("Error fetching support data:", error);
     } finally {
