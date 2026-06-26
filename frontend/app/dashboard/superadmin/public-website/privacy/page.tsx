@@ -54,12 +54,12 @@ export default function PrivacyContentPage() {
         
         if (data.privacy_sections_en) {
           try {
-            setSectionsEN(JSON.parse(data.privacy_sections_en));
+            { const _v = JSON.parse(data.privacy_sections_en); if (Array.isArray(_v)) setSectionsEN(_v); }
           } catch (e) { console.log("Error parsing EN sections"); }
         }
         if (data.privacy_sections_vi) {
           try {
-            setSectionsVI(JSON.parse(data.privacy_sections_vi));
+            { const _v = JSON.parse(data.privacy_sections_vi); if (Array.isArray(_v)) setSectionsVI(_v); }
           } catch (e) { console.log("Error parsing VI sections"); }
         }
       }

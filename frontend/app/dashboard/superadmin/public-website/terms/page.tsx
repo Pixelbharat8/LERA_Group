@@ -54,12 +54,12 @@ export default function TermsContentPage() {
         
         if (data.terms_sections_en) {
           try {
-            setSectionsEN(JSON.parse(data.terms_sections_en));
+            { const _v = JSON.parse(data.terms_sections_en); if (Array.isArray(_v)) setSectionsEN(_v); }
           } catch (e) { console.log("Error parsing EN sections"); }
         }
         if (data.terms_sections_vi) {
           try {
-            setSectionsVI(JSON.parse(data.terms_sections_vi));
+            { const _v = JSON.parse(data.terms_sections_vi); if (Array.isArray(_v)) setSectionsVI(_v); }
           } catch (e) { console.log("Error parsing VI sections"); }
         }
       }
