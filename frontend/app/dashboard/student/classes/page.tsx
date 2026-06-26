@@ -372,7 +372,7 @@ export default function StudentClassesPage() {
                           Due: {getDaysUntil(assignment.dueDate)}
                         </span>
                         <Link
-                          href={`/dashboard/student/assignments/${assignment.id}`}
+                          href={`/dashboard/student/assignments`}
                           className="text-xs text-blue-600 hover:underline"
                         >
                           View →

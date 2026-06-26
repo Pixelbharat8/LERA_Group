@@ -498,8 +498,14 @@ export default function BulkImportPage() {
 
           {result.success > 0 && (
             <div className="mt-4 flex gap-3">
-              <Link 
-                href={`/dashboard/superadmin/${selectedType}`}
+              <Link
+                href={({
+                  students: "/dashboard/superadmin/students",
+                  teachers: "/dashboard/superadmin/teachers",
+                  classes: "/dashboard/superadmin/classes",
+                  payments: "/dashboard/payments",
+                  leads: "/dashboard/crm/leads",
+                } as Record<ImportType, string>)[selectedType]}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 View {getTypeLabel(selectedType)} →

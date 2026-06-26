@@ -596,7 +596,7 @@ export default function UserProfilePage() {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Attendance Records</h2>
               <Link 
-                href={`/dashboard/chairman/attendance?userId=${userId}`}
+                href={`/dashboard/attendance?userId=${userId}`}
                 className="text-blue-600 hover:underline"
               >
                 View Full Attendance →
@@ -633,7 +633,7 @@ export default function UserProfilePage() {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Payment History</h2>
               <Link 
-                href={`/dashboard/chairman/payments?userId=${userId}`}
+                href={`/dashboard/payments?userId=${userId}`}
                 className="text-blue-600 hover:underline"
               >
                 View All Payments →
@@ -680,7 +680,7 @@ export default function UserProfilePage() {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Leave History</h2>
               <Link 
-                href={`/dashboard/chairman/leaves?userId=${userId}`}
+                href={`/dashboard/attendance/leave-approvals?userId=${userId}`}
                 className="text-blue-600 hover:underline"
               >
                 View All Leaves →
@@ -723,7 +723,7 @@ export default function UserProfilePage() {
                 {assignedClasses.map((cls: any) => (
                   <Link 
                     key={cls.id}
-                    href={`/dashboard/chairman/classes/${cls.id}`}
+                    href={`/dashboard/academy/classes/${cls.id}`}
                     className="block p-4 border rounded-lg hover:border-blue-500 hover:bg-blue-50"
                   >
                     <h3 className="font-semibold">{cls.className || cls.name}</h3>

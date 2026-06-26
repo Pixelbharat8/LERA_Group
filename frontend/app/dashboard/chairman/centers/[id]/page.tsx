@@ -646,7 +646,7 @@ export default function CenterProfilePage() {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Classes ({classes.length})</h2>
               <Link 
-                href={`/dashboard/chairman/classes?centerId=${centerId}`}
+                href={`/dashboard/academy/classes?centerId=${centerId}`}
                 className="text-blue-600 hover:underline"
               >
                 Manage Classes →
@@ -659,7 +659,7 @@ export default function CenterProfilePage() {
                 {classes.map((cls) => (
                   <Link 
                     key={cls.id}
-                    href={`/dashboard/chairman/classes/${cls.id}`}
+                    href={`/dashboard/academy/classes/${cls.id}`}
                     className="block p-4 border rounded-lg hover:border-orange-500 hover:bg-orange-50"
                   >
                     <h3 className="font-semibold">{cls.className || cls.name}</h3>
@@ -707,7 +707,7 @@ export default function CenterProfilePage() {
                 {courses.map((course) => (
                   <Link 
                     key={course.id}
-                    href={`/dashboard/chairman/courses/${course.id}`}
+                    href={`/dashboard/chairman/courses`}
                     className="block p-4 border rounded-lg hover:border-teal-500 hover:bg-teal-50"
                   >
                     <h3 className="font-semibold">{course.courseName || course.name}</h3>
