@@ -168,11 +168,14 @@ export async function apiFetch(
     }
     const msg = (data && (data.message || data.error)) || res.statusText;
     const finalMsg = typeof msg === "string" ? msg : "Request failed";
-    // Surface non-401 errors to the global toast container. Callers can still
-    // catch the throw for their own UX; this just guarantees something is shown.
-    // Anonymous (public-page) and silent (background/optional) calls stay quiet —
-    // they degrade to defaults without nagging the user with a toast.
-    if (typeof window !== "undefined" && !opts.anonymous && !opts.silent) {
+    // Surface real errors to the global toast container. Callers can still catch the
+    // throw for their own UX; this just guarantees something is shown.
+    // Stay quiet for:
+    //  • anonymous (public-page) and silent (background/optional) calls — degrade to defaults;
+    //  • 404 Not Found — on a background data load this means "no data for this user / optional
+    //    resource" (e.g. a parent with no record yet), which must not nag with a red toast.
+    // 5xx and other client errors still toast so genuine failures stay visible.
+    if (typeof window !== "undefined" && !opts.anonymous && !opts.silent && res.status !== 404) {
       window.dispatchEvent(new CustomEvent("lera:error", { detail: { message: finalMsg } }));
     }
     throw new Error(finalMsg);
