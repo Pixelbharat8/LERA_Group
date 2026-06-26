@@ -26,6 +26,14 @@ public class AiTutorController {
     private final AiTutorSessionRepository sessionRepository;
     private final AcademyStudentAccessClient academyStudentAccess;
 
+    /** Org-wide list of all AI-tutor sessions (admin overview). Newest first. */
+    @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER')")
+    public ResponseEntity<List<AiTutorSession>> listAll() {
+        return ResponseEntity.ok(sessionRepository.findAll(
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")));
+    }
+
     @PostMapping("/ask")
     public ResponseEntity<?> askAiTutor(
             @Valid @RequestBody Map<String, Object> request,

@@ -43,6 +43,12 @@ public class UserRoleController {
         }
     }
 
+    /** All user→role assignments (admin RBAC overview). */
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<UserRole>>> getAllUserRoles() {
+        return ResponseEntity.ok(ApiResponse.success(userRoleService.getAllUserRoles()));
+    }
+
     @GetMapping("/user/{userId}")
     public ResponseEntity<ApiResponse<List<UserRole>>> getUserRoles(@PathVariable UUID userId) {
         List<UserRole> roles = userRoleService.getUserRoles(userId);

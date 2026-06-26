@@ -25,6 +25,14 @@ public class MeetingController {
 
     private final ParentTeacherMeetingRepository meetingRepository;
 
+    /** Org-wide list of all parent–teacher meetings (admin overview). Newest first. */
+    @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER')")
+    public ResponseEntity<List<ParentTeacherMeeting>> listAll() {
+        return ResponseEntity.ok(meetingRepository.findAll(
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")));
+    }
+
     @PostMapping
     public ResponseEntity<?> scheduleMeeting(
             @Valid @RequestBody Map<String, Object> request,

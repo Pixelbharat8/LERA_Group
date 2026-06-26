@@ -45,6 +45,14 @@ public class PollController {
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatAuthorizationService chatAuth;
 
+    /** Org-wide list of all polls (admin overview). Newest first. */
+    @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER')")
+    public ResponseEntity<List<ChatPoll>> listAll() {
+        return ResponseEntity.ok(pollRepository.findAll(
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")));
+    }
+
     private UUID requireSelf(AuthUser authUser) {
         return ConnectSecurity.requireUserId(authUser);
     }

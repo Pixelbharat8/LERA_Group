@@ -26,6 +26,13 @@ public class ContentModerationController {
     private final ContentModerationLogRepository logRepository;
     private final ContentModerationRuleRepository ruleRepository;
 
+    /** Org-wide moderation log (admin overview). Newest first. Inherits class-level staff auth. */
+    @GetMapping
+    public ResponseEntity<List<ContentModerationLog>> listAll() {
+        return ResponseEntity.ok(logRepository.findAll(
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")));
+    }
+
     // Built-in profanity patterns (can be extended via rules)
     private static final List<String> DEFAULT_PROFANITY = List.of(
         "badword1", "badword2" // Placeholder - would have actual list

@@ -150,6 +150,92 @@ public class FinanceDashboardService {
         return result;
     }
 
+    /**
+     * Real completed-revenue total for a named period ({@code month|quarter|year}) anchored to
+     * {@code year}, plus genuine period-over-period growth % vs the immediately preceding window.
+     * Org-wide when {@code centerId} is null, otherwise scoped to that centre. Backs
+     * {@code GET /api/finance/revenue} (the CEO finance page reads {@code total} and {@code growth}).
+     */
+    public Map<String, Object> getRevenueSummary(String period, Integer year, UUID centerId) {
+        LocalDate now = LocalDate.now();
+        int y = (year != null) ? year : now.getYear();
+        String p = (period == null) ? "year" : period.toLowerCase();
+
+        LocalDate start;
+        LocalDate end;
+        switch (p) {
+            case "month": {
+                // Latest month within the chosen year (current month if that year is ongoing, else December).
+                int m = (y == now.getYear()) ? now.getMonthValue() : 12;
+                start = LocalDate.of(y, m, 1);
+                end = start.plusMonths(1);
+                break;
+            }
+            case "quarter": {
+                int qStartMonth = (y == now.getYear()) ? ((now.getMonthValue() - 1) / 3) * 3 + 1 : 10;
+                start = LocalDate.of(y, qStartMonth, 1);
+                end = start.plusMonths(3);
+                break;
+            }
+            case "year":
+            default: {
+                start = LocalDate.of(y, 1, 1);
+                end = start.plusYears(1);
+                p = "year";
+            }
+        }
+        // Previous window of equal length, immediately before `start`.
+        long days = java.time.temporal.ChronoUnit.DAYS.between(start, end);
+        LocalDate prevStart = start.minusDays(days);
+
+        BigDecimal current = sumCompletedBetween(start, end, centerId);
+        BigDecimal previous = sumCompletedBetween(prevStart, start, centerId);
+
+        double growth;
+        if (previous.signum() > 0) {
+            growth = current.subtract(previous)
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(previous, 1, java.math.RoundingMode.HALF_UP)
+                    .doubleValue();
+        } else {
+            growth = current.signum() > 0 ? 100.0 : 0.0;
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("total", current);
+        result.put("growth", growth);
+        result.put("previous", previous);
+        result.put("period", p);
+        result.put("year", y);
+        result.put("startDate", start.toString());
+        result.put("endDate", end.minusDays(1).toString());
+        return result;
+    }
+
+    private BigDecimal sumCompletedBetween(LocalDate start, LocalDate end, UUID centerId) {
+        BigDecimal v = centerId != null
+                ? paymentRepository.sumCompletedByCenterBetween(centerId, start.atStartOfDay(), end.atStartOfDay())
+                : paymentRepository.sumCompletedBetween(start.atStartOfDay(), end.atStartOfDay());
+        return v != null ? v : BigDecimal.ZERO;
+    }
+
+    /**
+     * Operating expenses for a period. NOTE: payment_service has no expense/cost data source
+     * (no Expense entity or table — only incoming student payments). Rather than fabricate a
+     * number, this honestly returns 0 until an expense-tracking module is added. The CEO finance
+     * page renders this as the real "no expenses recorded yet" state instead of erroring.
+     */
+    public Map<String, Object> getExpenseSummary(String period, Integer year, UUID centerId) {
+        LocalDate now = LocalDate.now();
+        int y = (year != null) ? year : now.getYear();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("total", BigDecimal.ZERO);
+        result.put("period", period == null ? "year" : period.toLowerCase());
+        result.put("year", y);
+        result.put("tracked", false); // explicit: expense tracking not yet implemented
+        return result;
+    }
+
     public Map<String, Object> getRevenueByPeriod(LocalDate startDate, LocalDate endDate) {
         Map<String, Object> report = new HashMap<>();
         report.put("startDate", startDate);

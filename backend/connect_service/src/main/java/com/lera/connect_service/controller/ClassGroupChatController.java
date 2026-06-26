@@ -27,6 +27,14 @@ public class ClassGroupChatController {
     private final ClassGroupChatRepository classGroupChatRepository;
     private final ChatGroupRepository chatGroupRepository;
 
+    /** Org-wide list of all class-group chats (admin overview). Newest first. */
+    @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER')")
+    public ResponseEntity<List<ClassGroupChat>> listAll() {
+        return ResponseEntity.ok(classGroupChatRepository.findAll(
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")));
+    }
+
     private ClassGroupChat requireClassGroup(UUID id) {
         return classGroupChatRepository.findById(id)
                 .filter(c -> Boolean.TRUE.equals(c.getIsActive()))

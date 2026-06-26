@@ -32,6 +32,36 @@ public class FinanceDashboardController {
         return ResponseEntity.ok(financeDashboardService.getDashboardSummary(effCenter));
     }
 
+    /** Period revenue total + real period-over-period growth %. CEO finance page. */
+    @GetMapping("/revenue")
+    public ResponseEntity<Map<String, Object>> getRevenue(
+            @AuthenticationPrincipal AuthUser authUser,
+            @RequestParam(required = false, defaultValue = "year") String period,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) UUID centerId) {
+        if (authUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        paymentAccess.assertPrivilegedStaff(authUser);
+        UUID effCenter = paymentAccess.effectiveCenterId(authUser, centerId);
+        return ResponseEntity.ok(financeDashboardService.getRevenueSummary(period, year, effCenter));
+    }
+
+    /** Period expenses total. Honestly 0 until an expense-tracking module exists (no fabrication). */
+    @GetMapping("/expenses")
+    public ResponseEntity<Map<String, Object>> getExpenses(
+            @AuthenticationPrincipal AuthUser authUser,
+            @RequestParam(required = false, defaultValue = "year") String period,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) UUID centerId) {
+        if (authUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        paymentAccess.assertPrivilegedStaff(authUser);
+        UUID effCenter = paymentAccess.effectiveCenterId(authUser, centerId);
+        return ResponseEntity.ok(financeDashboardService.getExpenseSummary(period, year, effCenter));
+    }
+
     @GetMapping("/revenue/by-center")
     public ResponseEntity<?> getRevenueByCenter(@AuthenticationPrincipal AuthUser authUser) {
         if (authUser == null) {

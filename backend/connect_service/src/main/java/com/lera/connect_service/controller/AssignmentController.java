@@ -31,6 +31,14 @@ public class AssignmentController {
     private final ChatAuthorizationService chatAuth;
     private final AcademyStudentAccessClient academyStudentAccess;
 
+    /** Org-wide list of all shared assignments (admin overview). Newest first. */
+    @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER')")
+    public ResponseEntity<List<SharedAssignment>> listAll() {
+        return ResponseEntity.ok(assignmentRepository.findAll(
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")));
+    }
+
     @PostMapping
     public ResponseEntity<?> shareAssignment(
             @Valid @RequestBody Map<String, Object> request,

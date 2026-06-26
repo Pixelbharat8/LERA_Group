@@ -20,6 +20,11 @@ public class UserRoleService {
     private final ActivityLogService activityLogService;
 
     @Transactional(readOnly = true)
+    public List<UserRole> getAllUserRoles() {
+        return userRoleRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
     public List<UserRole> getUserRoles(UUID userId) {
         log.info("Fetching roles for user: {}", userId);
         return userRoleRepository.findByUserId(userId);
