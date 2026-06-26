@@ -210,7 +210,6 @@ export default function CustomFieldsPage() {
 
     try {
       await apiFetch(`/api/custom-fields/${field.id}`, { method: "DELETE" }).catch(() => {});
-      await apiFetch(`/api/system-settings/key/custom_fields_${activeEntity}_${field.fieldName}`, { method: "DELETE" }).catch(() => {});
       setFields(prev => prev.filter(f => f.id !== field.id));
     } catch (error) {
       console.error("Error deleting field:", error);

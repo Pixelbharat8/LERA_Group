@@ -182,7 +182,7 @@ export default function BoardManagementPage() {
         alert("Board member updated successfully!");
       } else {
         const tempPassword = generateTempPassword();
-        await apiFetch("/api/users", {
+        await apiFetch("/api/auth/register", {
           method: "POST",
           body: JSON.stringify({
             ...payload,

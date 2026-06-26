@@ -256,7 +256,7 @@ export default function DiscountsPage() {
     const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     try {
       await apiFetch(`/api/discounts/${discountId}/status`, {
-        method: "PATCH",
+        method: "PUT",
         body: JSON.stringify({ status: newStatus })
       });
       await fetchData();

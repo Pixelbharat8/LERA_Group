@@ -64,7 +64,7 @@ export default function StaffTasksPage() {
   const handleStatusChange = async (taskId: string, newStatus: string) => {
     try {
       await apiFetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
+        method: "PUT",
         body: JSON.stringify({ status: newStatus })
       }).catch(() => {});
       

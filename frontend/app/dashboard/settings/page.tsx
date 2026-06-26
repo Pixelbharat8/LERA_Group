@@ -129,7 +129,7 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       await apiFetch("/api/users/me/change-password", {
-        method: "POST",
+        method: "PUT",
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword,
