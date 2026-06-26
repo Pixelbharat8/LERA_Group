@@ -22,7 +22,10 @@ export default function ReportCardPage() {
 
   useEffect(() => {
     if (!studentId) return;
-    apiFetch(`/api/report-cards/${studentId}`)
+    // Silent: this page renders its own inline error state below, so the global
+    // toast is redundant (and a malformed/non-existent studentId in the URL would
+    // otherwise pop a 500 toast instead of the friendly inline message).
+    apiFetch(`/api/report-cards/${studentId}`, {}, { silent: true })
       .then((d) => setData(d))
       .catch((e) => setError(e?.message || "Could not load the report card"))
       .finally(() => setLoading(false));
