@@ -54,7 +54,10 @@ public class InternalApiKeyValidator {
 
     private boolean isProdProfile() {
         for (String p : environment.getActiveProfiles()) {
-            if ("prod".equalsIgnoreCase(p)) {
+            // Treat docker/staging as production-hardened too: deployment runs with
+            // SPRING_PROFILES_ACTIVE=docker, and these guards must fire there, not only
+            // under the literal "prod" profile (which is never active in deployment).
+            if ("prod".equalsIgnoreCase(p) || "docker".equalsIgnoreCase(p) || "staging".equalsIgnoreCase(p)) {
                 return true;
             }
         }

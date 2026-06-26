@@ -163,7 +163,11 @@ public class AuthController {
             String base = passwordResetFrontendBaseUrl.replaceAll("/$", "");
             String resetUrl = base + "/auth/reset-password?token=" + token;
 
-            boolean prod = java.util.Arrays.asList(environment.getActiveProfiles()).contains("prod");
+            // docker/staging are deployed environments too — never log reset links there.
+            java.util.List<String> activeProfiles = java.util.Arrays.asList(environment.getActiveProfiles());
+            boolean prod = activeProfiles.contains("prod")
+                    || activeProfiles.contains("docker")
+                    || activeProfiles.contains("staging");
             boolean emailed = passwordResetMailService.sendPasswordReset(email, resetUrl);
             if (emailed) {
                 log.info("Password reset email sent for {}", email);
