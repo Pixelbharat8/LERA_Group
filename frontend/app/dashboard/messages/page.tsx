@@ -56,7 +56,7 @@ export default function MessagesPage() {
   const fetchConversations = async () => {
     setIsLoading(true);
     try {
-      const data = await apiFetch("/api/messages/conversations");
+      const data = await apiFetch("/api/chat/conversations");
       if (Array.isArray(data) && data.length > 0) {
         setConversations(data);
       } else {
@@ -71,7 +71,7 @@ export default function MessagesPage() {
 
   const fetchMessages = async (conversationId: string) => {
     try {
-      const data = await apiFetch(`/api/messages/conversations/${conversationId}/messages`);
+      const data = await apiFetch(`/api/chat/conversations/${conversationId}/messages`);
       if (Array.isArray(data)) {
         setMessages(data);
       } else {
@@ -99,9 +99,9 @@ export default function MessagesPage() {
     setNewMessage("");
 
     try {
-      await apiFetch(`/api/messages/conversations/${selectedConversation.id}/messages`, {
+      await apiFetch(`/api/chat/messages`, {
         method: "POST",
-        body: JSON.stringify({ content: newMessage })
+        body: JSON.stringify({ conversationId: selectedConversation.id, message: newMessage })
       });
     } catch {
       // Message already added to UI optimistically
