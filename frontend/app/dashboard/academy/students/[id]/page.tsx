@@ -125,8 +125,17 @@ export default function StudentProfilePage() {
 
   const fetchAttendanceStats = async () => {
     try {
-      const data = await apiFetch(`/api/students/${studentId}/attendance-stats?period=${dateFilter}`);
-      setAttendanceStats(data.data || data);
+      // Real attendance records from attendance_service, aggregated client-side.
+      const data = await apiFetch(`/api/attendance/student/${studentId}`);
+      const records: any[] = Array.isArray(data) ? data : (data?.data || []);
+      const has = (r: any, kind: string) => new RegExp(kind, "i").test(String(r.status || ""));
+      const present = records.filter((r) => has(r, "present")).length;
+      const late = records.filter((r) => has(r, "late")).length;
+      const absent = records.filter((r) => has(r, "absent")).length;
+      const total = records.length;
+      // Count "late" as attended for the rate.
+      const attendanceRate = total ? Math.round(((present + late) / total) * 100) : 0;
+      setAttendanceStats({ totalClasses: total, present, absent, late, attendanceRate });
     } catch (error) {
       console.error("Error fetching attendance:", error);
       setAttendanceStats({ totalClasses: 0, present: 0, absent: 0, late: 0, attendanceRate: 0 });
@@ -144,8 +153,9 @@ export default function StudentProfilePage() {
 
   const fetchPayments = async () => {
     try {
-      const data = await apiFetch(`/api/students/${studentId}/payments`);
-      setPayments(data.data || data || []);
+      // Real payments from payment_service (visible to finance-capable roles; empty otherwise).
+      const data = await apiFetch(`/api/payments?studentId=${studentId}`);
+      setPayments(Array.isArray(data) ? data : (data?.data || data?.content || []));
     } catch (error) {
       console.error("Error fetching payments:", error);
     }
@@ -153,8 +163,9 @@ export default function StudentProfilePage() {
 
   const fetchFiles = async () => {
     try {
-      const data = await apiFetch(`/api/students/${studentId}/files`);
-      setFiles(data.data || data || []);
+      // Real documents from academy student-documents.
+      const data = await apiFetch(`/api/student-documents/student/${studentId}`);
+      setFiles(Array.isArray(data) ? data : (data?.data || []));
     } catch (error) {
       console.error("Error fetching files:", error);
     }

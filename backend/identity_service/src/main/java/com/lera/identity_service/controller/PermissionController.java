@@ -15,6 +15,9 @@ import org.springframework.data.domain.Page;
 
 @RestController
 @RequestMapping("/api/permissions")
+// Permission catalogue reads are staff/management only — never STUDENT/PARENT (no RBAC-model
+// enumeration). Write methods keep their stricter method-level @PreAuthorize.
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ADMIN','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','STAFF','TEACHER','TEACHING_ASSISTANT','TA')")
 public class PermissionController {
     
     @Autowired

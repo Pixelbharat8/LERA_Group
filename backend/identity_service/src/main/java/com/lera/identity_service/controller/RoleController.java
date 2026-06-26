@@ -23,6 +23,10 @@ import org.springframework.data.domain.Page;
 @RestController
 @RequestMapping("/api/roles")
 @RequiredArgsConstructor
+// Reads (role/permission catalogue) are staff/management only — never STUDENT/PARENT, who must not
+// be able to enumerate the RBAC model. Write methods keep their stricter SUPER_ADMIN/CHAIRMAN rules
+// (method-level @PreAuthorize overrides this class-level default).
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ADMIN','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','STAFF','TEACHER','TEACHING_ASSISTANT','TA')")
 public class RoleController {
     
     private final RoleRepository roleRepository;

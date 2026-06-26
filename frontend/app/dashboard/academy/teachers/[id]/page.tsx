@@ -150,8 +150,9 @@ export default function TeacherProfilePage() {
 
   const fetchPayroll = async () => {
     try {
-      const data = await apiFetch(`/api/teachers/${teacherId}/payroll?period=${dateFilter}`);
-      setPayroll(data.data || data || []);
+      // Real payroll records from payroll_service (visible to finance/admin roles; empty otherwise).
+      const data = await apiFetch(`/api/payroll?teacherId=${teacherId}`);
+      setPayroll(Array.isArray(data) ? data : (data?.data || data?.content || []));
     } catch (error) {
       console.error("Error fetching payroll:", error);
     }

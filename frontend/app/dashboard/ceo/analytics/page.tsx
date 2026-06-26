@@ -10,7 +10,7 @@ interface AnalyticsData {
     totalTeachers: number;
     totalCourses: number;
     totalRevenue: number;
-    avgSatisfaction: number;
+    avgSatisfaction: number | null; // null = not tracked yet (no survey data)
     retentionRate: number;
   };
   enrollment: {
@@ -22,13 +22,13 @@ interface AnalyticsData {
   coursePopularity: {
     name: string;
     students: number;
-    rating: number;
   }[];
   demographics: {
     ageGroup: string;
     count: number;
     percentage: number;
   }[];
+  highlights: string[];
 }
 
 export default function CEOAnalyticsPage() {
@@ -43,50 +43,91 @@ export default function CEOAnalyticsPage() {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const [students, teachers, courses] = await Promise.all([
+      // All real backend data — no fabricated metrics.
+      const [students, teachers, courses, enrollments, classes, finance] = await Promise.all([
         apiFetch("/api/students").catch(() => []),
         apiFetch("/api/teachers").catch(() => []),
         apiFetch("/api/courses").catch(() => []),
+        apiFetch("/api/enrollments").catch(() => []),
+        apiFetch("/api/classes").catch(() => []),
+        apiFetch("/api/finance/dashboard").catch(() => null),
       ]);
+      const S: any[] = Array.isArray(students) ? students : [];
+      const E: any[] = Array.isArray(enrollments) ? enrollments : [];
+      const C: any[] = Array.isArray(classes) ? classes : [];
+      const now = new Date();
+
+      // Revenue — real, from the finance service.
+      const totalRevenue = finance && finance.totalRevenue ? Number(finance.totalRevenue) : 0;
+
+      // Retention — real: active enrolments / all enrolments.
+      const activeEnr = E.filter((e) => String(e.status || "ACTIVE").toUpperCase() === "ACTIVE").length;
+      const retentionRate = E.length ? Math.round((activeEnr / E.length) * 100) : 0;
+
+      // Demographics — real, derived from student dates of birth.
+      const ages = S
+        .map((s) => (s.dateOfBirth ? Math.floor((now.getTime() - new Date(s.dateOfBirth).getTime()) / (365.25 * 864e5)) : null))
+        .filter((a): a is number => a != null && a >= 0 && a < 120);
+      const buckets = [
+        { ageGroup: "3-6 years", min: 0, max: 6 },
+        { ageGroup: "7-10 years", min: 7, max: 10 },
+        { ageGroup: "11-14 years", min: 11, max: 14 },
+        { ageGroup: "15-18 years", min: 15, max: 18 },
+        { ageGroup: "Adults (18+)", min: 19, max: 200 },
+      ];
+      const demographics = buckets.map((b) => {
+        const count = ages.filter((a) => a >= b.min && a <= b.max).length;
+        return { ageGroup: b.ageGroup, count, percentage: ages.length ? Math.round((count / ages.length) * 1000) / 10 : 0 };
+      });
+
+      // Enrolment trend — real: new enrolments per month (last 6 months) by enrolment date.
+      const monthsBack = 6;
+      const enrollment = Array.from({ length: monthsBack }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - (monthsBack - 1 - i), 1);
+        const sameMonth = (raw: any) => {
+          if (!raw) return false;
+          const x = new Date(raw);
+          return x.getFullYear() === d.getFullYear() && x.getMonth() === d.getMonth();
+        };
+        const newStudents = E.filter((e) => sameMonth(e.enrollmentDate)).length;
+        const dropouts = E.filter((e) =>
+          ["CANCELLED", "CANCELED", "WITHDRAWN", "COMPLETED"].includes(String(e.status || "").toUpperCase()) && sameMonth(e.endDate)
+        ).length;
+        return { month: d.toLocaleString("en-US", { month: "short" }), newStudents, dropouts, netGrowth: newStudents - dropouts };
+      });
+
+      // Class popularity — real: enrolments per class.
+      const classNameById: Record<string, string> = {};
+      C.forEach((c) => { if (c.id) classNameById[c.id] = c.name || c.code || "Class"; });
+      const countByClass: Record<string, number> = {};
+      E.forEach((e) => { if (e.classId) countByClass[e.classId] = (countByClass[e.classId] || 0) + 1; });
+      const coursePopularity = Object.entries(countByClass)
+        .map(([cid, students]) => ({ name: classNameById[cid] || "Class", students }))
+        .sort((a, b) => b.students - a.students)
+        .slice(0, 6);
+
+      // Highlights — derived from the real numbers above (no invented claims).
+      const peak = [...enrollment].sort((a, b) => b.newStudents - a.newStudents)[0];
+      const topClass = coursePopularity[0];
+      const highlights: string[] = [];
+      if (peak && peak.newStudents > 0) highlights.push(`Peak enrolment month: ${peak.month} (+${peak.newStudents})`);
+      highlights.push(`Retention: ${retentionRate}% of enrolments active`);
+      if (topClass) highlights.push(`Largest class: ${topClass.name} (${topClass.students} students)`);
+      highlights.push(`Total revenue recorded: ${formatCurrency(totalRevenue)}`);
 
       setAnalyticsData({
         overview: {
-          totalStudents: Array.isArray(students) ? students.length : 1230,
-          totalTeachers: Array.isArray(teachers) ? teachers.length : 45,
-          totalCourses: Array.isArray(courses) ? courses.length : 12,
-          totalRevenue: 15500000000,
-          avgSatisfaction: 4.6,
-          retentionRate: 92,
+          totalStudents: S.length,
+          totalTeachers: Array.isArray(teachers) ? teachers.length : 0,
+          totalCourses: Array.isArray(courses) ? courses.length : 0,
+          totalRevenue,
+          avgSatisfaction: null, // honest: no survey data wired yet
+          retentionRate,
         },
-        enrollment: [
-          { month: "Jan", newStudents: 85, dropouts: 12, netGrowth: 73 },
-          { month: "Feb", newStudents: 72, dropouts: 8, netGrowth: 64 },
-          { month: "Mar", newStudents: 95, dropouts: 15, netGrowth: 80 },
-          { month: "Apr", newStudents: 110, dropouts: 10, netGrowth: 100 },
-          { month: "May", newStudents: 88, dropouts: 14, netGrowth: 74 },
-          { month: "Jun", newStudents: 65, dropouts: 20, netGrowth: 45 },
-          { month: "Jul", newStudents: 45, dropouts: 18, netGrowth: 27 },
-          { month: "Aug", newStudents: 120, dropouts: 8, netGrowth: 112 },
-          { month: "Sep", newStudents: 135, dropouts: 12, netGrowth: 123 },
-          { month: "Oct", newStudents: 98, dropouts: 10, netGrowth: 88 },
-          { month: "Nov", newStudents: 82, dropouts: 11, netGrowth: 71 },
-          { month: "Dec", newStudents: 55, dropouts: 15, netGrowth: 40 },
-        ],
-        coursePopularity: [
-          { name: "IELTS Preparation", students: 320, rating: 4.8 },
-          { name: "LERA Teens", students: 280, rating: 4.6 },
-          { name: "LERA Primary", students: 250, rating: 4.7 },
-          { name: "Business English", students: 150, rating: 4.5 },
-          { name: "LERA Starters", students: 130, rating: 4.9 },
-          { name: "LERA Explorers", students: 100, rating: 4.7 },
-        ],
-        demographics: [
-          { ageGroup: "3-6 years", count: 230, percentage: 18.7 },
-          { ageGroup: "7-10 years", count: 320, percentage: 26.0 },
-          { ageGroup: "11-14 years", count: 280, percentage: 22.8 },
-          { ageGroup: "15-18 years", count: 220, percentage: 17.9 },
-          { ageGroup: "Adults (18+)", count: 180, percentage: 14.6 },
-        ],
+        enrollment,
+        coursePopularity,
+        demographics,
+        highlights,
       });
     } catch (error) {
       console.error("Error fetching analytics:", error);
@@ -148,7 +189,7 @@ export default function CEOAnalyticsPage() {
           { label: "Total Teachers", value: analyticsData.overview.totalTeachers.toString(), icon: "👨‍🏫", color: "bg-green-500" },
           { label: "Active Courses", value: analyticsData.overview.totalCourses.toString(), icon: "📚", color: "bg-purple-500" },
           { label: "Total Revenue", value: formatCurrency(analyticsData.overview.totalRevenue), icon: "💰", color: "bg-yellow-500" },
-          { label: "Satisfaction", value: `${analyticsData.overview.avgSatisfaction}/5`, icon: "⭐", color: "bg-orange-500" },
+          { label: "Satisfaction", value: analyticsData.overview.avgSatisfaction != null ? `${analyticsData.overview.avgSatisfaction}/5` : "—", icon: "⭐", color: "bg-orange-500" },
           { label: "Retention", value: `${analyticsData.overview.retentionRate}%`, icon: "🔄", color: "bg-teal-500" },
         ].map((stat, i) => (
           <div key={i} className="bg-white rounded-xl shadow p-4">
@@ -191,33 +232,33 @@ export default function CEOAnalyticsPage() {
           </div>
         </div>
 
-        {/* Course Popularity */}
+        {/* Class Popularity — real enrolments per class */}
         <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-lg font-bold mb-4">Course Popularity</h3>
-          <div className="space-y-4">
-            {analyticsData.coursePopularity.map((course, index) => {
-              const maxStudents = Math.max(...analyticsData.coursePopularity.map(c => c.students));
-              const width = (course.students / maxStudents) * 100;
-              const colors = ["bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-pink-500", "bg-teal-500"];
-              return (
-                <div key={course.name}>
-                  <div className="flex justify-between mb-1">
-                    <span className="font-medium text-sm">{course.name}</span>
+          <h3 className="text-lg font-bold mb-4">Class Popularity <span className="text-sm font-normal text-gray-400">(by enrolment)</span></h3>
+          {analyticsData.coursePopularity.length === 0 ? (
+            <p className="text-gray-400 text-sm">No enrolments yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {analyticsData.coursePopularity.map((course, index) => {
+                const maxStudents = Math.max(...analyticsData.coursePopularity.map(c => c.students), 1);
+                const width = (course.students / maxStudents) * 100;
+                const colors = ["bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-pink-500", "bg-teal-500"];
+                return (
+                  <div key={course.name + index}>
+                    <div className="flex justify-between mb-1">
+                      <span className="font-medium text-sm">{course.name}</span>
+                    </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-yellow-500">⭐</span>
-                      <span className="text-sm">{course.rating}</span>
+                      <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                        <div className={`${colors[index % colors.length]} h-full rounded-full`} style={{ width: `${width}%` }} />
+                      </div>
+                      <span className="text-sm text-gray-600 w-16 text-right">{course.students}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
-                      <div className={`${colors[index % colors.length]} h-full rounded-full`} style={{ width: `${width}%` }} />
-                    </div>
-                    <span className="text-sm text-gray-600 w-16 text-right">{course.students}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -238,35 +279,19 @@ export default function CEOAnalyticsPage() {
         </div>
       </div>
 
-      {/* Key Insights */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
-          <h4 className="font-semibold text-green-800 mb-3">📈 Growth Highlights</h4>
-          <ul className="space-y-2 text-sm text-green-700">
-            <li>• August & September peak enrollment periods</li>
-            <li>• 92% student retention rate (industry avg: 75%)</li>
-            <li>• IELTS Preparation is fastest growing</li>
-            <li>• 12.5% YoY revenue growth</li>
-          </ul>
-        </div>
-        <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border border-yellow-200">
-          <h4 className="font-semibold text-yellow-800 mb-3">⚠️ Areas of Attention</h4>
-          <ul className="space-y-2 text-sm text-yellow-700">
-            <li>• Summer months show enrollment dip</li>
-            <li>• Adult segment underrepresented (14.6%)</li>
-            <li>• Consider summer camp programs</li>
-            <li>• Marketing push needed for Dec-Feb</li>
-          </ul>
-        </div>
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
-          <h4 className="font-semibold text-blue-800 mb-3">💡 Recommendations</h4>
-          <ul className="space-y-2 text-sm text-blue-700">
-            <li>• Launch summer intensive programs</li>
-            <li>• Expand corporate training offerings</li>
-            <li>• Early bird promotions for Q1</li>
-            <li>• Referral program enhancement</li>
-          </ul>
-        </div>
+      {/* Highlights — derived from the real numbers above */}
+      <div className="bg-white rounded-xl shadow p-6">
+        <h3 className="text-lg font-bold mb-4">📈 Highlights</h3>
+        <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-700">
+          {analyticsData.highlights.map((h, i) => (
+            <li key={i} className="flex gap-2"><span className="text-blue-500">•</span>{h}</li>
+          ))}
+        </ul>
+        <p className="text-xs text-gray-400 mt-4">
+          For growth KPIs (CAC, LTV, conversion, renewal) see{" "}
+          <Link href="/dashboard/ceo/growth" className="text-blue-600 hover:underline">CEO → Growth</Link>.
+          Satisfaction/NPS will appear once survey data is collected.
+        </p>
       </div>
     </div>
   );
