@@ -58,6 +58,34 @@ const initialPages: PageSEO[] = [
   { path: "/blog", name: "Blog", title: { en: "Blog | LERA", vi: "Blog | LERA" }, description: { en: "English learning tips and news", vi: "Mẹo học tiếng Anh và tin tức" }, indexed: true },
 ];
 
+// Coerce any value into a { en, vi } pair so render/edit never hit `undefined.en`.
+function toBilingual(v: any): { en: string; vi: string } {
+  if (v && typeof v === "object") return { en: String(v.en ?? ""), vi: String(v.vi ?? v.en ?? "") };
+  const s = v == null ? "" : String(v);
+  return { en: s, vi: s };
+}
+// Normalize SEO data loaded from the CMS (older/foreign saves may have the wrong shape) so the
+// page can't crash on a malformed `seo_settings` / `seo_pages` value.
+function normalizeSettings(s: any): SEOSettings {
+  return {
+    ...initialSettings,
+    ...(s && typeof s === "object" ? s : {}),
+    title: toBilingual(s?.title),
+    description: toBilingual(s?.description),
+    keywords: toBilingual(s?.keywords),
+  };
+}
+function normalizePage(p: any): PageSEO {
+  return {
+    ...(p && typeof p === "object" ? p : {}),
+    path: p?.path ?? "",
+    name: p?.name ?? p?.path ?? "Page",
+    title: toBilingual(p?.title),
+    description: toBilingual(p?.description),
+    indexed: p?.indexed !== false,
+  };
+}
+
 export default function SEOSettings() {
   const [settings, setSettings] = useState<SEOSettings>(initialSettings);
   const [pages, setPages] = useState<PageSEO[]>(initialPages);
@@ -78,8 +106,11 @@ export default function SEOSettings() {
         apiFetch("/api/cms-settings/key/seo_settings").catch(() => null),
         apiFetch("/api/cms-settings/key/seo_pages").catch(() => null),
       ]);
-      if (settingsData?.settingValue) setSettings(JSON.parse(settingsData.settingValue));
-      if (pagesData?.settingValue) setPages(JSON.parse(pagesData.settingValue));
+      if (settingsData?.settingValue) setSettings(normalizeSettings(JSON.parse(settingsData.settingValue)));
+      if (pagesData?.settingValue) {
+        const parsed = JSON.parse(pagesData.settingValue);
+        setPages(Array.isArray(parsed) ? parsed.map(normalizePage) : initialPages);
+      }
     } catch (err) {
       console.log("No existing SEO settings, using defaults");
     } finally {

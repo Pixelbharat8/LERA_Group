@@ -117,7 +117,8 @@ export default function FooterEditor() {
     try {
       const data = await apiFetch("/api/cms-settings/key/footer_settings").catch(() => ({}));
       if (data?.settingValue) {
-        setSettings(JSON.parse(data.settingValue));
+        // Merge over defaults so a partial/older saved blob can't drop required keys and crash render.
+        setSettings({ ...initialSettings, ...JSON.parse(data.settingValue) });
       }
     } catch (err) {
       console.log("No existing footer settings, using defaults");
