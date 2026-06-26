@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
+import { toast } from "@/components/Toast";
 
 interface CallLog {
   id: string;
@@ -90,7 +91,7 @@ export default function CommunicationsPage() {
       setShowEmailModal(false);
       setEmailForm({ toEmail: "", subject: "", body: "" });
       fetchLogs();
-      alert("Email logged successfully!");
+      toast("Email logged successfully!", "success");
     } catch (err) {
       console.error("Error sending email:", err);
     }

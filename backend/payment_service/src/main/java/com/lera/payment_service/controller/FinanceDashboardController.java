@@ -45,6 +45,18 @@ public class FinanceDashboardController {
         return ResponseEntity.ok(financeDashboardService.getRevenueByCenter());
     }
 
+    @GetMapping("/revenue/monthly")
+    public ResponseEntity<?> getMonthlyRevenue(
+            @AuthenticationPrincipal AuthUser authUser,
+            @RequestParam(required = false) UUID centerId) {
+        if (authUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        paymentAccess.assertPrivilegedStaff(authUser);
+        UUID effCenter = paymentAccess.effectiveCenterId(authUser, centerId);
+        return ResponseEntity.ok(financeDashboardService.getMonthlyRevenue(effCenter));
+    }
+
     @GetMapping("/revenue/center/{centerId}")
     public ResponseEntity<Map<String, Object>> getRevenueBySpecificCenter(
             @PathVariable UUID centerId,

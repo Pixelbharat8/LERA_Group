@@ -3,6 +3,7 @@ package com.lera.payment_service.repository;
 import com.lera.payment_service.entity.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -50,6 +51,17 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.centerId = :centerId AND p.status = :status")
     BigDecimal sumAmountByCenterAndStatus(UUID centerId, String status);
+
+    /** Completed revenue grouped by calendar month (YYYY-MM) since a cutoff — for the trend chart. */
+    @Query(value = "SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS ym, COALESCE(SUM(amount), 0) AS rev "
+            + "FROM payments WHERE status = 'COMPLETED' AND created_at >= :start "
+            + "GROUP BY 1 ORDER BY 1", nativeQuery = true)
+    List<Object[]> monthlyRevenueSince(@Param("start") LocalDateTime start);
+
+    @Query(value = "SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS ym, COALESCE(SUM(amount), 0) AS rev "
+            + "FROM payments WHERE status = 'COMPLETED' AND center_id = :centerId AND created_at >= :start "
+            + "GROUP BY 1 ORDER BY 1", nativeQuery = true)
+    List<Object[]> monthlyRevenueByCenterSince(@Param("centerId") UUID centerId, @Param("start") LocalDateTime start);
 
     List<Payment> findAllByOrderByCreatedAtDesc();
 }

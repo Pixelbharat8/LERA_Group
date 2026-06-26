@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,6 +27,35 @@ public class FinanceDashboardService {
     private final RefundRepository refundRepository;
     private final StudentFeePlanRepository studentFeePlanRepository;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    /**
+     * Real completed-revenue trend for the last 12 calendar months (gaps filled with 0),
+     * optionally scoped to a center. Backs the finance dashboard's monthly chart.
+     */
+    public List<Map<String, Object>> getMonthlyRevenue(UUID centerId) {
+        int months = 12;
+        LocalDate startMonth = LocalDate.now().withDayOfMonth(1).minusMonths(months - 1L);
+        LocalDateTime start = startMonth.atStartOfDay();
+        List<Object[]> rows = centerId != null
+                ? paymentRepository.monthlyRevenueByCenterSince(centerId, start)
+                : paymentRepository.monthlyRevenueSince(start);
+        Map<String, BigDecimal> byYm = new HashMap<>();
+        for (Object[] r : rows) {
+            if (r[0] == null) continue;
+            byYm.put(String.valueOf(r[0]), r[1] == null ? BigDecimal.ZERO : new BigDecimal(r[1].toString()));
+        }
+        DateTimeFormatter ymFmt = DateTimeFormatter.ofPattern("yyyy-MM");
+        DateTimeFormatter labelFmt = DateTimeFormatter.ofPattern("MMM");
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (int i = 0; i < months; i++) {
+            LocalDate m = startMonth.plusMonths(i);
+            Map<String, Object> e = new LinkedHashMap<>();
+            e.put("month", m.format(labelFmt));
+            e.put("revenue", byYm.getOrDefault(m.format(ymFmt), BigDecimal.ZERO));
+            result.add(e);
+        }
+        return result;
+    }
 
     public Map<String, Object> getDashboardSummary(UUID centerId) {
         Map<String, Object> summary = new HashMap<>();

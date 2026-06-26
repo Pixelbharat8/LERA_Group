@@ -128,7 +128,20 @@ export default function FinanceDashboardPage() {
         setRecentTransactions([]);
       }
 
-      setMonthlyData([]);
+      try {
+        // Real 12-month completed-revenue trend from the finance service.
+        const monthlyUrl = buildCenterFilterUrl('/api/finance/revenue/monthly', shouldFilterByCenter ? userCenterId : null);
+        const monthly = await apiFetch(monthlyUrl);
+        const arr = Array.isArray(monthly) ? monthly : [];
+        // Endpoint returns real completed (collected) revenue per month. Outstanding/refunds aren't
+        // broken out monthly, so collected == revenue and refunds = 0 (honest, no fabrication).
+        setMonthlyData(arr.map((m: any) => {
+          const rev = Number(m.revenue) || 0;
+          return { month: m.month, revenue: rev, collected: rev, refunds: 0 };
+        }));
+      } catch {
+        setMonthlyData([]);
+      }
     } catch (err) {
       console.error("Error fetching finance data:", err);
       // Show empty state on error
