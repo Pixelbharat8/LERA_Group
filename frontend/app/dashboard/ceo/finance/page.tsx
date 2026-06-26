@@ -18,10 +18,24 @@ interface FinancialData {
   monthlyGrowth: number;
   newStudents: number;
   expensesTracked: boolean;
+  collected: number;
+  outstanding: number;
   byCenter: { centerId: string; centerName: string; revenue: number }[];
   byMonth: MonthPL[];
+  byMethod: { method: string; amount: number; count: number }[];
   topCourses: { name: string; students: number }[];
 }
+
+// Friendly label + colour for each payment method (mirrors the tuition sheet's method column).
+const METHOD_META: Record<string, { label: string; color: string }> = {
+  CASH: { label: "Cash", color: "bg-green-500" },
+  BANK_TRANSFER: { label: "Bank Transfer", color: "bg-blue-500" },
+  TRANSFER: { label: "Bank Transfer", color: "bg-blue-500" },
+  CARD: { label: "Card", color: "bg-purple-500" },
+  MOMO: { label: "MoMo", color: "bg-pink-500" },
+  VNPAY: { label: "VNPay", color: "bg-indigo-500" },
+};
+const methodMeta = (m: string) => METHOD_META[m?.toUpperCase()] || { label: m || "Other", color: "bg-gray-400" };
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -106,6 +120,26 @@ export default function CEOFinancePage() {
         return d >= winStart && d < winEnd;
       }).length;
 
+      // Payments in the selected year (created-at basis) for method + collection breakdowns.
+      const inYear = (p: any) => new Date(p.createdAt || p.paidAt || p.paymentDate).getFullYear() === selectedYear;
+      const yearPaid = payments.filter((p: any) => isPaid(p) && inYear(p));
+      const collected = yearPaid.reduce((s: number, p: any) => s + (p.amount || 0), 0);
+      const outstanding = payments
+        .filter((p: any) => inYear(p) && ["PENDING", "pending", "UNPAID", "unpaid"].includes(p.status))
+        .reduce((s: number, p: any) => s + (p.amount || 0), 0);
+
+      // Payment-method breakdown (mirrors the sheet's "Payment method" column: Transfer/Cash/…).
+      const methodMap: Record<string, { amount: number; count: number }> = {};
+      yearPaid.forEach((p: any) => {
+        const m = (p.paymentMethod || "OTHER").toUpperCase();
+        (methodMap[m] ||= { amount: 0, count: 0 });
+        methodMap[m].amount += p.amount || 0;
+        methodMap[m].count++;
+      });
+      const byMethod = Object.entries(methodMap)
+        .map(([method, v]) => ({ method, ...v }))
+        .sort((a, b) => b.amount - a.amount);
+
       // Revenue by centre (real, from paid payments).
       const byCenter = centers.map((c: any) => {
         const cid = String(c.id);
@@ -130,8 +164,11 @@ export default function CEOFinancePage() {
         monthlyGrowth: revenueData?.growth || 0,
         newStudents,
         expensesTracked: expenseData?.tracked !== false,
+        collected,
+        outstanding,
         byCenter,
         byMonth,
+        byMethod,
         topCourses,
       });
     } catch (error) {
@@ -332,6 +369,64 @@ export default function CEOFinancePage() {
             Teacher payroll not yet recorded for this range — payroll figures show as ₫0.
           </p>
         )}
+      </div>
+
+      {/* Payment Methods + Collection Status (mirrors the tuition sheet) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow p-6">
+          <h3 className="text-lg font-bold mb-4">Payment Methods — {selectedYear}</h3>
+          <div className="space-y-3">
+            {data.byMethod.length === 0 && <p className="text-gray-400 text-sm">No payments yet.</p>}
+            {data.byMethod.map((m) => {
+              const meta = methodMeta(m.method);
+              const share = data.collected > 0 ? (m.amount / data.collected) * 100 : 0;
+              return (
+                <div key={m.method}>
+                  <div className="flex justify-between mb-1 text-sm">
+                    <span className="font-medium flex items-center gap-2">
+                      <span className={`w-3 h-3 rounded-sm ${meta.color}`} /> {meta.label}
+                      <span className="text-gray-400">({m.count})</span>
+                    </span>
+                    <span className="text-gray-700">{fmt(m.amount)} · {share.toFixed(0)}%</span>
+                  </div>
+                  <div className="bg-gray-100 rounded-full h-3 overflow-hidden">
+                    <div className={`${meta.color} h-full rounded-full`} style={{ width: `${share}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <h3 className="text-lg font-bold mb-4">Collection Status — {selectedYear}</h3>
+          {(() => {
+            const total = data.collected + data.outstanding;
+            const rate = total > 0 ? (data.collected / total) * 100 : 100;
+            return (
+              <>
+                <div className="flex items-end gap-2 mb-3">
+                  <span className="text-3xl font-bold text-green-600">{rate.toFixed(0)}%</span>
+                  <span className="text-gray-500 mb-1">collected</span>
+                </div>
+                <div className="bg-gray-100 rounded-full h-5 overflow-hidden mb-4">
+                  <div className="bg-gradient-to-r from-green-400 to-green-600 h-full" style={{ width: `${rate}%` }} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <p className="text-xs text-gray-500">Collected (paid)</p>
+                    <p className="text-xl font-bold text-green-600">{fmt(data.collected)}</p>
+                  </div>
+                  <div className="bg-amber-50 rounded-lg p-4">
+                    <p className="text-xs text-gray-500">Outstanding (unpaid)</p>
+                    <p className="text-xl font-bold text-amber-600">{fmt(data.outstanding)}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-3">Mirrors the “Check paid” column — unpaid tuition shows as outstanding.</p>
+              </>
+            );
+          })()}
+        </div>
       </div>
 
       {/* Revenue by Center + Top Courses */}
