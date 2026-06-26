@@ -25,6 +25,7 @@ export default function CEODashboard() {
 
   const quickActions = [
     { label: t("financialReports"), href: "/dashboard/ceo/finance", icon: "💰", color: "bg-green-600" },
+    { label: "E2E Funnel", href: "/dashboard/ceo/funnel", icon: "🪜", color: "bg-indigo-600" },
     { label: t("allCenters"), href: "/dashboard/ceo/centers", icon: "🏢", color: "bg-blue-600" },
     { label: t("analytics"), href: "/dashboard/ceo/analytics", icon: "📊", color: "bg-purple-600" },
     { label: t("strategicPlans"), href: "/dashboard/ceo/strategy", icon: "🎯", color: "bg-orange-600" },
