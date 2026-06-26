@@ -152,6 +152,8 @@ const withRewrites = {
       { source: "/api/contact/:path*", destination: `${academyUrl}/api/contact/:path*` },
       // CRM leads from public marketing site (Connect). Must be before generic /api/public/* → academy.
       { source: "/api/public/leads", destination: `${connectUrl}/api/public/leads` },
+      // Public enrolment payment funnel (Payment service) — must also precede the generic /api/public/*.
+      { source: "/api/public/payment/:path*", destination: `${paymentUrl}/api/public/payment/:path*` },
       { source: "/api/public", destination: `${academyUrl}/api/public` },
       { source: "/api/public/:path*", destination: `${academyUrl}/api/public/:path*` },
       { source: "/api/faqs", destination: `${academyUrl}/api/faqs` },

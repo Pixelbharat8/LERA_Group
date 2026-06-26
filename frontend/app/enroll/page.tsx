@@ -42,6 +42,7 @@ function EnrollInner() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [payEnabled, setPayEnabled] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -53,8 +54,75 @@ function EnrollInner() {
       } catch {
         setCourses([]);
       }
+      try {
+        // Online card payment shows only when a VNPay merchant account is configured.
+        const st = await publicFetch("/api/public/payment/status");
+        setPayEnabled(!!st?.enabled);
+      } catch {
+        setPayEnabled(false);
+      }
     })();
   }, [presetCode]);
+
+  // Capture the enrolment lead (shared by both "reserve" and "pay now").
+  const captureLead = async () => {
+    const courseLabel = selected ? `${selected.name}${selected.price ? ` (${fmt(selected.price)}/mo)` : ""}` : form.courseCode || "—";
+    const note =
+      `[Online enrolment] Course: ${courseLabel}` +
+      ` | Student: ${form.studentName.trim() || "—"}${form.studentAge ? `, age ${form.studentAge}` : ""}` +
+      ` | Preferred start: ${form.startPref || "—"}` +
+      (form.notes.trim() ? ` | Notes: ${form.notes.trim()}` : "");
+    await publicFetch("/api/public/leads", {
+      method: "POST",
+      body: JSON.stringify({
+        parentName: form.parentName.trim() || form.studentName.trim(),
+        parentPhone: form.phone.trim(),
+        parentEmail: form.email.trim() || undefined,
+        studentName: form.studentName.trim() || undefined,
+        studentAge: form.studentAge ? parseInt(form.studentAge, 10) : undefined,
+        preferredSchedule: form.startPref || undefined,
+        notes: note,
+        utmSource: ENROLMENT_LEAD_CONTEXT.utmSource,
+        utmMedium: ENROLMENT_LEAD_CONTEXT.utmMedium,
+        utmCampaign: form.courseCode || ENROLMENT_LEAD_CONTEXT.utmCampaign,
+        website: form.website,
+      }),
+    });
+  };
+
+  const payNow = async () => {
+    if (!form.courseCode || !form.studentName.trim() || !form.parentName.trim() || !form.phone.trim()) {
+      alert(EN ? "Please fill in the required fields first." : "Vui lòng điền các trường bắt buộc trước.");
+      return;
+    }
+    if (!selected?.price) return;
+    setSubmitting(true);
+    try {
+      await captureLead();
+      const res: any = await publicFetch("/api/public/payment/enrolment", {
+        method: "POST",
+        body: JSON.stringify({
+          courseCode: form.courseCode,
+          amount: selected.price,
+          studentName: form.studentName.trim(),
+          parentName: form.parentName.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim() || undefined,
+          locale: EN ? "en" : "vn",
+        }),
+      });
+      if (res?.enabled && res?.paymentUrl) {
+        window.location.href = res.paymentUrl; // redirect to VNPay
+        return;
+      }
+      // Payment not actually available — fall back to the reserve confirmation.
+      setDone(true);
+    } catch {
+      alert(EN ? "Something went wrong. Please try again." : "Đã có lỗi. Vui lòng thử lại.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const selected = courses.find((c) => c.code === form.courseCode);
 
@@ -62,28 +130,7 @@ function EnrollInner() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const courseLabel = selected ? `${selected.name}${selected.price ? ` (${fmt(selected.price)}/mo)` : ""}` : form.courseCode || "—";
-      const note =
-        `[Online enrolment] Course: ${courseLabel}` +
-        ` | Student: ${form.studentName.trim() || "—"}${form.studentAge ? `, age ${form.studentAge}` : ""}` +
-        ` | Preferred start: ${form.startPref || "—"}` +
-        (form.notes.trim() ? ` | Notes: ${form.notes.trim()}` : "");
-      await publicFetch("/api/public/leads", {
-        method: "POST",
-        body: JSON.stringify({
-          parentName: form.parentName.trim() || form.studentName.trim(),
-          parentPhone: form.phone.trim(),
-          parentEmail: form.email.trim() || undefined,
-          studentName: form.studentName.trim() || undefined,
-          studentAge: form.studentAge ? parseInt(form.studentAge, 10) : undefined,
-          preferredSchedule: form.startPref || undefined,
-          notes: note,
-          utmSource: ENROLMENT_LEAD_CONTEXT.utmSource,
-          utmMedium: ENROLMENT_LEAD_CONTEXT.utmMedium,
-          utmCampaign: form.courseCode || ENROLMENT_LEAD_CONTEXT.utmCampaign,
-          website: form.website,
-        }),
-      });
+      await captureLead();
       setDone(true);
     } catch {
       alert(EN ? "Something went wrong. Please try again." : "Đã có lỗi. Vui lòng thử lại.");
@@ -210,10 +257,22 @@ function EnrollInner() {
                 className="w-full py-3 rounded-lg bg-[#0a1a5c] text-white font-semibold hover:bg-blue-900 disabled:opacity-50">
                 {submitting ? (EN ? "Submitting…" : "Đang gửi…") : (EN ? "Reserve my place" : "Giữ chỗ cho con")}
               </button>
+
+              {payEnabled && selected?.price ? (
+                <button type="button" onClick={payNow} disabled={submitting}
+                  className="w-full py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-50">
+                  {EN ? `Pay ${fmt(selected.price)} now & secure your place →` : `Thanh toán ${fmt(selected.price)} & giữ chỗ ngay →`}
+                </button>
+              ) : null}
+
               <p className="text-xs text-gray-400 text-center">
-                {EN
-                  ? "No payment is taken now — we'll confirm availability and send payment details."
-                  : "Chưa thu tiền ngay — chúng tôi sẽ xác nhận chỗ và gửi thông tin thanh toán."}
+                {payEnabled && selected?.price
+                  ? (EN
+                      ? "Pay securely online via VNPay, or reserve now and pay later."
+                      : "Thanh toán an toàn qua VNPay, hoặc giữ chỗ trước và thanh toán sau.")
+                  : (EN
+                      ? "No payment is taken now — we'll confirm availability and send payment details."
+                      : "Chưa thu tiền ngay — chúng tôi sẽ xác nhận chỗ và gửi thông tin thanh toán.")}
               </p>
             </form>
           )}
