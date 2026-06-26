@@ -198,7 +198,7 @@ export default function HostelPage() {
                   <div>
                     <span className="text-gray-500">{t.amenities}</span>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {room.amenities.map((a, i) => (
+                      {(room.amenities || []).map((a, i) => (
                         <span key={i} className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded">{a}</span>
                       ))}
                     </div>

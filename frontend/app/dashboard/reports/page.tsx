@@ -81,8 +81,11 @@ export default function ReportsPage() {
     ? reports 
     : reports.filter(r => r.type === selectedType);
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString(language === "VI" ? "vi-VN" : "en-US", {
+  const formatDate = (date: Date | string) => {
+    // API JSON delivers generatedAt as a string, not a Date — coerce so .toLocaleDateString works.
+    const d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleDateString(language === "VI" ? "vi-VN" : "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",

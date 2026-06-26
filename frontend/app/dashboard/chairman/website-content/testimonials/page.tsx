@@ -146,7 +146,7 @@ export default function TestimonialsContentPage() {
               <div className="p-6">
                 <div className="flex items-start gap-4 mb-4">
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold shrink-0">
-                    {testimonial.authorName.charAt(0)}
+                    {(testimonial.authorName || "?").charAt(0)}
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-gray-900">{testimonial.authorName}</h3>
