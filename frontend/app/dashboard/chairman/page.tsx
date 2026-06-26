@@ -139,22 +139,20 @@ export default function ChairmanDashboard() {
     }
 
     try {
-      const res = await apiFetch(endpoint, {
+      // apiFetch returns parsed data on success and throws on any non-2xx —
+      // so a resolved call IS the success case (the old `res.ok` was always undefined).
+      await apiFetch(endpoint, {
         method: "PUT",
         body: JSON.stringify(editingItem),
       });
 
-      if (res.ok) {
-        setShowEditModal(false);
-        setEditingItem(null);
-        fetchData();
-        alert(t("updatedSuccessfully"));
-      } else {
-        alert(t("failedToUpdate"));
-      }
+      setShowEditModal(false);
+      setEditingItem(null);
+      fetchData();
+      alert(t("updatedSuccessfully"));
     } catch (error) {
       console.error("Save error:", error);
-      alert(t("errorSaving"));
+      alert(t("failedToUpdate"));
     }
   };
 
@@ -172,18 +170,16 @@ export default function ChairmanDashboard() {
     }
 
     try {
-      const res = await apiFetch(endpoint, {
+      // apiFetch throws on non-2xx; a resolved call means the delete succeeded.
+      await apiFetch(endpoint, {
         method: "DELETE",
       });
 
-      if (res.ok) {
-        fetchData();
-        alert(t("deletedSuccessfully"));
-      } else {
-        alert(t("failedToDelete"));
-      }
+      fetchData();
+      alert(t("deletedSuccessfully"));
     } catch (error) {
       console.error("Delete error:", error);
+      alert(t("failedToDelete"));
     }
   };
 
