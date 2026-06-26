@@ -104,7 +104,9 @@ export async function loadMyClasses(studentId: string): Promise<StudentClassView
       const teacherId = h.teacherId || (cls?.teacherId ? String(cls.teacherId) : "");
       if (teacherId) {
         try {
-          const t = (await apiFetch(`/api/teachers/${teacherId}`)) as {
+          // Safe contact projection — students/parents can't read the full
+          // teacher entity (PII), so use /contact, which returns the name only.
+          const t = (await apiFetch(`/api/teachers/${teacherId}/contact`, {}, { silent: true })) as {
             fullname?: string;
             name?: string;
           };

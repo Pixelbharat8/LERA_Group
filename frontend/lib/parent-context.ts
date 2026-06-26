@@ -96,22 +96,24 @@ export async function loadTeachersForChild(studentId: string): Promise<ChildTeac
     } | null;
     if (!cls?.teacherId) continue;
     try {
-      const teacher = (await apiFetch(`/api/teachers/${cls.teacherId}`)) as {
-        userId?: string;
-      };
+      // Safe contact projection (name + auth user id) — parents/students are not
+      // allowed the full teacher entity (salary/PII), so use /contact, not /{id}.
+      const teacher = (await apiFetch(`/api/teachers/${cls.teacherId}/contact`, {}, { silent: true }).catch(
+        () => null
+      )) as { userId?: string; fullname?: string } | null;
       if (!teacher?.userId) continue;
-      const user = (await apiFetch(`/api/users/${teacher.userId}`).catch(() => null)) as {
+      const user = (await apiFetch(`/api/users/${teacher.userId}`, {}, { silent: true }).catch(() => null)) as {
         fullname?: string;
         name?: string;
         email?: string;
         phone?: string;
       } | null;
-      if (!user) continue;
       byUserId.set(String(teacher.userId), {
         id: String(teacher.userId),
-        fullname: user.fullname || user.name || user.email?.split("@")[0] || "Teacher",
-        email: user.email || "",
-        phone: user.phone,
+        fullname:
+          user?.fullname || user?.name || teacher.fullname || user?.email?.split("@")[0] || "Teacher",
+        email: user?.email || "",
+        phone: user?.phone,
         className: cls.name,
       });
     } catch {

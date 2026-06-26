@@ -66,7 +66,31 @@ public class TeacherController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-    
+
+    /**
+     * Safe, minimal teacher contact card — name + auth user id (for messaging)
+     * + photo. Deliberately excludes salary, contract, email/phone and every
+     * other PII field on the full {@link Teacher} entity, so it can be opened to
+     * the people who legitimately need to reach a teacher: a STUDENT in the
+     * class or that child's PARENT. Staff keep their fuller views via
+     * {@code GET /{id}}. This backs the parent/student "message my teacher" flow.
+     */
+    @GetMapping("/{id}/contact")
+    @PreAuthorize("hasAnyRole('PARENT','STUDENT','TEACHER','TEACHING_ASSISTANT','TA','SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','STAFF')")
+    public ResponseEntity<Map<String, Object>> getTeacherContact(@PathVariable UUID id) {
+        return teacherService.findById(id)
+                .map(t -> {
+                    Map<String, Object> e = new LinkedHashMap<>();
+                    e.put("id", t.getId());
+                    e.put("userId", t.getUserId());
+                    e.put("fullname", t.getDisplayName());
+                    e.put("displayNameVi", t.getDisplayNameVi());
+                    e.put("photoUrl", t.getPhotoUrl());
+                    return ResponseEntity.ok(e);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/code/{code}")
     public ResponseEntity<Teacher> getTeacherByCode(@PathVariable String code) {
         return teacherService.findByCode(code)
