@@ -101,35 +101,35 @@ export default function UserProfilePage() {
       setUser(userData.data || userData);
       setEditData(userData.data || userData);
 
-      // Fetch login history
-      const loginData = await apiFetch(`/api/login-history/user/${userId}`).catch(() => []);
+      // Best-effort enrichment: a viewed user may not have all of these (e.g. a PARENT has no
+      // classes/attendance/leaves), so these calls are SILENT — a failure shows 0/empty, never a toast.
+      const loginData = await apiFetch(`/api/login-history/user/${userId}`, {}, { silent: true }).catch(() => []);
       setLoginHistory(Array.isArray(loginData) ? loginData : loginData?.data || []);
 
-      // Fetch activity logs
-      const activityData = await apiFetch(`/api/activity-logs/user/${userId}?page=0&size=20`).catch(() => ({ content: [] }));
+      const activityData = await apiFetch(`/api/activity-logs/user/${userId}?page=0&size=20`, {}, { silent: true }).catch(() => ({ content: [] }));
       setActivityLogs(activityData?.data?.content || activityData?.content || []);
 
-      // Fetch roles, centers, departments for editing
+      // Roles, centers, departments for editing
       const [rolesData, centersData, deptsData] = await Promise.all([
-        apiFetch("/api/roles").catch(() => []),
-        apiFetch("/api/centers").catch(() => []),
-        apiFetch("/api/departments").catch(() => []),
+        apiFetch("/api/roles", {}, { silent: true }).catch(() => []),
+        apiFetch("/api/centers", {}, { silent: true }).catch(() => []),
+        apiFetch("/api/departments", {}, { silent: true }).catch(() => []),
       ]);
       setRoles(Array.isArray(rolesData) ? rolesData : rolesData?.data || []);
       setCenters(Array.isArray(centersData) ? centersData : centersData?.data || []);
       setDepartments(Array.isArray(deptsData) ? deptsData : deptsData?.data || []);
 
-      // Fetch related data from other services
-      const attendanceData = await apiFetch(`/api/attendance/user/${userId}/stats`).catch(() => null);
+      // Related data from other services (not applicable to every user type)
+      const attendanceData = await apiFetch(`/api/attendance/user/${userId}/stats`, {}, { silent: true }).catch(() => null);
       if (attendanceData) setAttendanceStats(attendanceData);
 
-      const paymentsData = await apiFetch(`/api/payments/user/${userId}`).catch(() => []);
+      const paymentsData = await apiFetch(`/api/payments/user/${userId}`, {}, { silent: true }).catch(() => []);
       setPaymentHistory(Array.isArray(paymentsData) ? paymentsData : paymentsData?.data || []);
 
-      const leaveData = await apiFetch(`/api/leaves/user/${userId}`).catch(() => []);
+      const leaveData = await apiFetch(`/api/leaves/user/${userId}`, {}, { silent: true }).catch(() => []);
       setLeaveHistory(Array.isArray(leaveData) ? leaveData : leaveData?.data || []);
 
-      const classesData = await apiFetch(`/api/classes/user/${userId}`).catch(() => []);
+      const classesData = await apiFetch(`/api/classes/user/${userId}`, {}, { silent: true }).catch(() => []);
       setAssignedClasses(Array.isArray(classesData) ? classesData : classesData?.data || []);
 
     } catch (error) {
