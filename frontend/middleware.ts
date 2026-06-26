@@ -67,6 +67,7 @@ export function middleware(request: NextRequest) {
     "/corporate",
     "/pricing",
     "/enroll",
+    "/portal",
   ];
 
   if (
