@@ -31,6 +31,53 @@ public class TeacherStaffLeaveController {
     private final AttendanceAuthorizationService authz;
 
     /**
+     * Flexible leave lookup by optional query params — backs the staff-detail page
+     * ({@code GET /api/leaves?userId=..&status=PENDING}) and any caller wanting a filtered
+     * list without a path-variable route. With {@code userId}: that user's leaves (same authz
+     * as {@code /user/{userId}}). Without it: org-wide list (privileged roles only). Optional
+     * {@code status} filters the result (e.g. PENDING). Previously there was no root GET, so
+     * this request fell through and surfaced as a 500.
+     */
+    @GetMapping
+    public ResponseEntity<List<TeacherStaffLeave>> queryLeaves(
+            @RequestParam(required = false) UUID userId,
+            @RequestParam(required = false) String status,
+            @AuthenticationPrincipal AuthUser authUser) {
+        try {
+            List<TeacherStaffLeave> leaves;
+            if (userId != null) {
+                authz.assertCanQueryLeavesForUser(authUser, userId);
+                leaves = leaveService.getLeavesByUser(userId);
+                if (!authz.isOrgWide(authUser) && authUser.getUserId() != null
+                        && !authUser.getUserId().equals(userId)) {
+                    leaves = leaves.stream()
+                            .filter(l -> authz.leaveRowInCallerCenter(authUser, l))
+                            .toList();
+                }
+            } else {
+                // No user scope → org-wide listing only.
+                if (!authz.isOrgWide(authUser)) {
+                    throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
+                            "userId is required unless you have an org-wide role");
+                }
+                leaves = leaveService.getAllLeaves();
+            }
+            if (status != null && !status.isBlank()) {
+                final String s = status.trim();
+                leaves = leaves.stream()
+                        .filter(l -> l.getStatus() != null && l.getStatus().equalsIgnoreCase(s))
+                        .toList();
+            }
+            return ResponseEntity.ok(leaves);
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error querying leaves (userId={}, status={})", userId, status, e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
      * All leaves — org-wide roles only (must be registered before {@code /{id}}).
      */
     @GetMapping("/all")
