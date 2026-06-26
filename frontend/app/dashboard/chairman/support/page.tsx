@@ -65,11 +65,9 @@ export default function ChairmanSupportPage() {
           category: f.category || "General"
         })));
       } else {
-        // Demo FAQs
         setFaqs([]); // no demo fallback
       }
 
-      // Demo tickets
       setTickets([]); // No support-ticket backend yet; show empty state, not demo tickets.
     } catch (error) {
       console.error("Error fetching support data:", error);

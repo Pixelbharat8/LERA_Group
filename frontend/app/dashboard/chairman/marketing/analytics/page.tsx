@@ -91,10 +91,12 @@ export default function SocialAnalyticsPage() {
         const totalPosts = overviewData.totalPosts || 0;
         
         setOverview([
-          { label: "Total Followers", value: totalFollowers >= 1000 ? `${(totalFollowers / 1000).toFixed(1)}K` : String(totalFollowers), change: 8.5, icon: "👥" },
-          { label: "Total Engagement", value: totalEngagement >= 1000 ? `${(totalEngagement / 1000).toFixed(1)}K` : String(totalEngagement), change: 12.3, icon: "💬" },
-          { label: "Total Reach", value: totalReach >= 1000 ? `${(totalReach / 1000).toFixed(1)}K` : String(totalReach), change: 15.7, icon: "👁️" },
-          { label: "Total Posts", value: String(totalPosts), change: 5.2, icon: "📝" },
+          // Values are real; change deltas are 0 until period-over-period trend data is tracked
+          // (no fabricated growth percentages).
+          { label: "Total Followers", value: totalFollowers >= 1000 ? `${(totalFollowers / 1000).toFixed(1)}K` : String(totalFollowers), change: 0, icon: "👥" },
+          { label: "Total Engagement", value: totalEngagement >= 1000 ? `${(totalEngagement / 1000).toFixed(1)}K` : String(totalEngagement), change: 0, icon: "💬" },
+          { label: "Total Reach", value: totalReach >= 1000 ? `${(totalReach / 1000).toFixed(1)}K` : String(totalReach), change: 0, icon: "👁️" },
+          { label: "Total Posts", value: String(totalPosts), change: 0, icon: "📝" },
         ]);
       }
       
