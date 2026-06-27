@@ -132,6 +132,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const { hasPermission, permissions } = usePermissions();
   const { t, language, setLanguage } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Off-canvas sidebar on phones/tablets (Capacitor iOS/Android load this web app) — start
+  // collapsed so the 256px sidebar + main margin don't push content off a 390px screen.
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 1024) setSidebarOpen(false);
+  }, []);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
@@ -1093,7 +1098,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         
         <div className="flex items-center gap-4">
           {/* Role Badge */}
-          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+          <span className={`hidden sm:inline-block px-3 py-1 rounded-full text-xs font-bold ${
             isChairman ? "bg-yellow-400 text-gray-900" : 
             isCEO ? "bg-purple-400 text-white" :
             isDirector ? "bg-blue-400 text-white" :
@@ -1119,11 +1124,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
              user?.role}
           </span>
           
-          {/* Quick Actions */}
-          <Link href="/dashboard/connect" className="p-2 hover:bg-white/10 rounded-lg transition-colors" title="LERA Connect">
+          {/* Quick Actions (in the sidebar too — hidden on phones to save header width) */}
+          <Link href="/dashboard/connect" className="hidden sm:inline-flex p-2 hover:bg-white/10 rounded-lg transition-colors" title="LERA Connect">
             💬
           </Link>
-          <Link href="/" target="_blank" className="p-2 hover:bg-white/10 rounded-lg transition-colors" title="View Public Site">
+          <Link href="/" target="_blank" className="hidden sm:inline-flex p-2 hover:bg-white/10 rounded-lg transition-colors" title="View Public Site">
             🌐
           </Link>
           
@@ -1348,7 +1353,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className={`pt-16 transition-all ${sidebarOpen ? "ml-64" : "ml-0"}`}>
+      <main className={`pt-16 transition-all ml-0 ${sidebarOpen ? "lg:ml-64" : ""}`}>
         <div className="p-6">
           {children}
         </div>
