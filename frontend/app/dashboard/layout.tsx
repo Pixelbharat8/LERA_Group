@@ -342,7 +342,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   // Navigation items based on role and permissions - Chairman has ALL access
   const navigationItems = [
     // Dashboard link - role-specific home page
-    ...(isSuperAdmin ? [{ name: `📊 ${t("dashboard")}`, href: "/dashboard/superadmin", icon: "📊", roles: ["SUPERADMIN"], permission: "dashboard" as const }] : []),
+    ...(isSuperAdmin ? [{ name: `📊 ${t("dashboard")}`, href: isChairman ? "/dashboard/chairman" : "/dashboard/superadmin", icon: "📊", roles: ["SUPERADMIN"], permission: "dashboard" as const }] : []),
     ...(isCenterAdmin ? [{ name: `📊 ${t("dashboard")}`, href: "/dashboard/center-admin", icon: "📊", roles: ["CENTER_ADMIN"], permission: "dashboard" as const }] : []),
     ...(isCenterManager && !isSuperAdmin ? [{ name: `📊 ${t("dashboard")}`, href: "/dashboard/centermanager", icon: "📊", roles: ["CENTER_MANAGER"], permission: "dashboard" as const }] : []),
     ...(user?.role?.toUpperCase() === "TEACHER" ? [{ name: `📊 ${t("dashboard")}`, href: "/dashboard/teacher", icon: "📊", roles: ["TEACHER"], permission: "dashboard" as const }] : []),
@@ -1079,7 +1079,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <Link href="/dashboard/superadmin" className="flex items-center gap-2">
+          <Link href={isChairman ? "/dashboard/chairman" : "/dashboard/superadmin"} className="flex items-center gap-2">
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
               <span className="text-[#0a1a5c] font-bold">L</span>
             </div>
