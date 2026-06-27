@@ -7,6 +7,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { publicFetch } from "../../lib/api";
 import { HERO_IMAGES } from "../../config/images";
+import { useReveal } from "../hooks/useReveal";
 
 interface PublicTeacher {
   id: string;
@@ -32,6 +33,7 @@ function initials(name?: string) {
 
 export default function TeachersPage() {
   const { language } = useLanguage();
+  useReveal();
   const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -54,9 +56,9 @@ export default function TeachersPage() {
       <Header />
 
       {/* Hero */}
-      <section className="pt-32 pb-16 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white relative overflow-hidden">
+      <section className="pt-32 pb-16 bg-gradient-to-br from-brand-navy via-brand-navy600 to-brand-navy text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{ backgroundImage: `url('${HERO_IMAGES.home}')` }} />
-        <div className="max-w-7xl mx-auto px-4 text-center relative z-10">
+        <div className="max-w-7xl mx-auto px-4 text-center relative z-10 reveal">
           <span className="inline-block px-4 py-2 bg-white/20 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             {language === "VI" ? "👩‍🏫 Đội ngũ giáo viên" : "👩‍🏫 Our Teachers"}
           </span>
@@ -73,7 +75,7 @@ export default function TeachersPage() {
 
       {/* Grid */}
       <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4 reveal">
           {isLoading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
@@ -89,13 +91,13 @@ export default function TeachersPage() {
               </p>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="reveal-stagger grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {teachers.map((tch) => {
                 const name = (language === "VI" && tch.displayNameVi) ? tch.displayNameVi : tch.displayName;
                 const bio = (language === "VI" && tch.bioVi) ? tch.bioVi : tch.bio;
                 return (
-                  <div key={tch.id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
-                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 h-28 relative">
+                  <div key={tch.id} className="card-premium overflow-hidden relative">
+                    <div className="bg-gradient-to-br from-brand-navy to-brand-navy600 h-28 relative">
                       <div className="absolute -bottom-10 left-6">
                         {tch.photoUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -151,8 +153,8 @@ export default function TeachersPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 bg-blue-600 text-white">
-        <div className="max-w-4xl mx-auto px-4 text-center">
+      <section className="py-16 bg-gradient-to-br from-brand-navy to-brand-navy600 text-white">
+        <div className="max-w-4xl mx-auto px-4 text-center reveal">
           <h2 className="text-3xl font-bold mb-4">
             {language === "VI" ? "Học thử miễn phí với giáo viên của chúng tôi" : "Try a free lesson with our teachers"}
           </h2>

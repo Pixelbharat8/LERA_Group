@@ -7,6 +7,7 @@ import Footer from "../components/Footer";
 import { publicFetch } from "../../lib/api";
 import Image from "next/image";
 import { GALLERY_IMAGES, HERO_IMAGES } from "../../config/images";
+import { useReveal } from "../hooks/useReveal";
 
 // Types for dynamic content
 interface ContactInfo {
@@ -102,6 +103,7 @@ const galleryImages = GALLERY_IMAGES;
 
 export default function ContactPage() {
   const { language, t } = useLanguage();
+  useReveal();
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "", website: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -200,10 +202,10 @@ export default function ContactPage() {
       <Header />
       
       {/* Hero Section with Background Image */}
-      <section className="pt-32 pb-20 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white relative overflow-hidden">
+      <section className="pt-32 pb-20 bg-gradient-to-br from-brand-navy via-brand-navy600 to-brand-navy text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{backgroundImage: `url('${HERO_IMAGES.contact}')`}}></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-blue-900/50"></div>
-        <div className="max-w-7xl mx-auto px-4 text-center relative z-10">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-brand-navy/50"></div>
+        <div className="reveal max-w-7xl mx-auto px-4 text-center relative z-10">
           <span className="inline-block px-4 py-2 bg-white/20 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             {language === "EN" ? "🌟 We're here to help!" : "🌟 Chúng tôi sẵn sàng hỗ trợ bạn!"}
           </span>
@@ -214,9 +216,9 @@ export default function ContactPage() {
       
       {/* Contact Form & Info Section */}
       <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="reveal max-w-7xl mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-12">
-            <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="card-premium p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">{t("sendMessage")}</h2>
               {submitted ? (
                 <div className="text-center py-12">
@@ -231,7 +233,7 @@ export default function ContactPage() {
                   </p>
                   <button
                     onClick={() => setSubmitted(false)}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+                    className="btn-primary"
                   >
                     {language === "EN" ? "Send Another Message" : "Gửi tin nhắn khác"}
                   </button>
@@ -253,7 +255,7 @@ export default function ContactPage() {
                     required 
                     value={formData.name} 
                     onChange={(e) => setFormData({...formData, name: e.target.value})} 
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
                     placeholder={t("yourName")} 
                   />
                   <input 
@@ -261,7 +263,7 @@ export default function ContactPage() {
                     required 
                     value={formData.email} 
                     onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
                     placeholder={t("yourEmail")} 
                   />
                   <input 
@@ -269,7 +271,7 @@ export default function ContactPage() {
                     required 
                     value={formData.subject} 
                     onChange={(e) => setFormData({...formData, subject: e.target.value})} 
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
                     placeholder={t("subject")} 
                   />
                   <textarea 
@@ -277,10 +279,10 @@ export default function ContactPage() {
                     rows={4} 
                     value={formData.message} 
                     onChange={(e) => setFormData({...formData, message: e.target.value})} 
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all resize-none" 
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all resize-none" 
                     placeholder={t("message")} 
                   />
-                  <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                  <button type="submit" disabled={isSubmitting} className="btn-primary w-full disabled:opacity-50">
                     {isSubmitting ? (language === "EN" ? "Sending..." : "Đang gửi...") : t("sendMessage")}
                   </button>
                 </form>
@@ -353,14 +355,14 @@ export default function ContactPage() {
       
       {/* Photo Gallery Section */}
       <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="reveal max-w-7xl mx-auto px-4">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
             {language === "EN" ? "Life at LERA Academy" : "Cuộc sống tại LERA Academy"}
           </h2>
           <p className="text-gray-600 text-center mb-12">
             {language === "EN" ? "See our vibrant learning environment and happy students" : "Xem môi trường học tập sôi động và học viên vui vẻ của chúng tôi"}
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="reveal-stagger grid grid-cols-2 md:grid-cols-4 gap-4">
             {galleryImages.map((image, index) => (
               <div key={index} className="group relative overflow-hidden rounded-xl aspect-[4/3] bg-gray-100">
                 <img 
@@ -379,7 +381,7 @@ export default function ContactPage() {
               href={contactInfo.facebookUrl} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+              className="btn-primary inline-flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.77 7.46H14.5v-1.9c0-.9.6-1.1 1-1.1h3V.5h-4.33C10.24.5 9.5 3.44 9.5 5.32v2.15h-3v4h3v12h5v-12h3.85l.42-4z"/></svg>
               {language === "EN" ? "See More on Facebook" : "Xem thêm trên Facebook"}
@@ -390,22 +392,22 @@ export default function ContactPage() {
       
       {/* FAQ Section */}
       <section className="py-16 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4">
+        <div className="reveal max-w-4xl mx-auto px-4">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
             {language === "EN" ? "Frequently Asked Questions" : "Câu hỏi thường gặp"}
           </h2>
           <p className="text-gray-600 text-center mb-12">
             {language === "EN" ? "Find answers to common questions about our courses and services" : "Tìm câu trả lời cho các câu hỏi thường gặp về khóa học và dịch vụ"}
           </p>
-          <div className="space-y-4">
+          <div className="reveal-stagger space-y-4">
             {faqs.map((faq, index) => (
-              <div key={index} className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-200 hover:shadow-lg">
-                <button 
-                  onClick={() => setOpenFaq(openFaq === index ? null : index)} 
+              <div key={index} className="card-premium overflow-hidden">
+                <button
+                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
                   className="w-full px-6 py-5 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
                 >
-                  <span className="font-semibold text-gray-900 pr-4">{language === "EN" ? faq.questionEN : faq.questionVI}</span>
-                  <span className={`text-blue-600 text-xl font-bold transition-transform duration-200 ${openFaq === index ? "rotate-45" : ""}`}>+</span>
+                  <span className="font-semibold text-brand-navy pr-4">{language === "EN" ? faq.questionEN : faq.questionVI}</span>
+                  <span className={`text-brand-navy text-xl font-bold transition-transform duration-200 ${openFaq === index ? "rotate-45" : ""}`}>+</span>
                 </button>
                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openFaq === index ? "max-h-48 opacity-100" : "max-h-0 opacity-0"}`}>
                   <div className="px-6 pb-5 text-gray-600 leading-relaxed">{language === "EN" ? faq.answerEN : faq.answerVI}</div>
@@ -418,7 +420,7 @@ export default function ContactPage() {
       
       {/* Map Section */}
       <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="reveal max-w-7xl mx-auto px-4">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
             {language === "EN" ? "Find Us" : "Tìm chúng tôi"}
           </h2>
@@ -449,7 +451,7 @@ export default function ContactPage() {
             </a>
             <a 
               href={`tel:${contactInfo.phone.replace(/\s/g, '')}`}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+              className="btn-primary inline-flex items-center gap-2"
             >
               <span className="text-xl">📞</span>
               {language === "EN" ? "Call Us Now" : "Gọi ngay"}
@@ -459,8 +461,8 @@ export default function ContactPage() {
       </section>
       
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
-        <div className="max-w-4xl mx-auto px-4 text-center">
+      <section className="py-16 bg-gradient-to-br from-brand-navy to-brand-navy600 text-white">
+        <div className="reveal max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">
             {language === "EN" ? "Ready to Start Learning?" : "Sẵn sàng bắt đầu học?"}
           </h2>

@@ -7,6 +7,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { publicFetch } from "../../lib/api";
 import { COURSE_IMAGES, HERO_IMAGES, PLACEHOLDERS } from "../../config/images";
+import { useReveal } from "../hooks/useReveal";
 
 // Types for dynamic courses
 interface Course {
@@ -67,6 +68,7 @@ const categoryColors: Record<string, string> = {
 
 export default function CoursesPage() {
   const { language, t } = useLanguage();
+  useReveal();
   const [filter, setFilter] = useState<string>("all");
   const [courses, setCourses] = useState<Course[]>(fallbackCourses);
   const [isLoading, setIsLoading] = useState(true);
@@ -187,7 +189,7 @@ export default function CoursesPage() {
       <Header />
 
       {/* Hero Section - Dynamic from CMS */}
-      <section className="pt-32 pb-20 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white relative overflow-hidden">
+      <section className="pt-32 pb-20 bg-gradient-to-br from-brand-navy via-brand-navy600 to-brand-navy text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{backgroundImage: `url('${HERO_IMAGES.courses}')`}}></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <span className="inline-block px-4 py-2 bg-white/20 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
@@ -208,25 +210,25 @@ export default function CoursesPage() {
           <div className="flex flex-wrap justify-center gap-4">
             <button
               onClick={() => setFilter("all")}
-              className={`px-6 py-2 rounded-full font-semibold transition-all ${filter === "all" ? "bg-blue-600 text-white" : "bg-white text-gray-700 hover:bg-gray-100"}`}
+              className={`px-6 py-2 rounded-full font-semibold transition-all ${filter === "all" ? "bg-brand-navy text-white" : "bg-white text-gray-700 hover:bg-gray-100"}`}
             >
               {t("allCourses")}
             </button>
             <button
               onClick={() => setFilter("kids")}
-              className={`px-6 py-2 rounded-full font-semibold transition-all ${filter === "kids" ? "bg-blue-600 text-white" : "bg-white text-gray-700 hover:bg-gray-100"}`}
+              className={`px-6 py-2 rounded-full font-semibold transition-all ${filter === "kids" ? "bg-brand-navy text-white" : "bg-white text-gray-700 hover:bg-gray-100"}`}
             >
               {language === "EN" ? "Kids (3-12)" : "Trẻ em (3-12)"}
             </button>
             <button
               onClick={() => setFilter("teens")}
-              className={`px-6 py-2 rounded-full font-semibold transition-all ${filter === "teens" ? "bg-blue-600 text-white" : "bg-white text-gray-700 hover:bg-gray-100"}`}
+              className={`px-6 py-2 rounded-full font-semibold transition-all ${filter === "teens" ? "bg-brand-navy text-white" : "bg-white text-gray-700 hover:bg-gray-100"}`}
             >
               {language === "EN" ? "Teens (13-17)" : "Thiếu niên (13-17)"}
             </button>
             <button
               onClick={() => setFilter("adults")}
-              className={`px-6 py-2 rounded-full font-semibold transition-all ${filter === "adults" ? "bg-blue-600 text-white" : "bg-white text-gray-700 hover:bg-gray-100"}`}
+              className={`px-6 py-2 rounded-full font-semibold transition-all ${filter === "adults" ? "bg-brand-navy text-white" : "bg-white text-gray-700 hover:bg-gray-100"}`}
             >
               {language === "EN" ? "Adults (18+)" : "Người lớn (18+)"}
             </button>
@@ -257,10 +259,10 @@ export default function CoursesPage() {
               </p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="reveal-stagger grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredCourses.map((course) => (
                 <Link key={course.id} href={`/courses/${course.id}`} className="group">
-                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <div className="card-premium overflow-hidden h-full">
                     <div className="h-48 relative overflow-hidden">
                       <img 
                         src={course.imageUrl || COURSE_IMAGES["default"]} 
@@ -313,7 +315,7 @@ export default function CoursesPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
+      <section className="py-16 bg-gradient-to-br from-brand-navy to-brand-navy600 text-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">
             {language === "EN" ? "Not Sure Which Course is Right?" : "Chưa biết khóa học nào phù hợp?"}

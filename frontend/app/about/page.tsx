@@ -6,6 +6,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { publicFetch } from "../../lib/api";
 import { HERO_IMAGES } from "../../config/images";
+import { useReveal } from "../hooks/useReveal";
 
 // Types for dynamic content
 interface Leader {
@@ -64,6 +65,7 @@ const defaultStats: Stats = {
 
 export default function AboutPage() {
   const { language, t } = useLanguage();
+  useReveal();
   const [content, setContent] = useState<AboutContent>(defaultContent);
   const [leaders, setLeaders] = useState<Leader[]>(defaultLeaders);
   const [stats, setStats] = useState<Stats>(defaultStats);
@@ -154,9 +156,9 @@ export default function AboutPage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white relative overflow-hidden">
+      <section className="pt-32 pb-20 bg-gradient-to-br from-brand-navy via-brand-navy600 to-brand-navy text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{backgroundImage: `url('${HERO_IMAGES.about}')`}}></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+        <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <h1 className="text-4xl sm:text-5xl font-bold mb-6">
             {language === "EN" ? content.heroTitle.EN : content.heroTitle.VI}
           </h1>
@@ -168,8 +170,8 @@ export default function AboutPage() {
 
       {/* Story Section */}
       <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-12">
+        <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="reveal-stagger grid md:grid-cols-3 gap-12">
             <div className="text-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl hover:shadow-lg transition-shadow">
               <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-4xl">📖</span>
@@ -209,22 +211,22 @@ export default function AboutPage() {
 
       {/* Stats Section - Dynamic */}
       <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div className="p-6 bg-white rounded-2xl shadow-md">
-              <p className="text-3xl sm:text-4xl font-bold text-blue-600 mb-2">{stats.students}</p>
+        <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="reveal-stagger grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div className="card-premium p-6">
+              <p className="text-3xl sm:text-4xl font-bold text-brand-navy mb-2">{stats.students}</p>
               <p className="text-gray-600">{language === "EN" ? "Students per class" : "Học viên mỗi lớp"}</p>
             </div>
-            <div className="p-6 bg-white rounded-2xl shadow-md">
-              <p className="text-3xl sm:text-4xl font-bold text-blue-600 mb-2">{stats.teachers}</p>
+            <div className="card-premium p-6">
+              <p className="text-3xl sm:text-4xl font-bold text-brand-navy mb-2">{stats.teachers}</p>
               <p className="text-gray-600">{language === "EN" ? "Qualified teachers" : "Giáo viên đạt chuẩn"}</p>
             </div>
-            <div className="p-6 bg-white rounded-2xl shadow-md">
-              <p className="text-3xl sm:text-4xl font-bold text-blue-600 mb-2">{stats.centers}</p>
+            <div className="card-premium p-6">
+              <p className="text-3xl sm:text-4xl font-bold text-brand-navy mb-2">{stats.centers}</p>
               <p className="text-gray-600">{language === "EN" ? "Aligned curriculum" : "Chương trình chuẩn"}</p>
             </div>
-            <div className="p-6 bg-white rounded-2xl shadow-md">
-              <p className="text-3xl sm:text-4xl font-bold text-blue-600 mb-2">{stats.satisfaction}</p>
+            <div className="card-premium p-6">
+              <p className="text-3xl sm:text-4xl font-bold text-brand-navy mb-2">{stats.satisfaction}</p>
               <p className="text-gray-600">{language === "EN" ? "Welcoming ages from" : "Đón nhận từ độ tuổi"}</p>
             </div>
           </div>
@@ -234,7 +236,7 @@ export default function AboutPage() {
       {/* Leadership Section — shown only when real leadership data exists */}
       {(isLoading || leaders.length > 0) && (
       <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
             {language === "EN" ? "Leadership Team" : "Đội ngũ lãnh đạo"}
           </h2>
@@ -249,9 +251,9 @@ export default function AboutPage() {
               ))}
             </div>
           ) : (
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="reveal-stagger grid md:grid-cols-3 gap-8">
               {leaders.map((leader) => (
-                <div key={leader.id} className="text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                <div key={leader.id} className="card-premium text-center p-8">
                   <div className="w-32 h-32 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-6 overflow-hidden">
                     {leader.image?.startsWith('http') ? (
                       <img src={leader.image} alt={leader.name} className="w-full h-full object-cover" />
@@ -260,7 +262,7 @@ export default function AboutPage() {
                     )}
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{leader.name}</h3>
-                  <p className="text-blue-600">{language === "EN" ? leader.role : (leader.roleVi || leader.role)}</p>
+                  <p className="text-brand-navy">{language === "EN" ? leader.role : (leader.roleVi || leader.role)}</p>
                   {leader.bio && (
                     <p className="text-gray-500 text-sm mt-3">
                       {language === "EN" ? leader.bio : (leader.bioVi || leader.bio)}
@@ -275,8 +277,8 @@ export default function AboutPage() {
       )}
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
-        <div className="max-w-4xl mx-auto px-4 text-center">
+      <section className="py-16 bg-gradient-to-br from-brand-navy to-brand-navy600 text-white">
+        <div className="reveal max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">
             {language === "EN" ? "Join Our Learning Community" : "Tham gia cộng đồng học tập của chúng tôi"}
           </h2>

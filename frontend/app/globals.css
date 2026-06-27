@@ -37,21 +37,53 @@ img {
    PREMIUM COMPONENT UTILITIES (public site)
    ============================================ */
 @layer components {
+  /* Cards — premium lift with refined easing (craft, not bounce) */
   .card-premium {
-    @apply rounded-2xl border border-gray-100 bg-white shadow-card transition-all duration-300;
+    @apply rounded-2xl border border-gray-100 bg-white shadow-card;
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
   }
   .card-premium:hover {
-    @apply shadow-lift -translate-y-1;
+    @apply shadow-lift;
+    transform: translateY(-6px);
   }
+  /* Buttons — hover lift + tactile press feedback */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-brand-orange600 text-white px-7 py-3.5 rounded-full font-semibold shadow-soft transition-all hover:shadow-lift;
+    @apply inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-brand-orange600 text-white px-7 py-3.5 rounded-full font-semibold shadow-soft transition-all hover:shadow-lift active:scale-[0.97];
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 border border-brand-navy text-brand-navy hover:bg-brand-navy hover:text-white px-7 py-3.5 rounded-full font-semibold transition-all;
+    @apply inline-flex items-center justify-center gap-2 border border-brand-navy text-brand-navy hover:bg-brand-navy hover:text-white px-7 py-3.5 rounded-full font-semibold transition-all active:scale-[0.97];
   }
+  /* Section hierarchy — consistent eyebrow → title → lead rhythm across every page */
   .section-eyebrow {
-    @apply text-sm font-semibold tracking-wider uppercase text-blue-600;
+    @apply text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3;
   }
+  .section-title {
+    @apply font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy;
+  }
+  .section-lead {
+    @apply mt-4 text-lg text-gray-600 leading-relaxed;
+  }
+}
+
+/* Staggered scroll-reveal: children fade up in sequence. Add `reveal-stagger`
+   to a grid/row container; useReveal adds `.active` when it enters the viewport. */
+.reveal-stagger > * { opacity: 0; }
+.reveal-stagger.active > * { animation: revealUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.reveal-stagger.active > *:nth-child(1) { animation-delay: 0.02s; }
+.reveal-stagger.active > *:nth-child(2) { animation-delay: 0.08s; }
+.reveal-stagger.active > *:nth-child(3) { animation-delay: 0.14s; }
+.reveal-stagger.active > *:nth-child(4) { animation-delay: 0.20s; }
+.reveal-stagger.active > *:nth-child(5) { animation-delay: 0.26s; }
+.reveal-stagger.active > *:nth-child(6) { animation-delay: 0.32s; }
+.reveal-stagger.active > *:nth-child(n + 7) { animation-delay: 0.36s; }
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal-stagger > * { opacity: 1; }
+  .reveal-stagger.active > * { animation: none; }
 }
 
 /* ============================================

@@ -6,6 +6,7 @@ import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { publicFetch } from "../../lib/api";
+import { useReveal } from "../hooks/useReveal";
 
 interface Course {
   code: string;
@@ -37,6 +38,7 @@ const ageLabel = (c: Course, en: boolean) => {
 
 export default function PricingPage() {
   const { language } = useLanguage();
+  useReveal();
   const EN = language === "EN";
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,8 +67,8 @@ export default function PricingPage() {
       <Header />
 
       {/* Hero */}
-      <section className="pt-32 pb-16 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white">
-        <div className="max-w-5xl mx-auto px-4 text-center">
+      <section className="pt-32 pb-16 bg-gradient-to-br from-brand-navy via-brand-navy600 to-brand-navy text-white">
+        <div className="reveal max-w-5xl mx-auto px-4 text-center">
           <span className="inline-block px-4 py-2 bg-white/15 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             {EN ? "💳 Transparent pricing" : "💳 Học phí minh bạch"}
           </span>
@@ -83,15 +85,15 @@ export default function PricingPage() {
 
       {/* Pricing table */}
       <section className="py-16">
-        <div className="max-w-5xl mx-auto px-4">
+        <div className="reveal max-w-5xl mx-auto px-4">
           {loading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-navy" />
             </div>
           ) : courses.length === 0 ? (
             <p className="text-center text-gray-500">{EN ? "Pricing is being updated — please contact us." : "Học phí đang được cập nhật — vui lòng liên hệ."}</p>
           ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="card-premium overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead className="bg-gray-50 text-gray-600 text-sm">
@@ -115,12 +117,12 @@ export default function PricingPage() {
                           {c.sessionsPerWeek ? `${c.sessionsPerWeek}× / ${EN ? "week" : "tuần"}` : "—"}
                         </td>
                         <td className="px-5 py-4 text-gray-600 hidden md:table-cell">{c.maxClassSize ? `≤${c.maxClassSize}` : "—"}</td>
-                        <td className="px-5 py-4 text-right font-bold text-[#0a1a5c] whitespace-nowrap">{fmt(c.price)}</td>
+                        <td className="px-5 py-4 text-right font-bold text-brand-navy whitespace-nowrap">{fmt(c.price)}</td>
                         <td className="px-5 py-4 text-right whitespace-nowrap">
                           <Link href={`/courses/${CODE_TO_SLUG[c.code] || ""}`} className="text-gray-500 font-medium hover:text-gray-700 mr-4">
                             {EN ? "Details" : "Chi tiết"}
                           </Link>
-                          <Link href={`/enroll?course=${c.code}`} className="text-blue-600 font-semibold hover:text-blue-700">
+                          <Link href={`/enroll?course=${c.code}`} className="text-brand-orange font-semibold hover:opacity-80">
                             {EN ? "Enrol →" : "Đăng ký →"}
                           </Link>
                         </td>
@@ -142,8 +144,8 @@ export default function PricingPage() {
 
       {/* What's included */}
       <section className="pb-16">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="reveal max-w-4xl mx-auto px-4">
+          <div className="card-premium p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
               {EN ? "Every programme includes" : "Mọi chương trình đều bao gồm"}
             </h2>
@@ -160,15 +162,15 @@ export default function PricingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 bg-blue-600 text-white">
-        <div className="max-w-4xl mx-auto px-4 text-center">
+      <section className="py-16 bg-gradient-to-br from-brand-navy to-brand-navy600 text-white">
+        <div className="reveal max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">
             {EN ? "Try before you enrol" : "Học thử trước khi đăng ký"}
           </h2>
           <p className="text-white/80 mb-8">
             {EN ? "Book a free trial lesson — no commitment." : "Đặt buổi học thử miễn phí — không ràng buộc."}
           </p>
-          <Link href="/book-trial" className="inline-block px-8 py-4 bg-yellow-400 text-gray-900 font-bold rounded-xl hover:bg-yellow-300 transition-colors">
+          <Link href="/book-trial" className="btn-primary">
             {EN ? "Book a free trial →" : "Đăng ký học thử →"}
           </Link>
         </div>
