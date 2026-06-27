@@ -9,7 +9,7 @@ import { useLanguage } from "../../context/LanguageContext";
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState([
     { labelKey: "totalCenters", value: "...", icon: "🏢", color: "bg-blue-500", href: "/dashboard/superadmin/centers" },
@@ -31,8 +31,19 @@ export default function SuperAdminDashboard() {
       return;
     }
 
-    // Set user info
-    setUser({ role: role, email: Cookies.get("email") || "admin@lera.com" });
+    // Set user info — read the real name/role from userData so the header reflects who is
+    // actually signed in (a CHAIRMAN is god, not a generic "Administrator").
+    let fullname = "";
+    let realRole = role || "";
+    try {
+      const ud = Cookies.get("userData");
+      if (ud) {
+        const parsed = JSON.parse(ud);
+        fullname = parsed.fullname || parsed.name || "";
+        realRole = (parsed.roleName || parsed.role || role || "").toString();
+      }
+    } catch {}
+    setUser({ role: realRole, name: fullname, email: Cookies.get("email") || "admin@lera.com" });
 
     // Fetch real dashboard data
     const fetchDashboardData = async () => {
@@ -172,10 +183,29 @@ export default function SuperAdminDashboard() {
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{t("dashboard")} SuperAdmin</h1>
-              <p className="text-sm text-gray-600 mt-1">{t("welcomeBackAdmin")}</p>
-            </div>
+            {(() => {
+              const isChairman = (user?.role || "").toUpperCase() === "CHAIRMAN";
+              const title = isChairman
+                ? (language === "VI" ? "Bảng điều khiển Chủ tịch" : "Chairman Console")
+                : `${t("dashboard")} SuperAdmin`;
+              const greeting = user?.name
+                ? (language === "VI" ? `Chào mừng trở lại, ${user.name}` : `Welcome back, ${user.name}`)
+                : t("welcomeBackAdmin");
+              return (
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+                    {isChairman && (
+                      <span className="px-2 py-0.5 rounded-full bg-yellow-400 text-yellow-900 text-xs font-bold">👑 OWNER</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {greeting}
+                    {isChairman && <span className="text-gray-400"> · {language === "VI" ? "Toàn quyền truy cập" : "Full access to everything"}</span>}
+                  </p>
+                </div>
+              );
+            })()}
             <div className="flex items-center space-x-4">
               <Link
                 href="/"
