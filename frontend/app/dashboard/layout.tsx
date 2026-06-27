@@ -357,6 +357,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         permission: "settings" as const,
         children: [
           { name: `📊 ${t("controlCenter")}`, href: "/dashboard/chairman" },
+          { name: `🤖 ${language === "VI" ? "Trợ lý AI (Claude)" : "AI Assistant (Claude)"}`, href: "/dashboard/chairman/ai" },
           { name: `👥 ${t("userManagement")}`, href: "/dashboard/chairman/users" },
           { name: `👨‍🏫 ${t("staffManagement")}`, href: "/dashboard/chairman/staff" },
           { name: `🏛️ ${t("boardOfDirectors")}`, href: "/dashboard/chairman/board" },
