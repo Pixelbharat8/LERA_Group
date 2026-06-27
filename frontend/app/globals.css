@@ -43,6 +43,13 @@ h1, h2, h3, h4 {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+  /* Page-header / toolbar rows (title on the left, action buttons on the right) wrap on phones
+     so the buttons drop below the title instead of overflowing. flex-wrap only wraps when the
+     row actually overflows, so well-fitting rows are unaffected. */
+  main .flex.justify-between.items-center {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
   /* Catch-all: stop any stray wide element forcing a whole-page sideways scroll on phones.
      Tables + tab strips keep their own horizontal scroll (above), so content stays reachable. */
   main {
