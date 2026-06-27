@@ -24,6 +24,7 @@ export default function CEODashboard() {
   const [recentPayments, setRecentPayments] = useState<any[]>([]);
 
   const quickActions = [
+    { label: "Center Management", href: "/dashboard/ceo/center-management", icon: "🎛️", color: "bg-slate-700" },
     { label: t("financialReports"), href: "/dashboard/ceo/finance", icon: "💰", color: "bg-green-600" },
     { label: "E2E Funnel", href: "/dashboard/ceo/funnel", icon: "🪜", color: "bg-indigo-600" },
     { label: t("allCenters"), href: "/dashboard/ceo/centers", icon: "🏢", color: "bg-blue-600" },
