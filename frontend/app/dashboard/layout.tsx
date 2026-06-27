@@ -609,6 +609,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       children: [
         { name: ` ${language === "VI" ? "Thông báo" : "Notifications"}`, href: "/dashboard/notifications" },
         { name: `🤖 ${language === "VI" ? "Trợ lý AI" : "AI Tutor"}`, href: "/dashboard/ai-tutor" },
+        ...((hasPermission("aiAssistant" as any) || isChairman || isSuperAdmin)
+          ? [{ name: `🎨 ${language === "VI" ? "Xưởng AI (Trò chơi/Slide)" : "AI Studio (Game/Slides)"}`, href: "/dashboard/teacher/ai-studio" }]
+          : []),
         { name: `🌐 ${language === "VI" ? "Cộng đồng" : "Social"}`, href: "/dashboard/social" },
         { name: `📊 ${language === "VI" ? "Báo cáo" : "Reports"}`, href: "/dashboard/reports" },
         { name: `📉 ${language === "VI" ? "Giữ chân theo nhóm" : "Cohort Retention"}`, href: "/dashboard/reports/cohorts" },

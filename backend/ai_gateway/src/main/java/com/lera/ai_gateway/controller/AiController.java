@@ -137,6 +137,86 @@ public class AiController {
         }
     }
 
+    private final com.fasterxml.jackson.databind.ObjectMapper json = new com.fasterxml.jackson.databind.ObjectMapper();
+
+    /** Extract a JSON object from an AI reply (tolerates ```json fences / surrounding prose). */
+    private Map<String, Object> extractJson(Object message) {
+        if (message == null) return null;
+        String s = message.toString().trim();
+        int a = s.indexOf('{'), b = s.lastIndexOf('}');
+        if (a < 0 || b <= a) return null;
+        try {
+            return json.readValue(s.substring(a, b + 1), Map.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Generate an interactive multiple-choice GAME from a lesson topic/plan (Teacher AI Studio).
+     * Returns structured JSON the frontend renders as a playable quiz; falls back to a real
+     * sample game (so the feature works) if no API key is set or the model returns prose.
+     */
+    @PostMapping("/generate-game")
+    public ResponseEntity<?> generateGame(@RequestBody Map<String, Object> req) {
+        String topic = String.valueOf(req.getOrDefault("topic", "English lesson"));
+        String level = String.valueOf(req.getOrDefault("level", "beginner"));
+        String system = "You are an expert English teacher building a fun classroom QUIZ game. Reply with ONLY valid JSON, no prose, no markdown fences.";
+        String prompt = "Create a multiple-choice quiz game for this lesson: \"" + topic + "\" (level: " + level + "). "
+            + "JSON shape: {\"title\": string, \"instructions\": string, \"questions\": "
+            + "[{\"q\": string, \"options\": [string,string,string,string], \"correct\": number(0-3), \"explain\": string}]}. "
+            + "Make exactly 6 age-appropriate questions tied to the lesson.";
+        Map<String, Object> r = openAIService.chat(prompt, system, null);
+        Map<String, Object> game = extractJson(r.get("message"));
+        if (game == null || !game.containsKey("questions")) game = sampleGame(topic);
+        game.put("usingRealAI", r.getOrDefault("success", false));
+        game.put("tokensUsed", r.getOrDefault("tokensUsed", 0));
+        return ResponseEntity.ok(game);
+    }
+
+    /**
+     * Generate an interactive PRESENTATION (slides) from a lesson topic/plan. Returns structured
+     * JSON the frontend renders as a slideshow; falls back to a real sample deck if unconfigured.
+     */
+    @PostMapping("/generate-presentation")
+    public ResponseEntity<?> generatePresentation(@RequestBody Map<String, Object> req) {
+        String topic = String.valueOf(req.getOrDefault("topic", "English lesson"));
+        String level = String.valueOf(req.getOrDefault("level", "beginner"));
+        String system = "You are an expert English teacher building an engaging class slide deck. Reply with ONLY valid JSON, no prose, no markdown fences.";
+        String prompt = "Create an interactive lesson presentation for: \"" + topic + "\" (level: " + level + "). "
+            + "JSON shape: {\"title\": string, \"slides\": [{\"title\": string, \"bullets\": [string], \"note\": string}]}. "
+            + "Make 6-8 slides: intro, key vocabulary, grammar/concept, examples, a practice activity, and a recap.";
+        Map<String, Object> r = openAIService.chat(prompt, system, null);
+        Map<String, Object> deck = extractJson(r.get("message"));
+        if (deck == null || !deck.containsKey("slides")) deck = samplePresentation(topic);
+        deck.put("usingRealAI", r.getOrDefault("success", false));
+        deck.put("tokensUsed", r.getOrDefault("tokensUsed", 0));
+        return ResponseEntity.ok(deck);
+    }
+
+    private Map<String, Object> sampleGame(String topic) {
+        List<Map<String, Object>> qs = new ArrayList<>();
+        qs.add(Map.of("q", "Which sentence is in the present simple?", "options", List.of("She is running.", "She runs every day.", "She has run.", "She will run."), "correct", 1, "explain", "Present simple states a habit: 'runs every day'."));
+        qs.add(Map.of("q", "Choose the correct article: ___ apple a day.", "options", List.of("A", "An", "The", "(none)"), "correct", 1, "explain", "'An' before a vowel sound."));
+        qs.add(Map.of("q", "What is the opposite of 'happy'?", "options", List.of("sad", "tall", "fast", "blue"), "correct", 0, "explain", "'Sad' is the antonym of 'happy'."));
+        return new HashMap<>(Map.of(
+            "title", "Quiz: " + topic,
+            "instructions", "Pick the correct answer for each question. (Sample — add a Claude API key in AI Gateway for AI-generated games on your real lesson.)",
+            "questions", qs));
+    }
+
+    private Map<String, Object> samplePresentation(String topic) {
+        List<Map<String, Object>> slides = new ArrayList<>();
+        slides.add(Map.of("title", topic, "bullets", List.of("Today's objective", "Why it matters", "What we'll practice"), "note", "Welcome + warm-up."));
+        slides.add(Map.of("title", "Key vocabulary", "bullets", List.of("Word 1 — meaning + example", "Word 2 — meaning + example", "Word 3 — meaning + example"), "note", "Drill pronunciation."));
+        slides.add(Map.of("title", "Concept", "bullets", List.of("The rule, simply stated", "A clear example", "A common mistake to avoid"), "note", "Check understanding."));
+        slides.add(Map.of("title", "Practice activity", "bullets", List.of("Pair work: make 3 sentences", "Share with the class", "Teacher feedback"), "note", "5–7 minutes."));
+        slides.add(Map.of("title", "Recap", "bullets", List.of("What we learned", "Homework", "Next lesson preview"), "note", "Exit ticket."));
+        return new HashMap<>(Map.of(
+            "title", topic,
+            "slides", slides));
+    }
+
     // AI Tutoring endpoint
     @PostMapping("/tutor")
     public ResponseEntity<?> tutor(@Valid @RequestBody Map<String, Object> request) {
