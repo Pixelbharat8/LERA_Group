@@ -3,6 +3,7 @@ package com.lera.ai_gateway.controller;
 import com.lera.ai_gateway.security.AiGatewaySecurity;
 import com.lera.ai_gateway.security.AuthUser;
 import com.lera.ai_gateway.service.AcademyStudentAccessClient;
+import com.lera.ai_gateway.service.AiConfigService;
 import com.lera.ai_gateway.service.OpenAIService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,16 +23,58 @@ public class AiController {
 
     private final OpenAIService openAIService;
     private final AcademyStudentAccessClient academyStudentAccess;
+    private final AiConfigService aiConfig;
 
     // Health check
     @GetMapping("/health")
     public ResponseEntity<?> health() {
+        AiConfigService.AiSettings s = aiConfig.resolve();
         return ResponseEntity.ok(Map.of(
             "status", "UP",
             "service", "AI Gateway",
             "timestamp", LocalDateTime.now().toString(),
-            "models", Arrays.asList("GPT-4", "GPT-4-Turbo", "GPT-4o-mini", "Claude-3", "Gemini-Pro"),
-            "openaiConfigured", openAIService.isConfigured()
+            "provider", s.provider(),
+            "model", s.model(),
+            "configured", openAIService.isConfigured()
+        ));
+    }
+
+    /**
+     * Current AI provider config (admin). The API key is NEVER returned — only whether one is set
+     * and its last 4 chars, so the UI can show "•••• abcd" without exposing the secret.
+     */
+    @GetMapping("/config")
+    public ResponseEntity<?> getConfig(@AuthenticationPrincipal AuthUser authUser) {
+        AiGatewaySecurity.assertOrgWide(authUser);
+        AiConfigService.AiSettings s = aiConfig.resolve();
+        String key = s.apiKey() == null ? "" : s.apiKey();
+        Map<String, Object> body = new HashMap<>();
+        body.put("provider", s.provider());
+        body.put("model", s.model());
+        body.put("configured", key != null && !key.isBlank());
+        body.put("keyHint", key.length() >= 4 ? "•••• " + key.substring(key.length() - 4) : "");
+        body.put("providers", Arrays.asList("anthropic", "openai"));
+        return ResponseEntity.ok(body);
+    }
+
+    /**
+     * Set the AI provider / API key / model (admin). Persists to system_settings so it takes
+     * effect immediately without a redeploy — this is the "add your own API" path.
+     */
+    @PutMapping("/config")
+    public ResponseEntity<?> setConfig(@RequestBody Map<String, Object> req,
+                                       @AuthenticationPrincipal AuthUser authUser) {
+        AiGatewaySecurity.assertOrgWide(authUser);
+        String provider = (String) req.get("provider");
+        String apiKey = (String) req.get("apiKey");
+        String model = (String) req.get("model");
+        aiConfig.save(provider, apiKey, model);
+        AiConfigService.AiSettings s = aiConfig.resolve();
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "provider", s.provider(),
+            "model", s.model(),
+            "configured", openAIService.isConfigured()
         ));
     }
 

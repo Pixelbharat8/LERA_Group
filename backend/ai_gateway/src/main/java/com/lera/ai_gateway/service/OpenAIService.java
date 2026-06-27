@@ -32,89 +32,40 @@ public class OpenAIService {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Autowired
+    private AiConfigService aiConfig;
+
     /**
-     * Check if OpenAI API is configured
+     * Whether a real AI provider (Claude or OpenAI-compatible) is configured — via an admin-set
+     * key in system_settings, or env. A non-OpenAI custom base URL (internal gateway) also counts.
      */
     public boolean isConfigured() {
-        boolean hasKey = openaiApiKey != null && !openaiApiKey.isEmpty();
-        // An internal gateway (e.g. Axiom) may not need a key — a custom base URL is enough.
-        boolean customEndpoint = openaiApiUrl != null && !openaiApiUrl.contains("api.openai.com");
-        return hasKey || customEndpoint;
+        AiConfigService.AiSettings s = aiConfig.resolve();
+        boolean customEndpoint = s.url() != null
+                && !s.url().contains("api.openai.com")
+                && !s.url().contains("api.anthropic.com");
+        return s.configured() || customEndpoint;
     }
 
     /**
-     * Send a chat message to OpenAI
+     * Send a chat message to the active provider (Anthropic Claude or OpenAI-compatible).
+     * Falls back to a canned educational response if no provider is configured or the call fails.
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public Map<String, Object> chat(String message, String systemPrompt, String model) {
+        AiConfigService.AiSettings s = aiConfig.resolve();
         if (!isConfigured()) {
             return Map.of(
                 "success", false,
-                "error", "AI provider not configured. Set AI_BASE_URL (+ optional AI_API_KEY) to your gateway, e.g. Axiom.",
+                "error", "AI provider not configured. Add an API key in Super Admin → AI Gateway "
+                    + "(or set ANTHROPIC_API_KEY / AI_BASE_URL).",
                 "message", generateFallbackResponse(message, systemPrompt)
             );
         }
-
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            // Only send a bearer token when one is configured (an internal gateway may not need it).
-            if (openaiApiKey != null && !openaiApiKey.isEmpty()) {
-                headers.setBearerAuth(openaiApiKey);
+            if (AiConfigService.PROVIDER_ANTHROPIC.equals(s.provider())) {
+                return chatAnthropic(s, message, systemPrompt, model);
             }
-
-            List<Map<String, String>> messages = new ArrayList<>();
-            
-            // Add system prompt if provided
-            if (systemPrompt != null && !systemPrompt.isEmpty()) {
-                messages.add(Map.of("role", "system", "content", systemPrompt));
-            }
-            
-            // Add user message
-            messages.add(Map.of("role", "user", "content", message));
-
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", model != null ? model : defaultModel);
-            requestBody.put("messages", messages);
-            requestBody.put("max_tokens", maxTokens);
-            requestBody.put("temperature", temperature);
-
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-
-            ResponseEntity<Map> response = restTemplate.exchange(
-                openaiApiUrl,
-                HttpMethod.POST,
-                entity,
-                Map.class
-            );
-
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                Map<String, Object> responseBody = response.getBody();
-                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
-                
-                if (choices != null && !choices.isEmpty()) {
-                    Map<String, Object> choice = choices.get(0);
-                    Map<String, String> messageContent = (Map<String, String>) choice.get("message");
-                    
-                    Map<String, Object> usage = (Map<String, Object>) responseBody.get("usage");
-                    
-                    return Map.of(
-                        "success", true,
-                        "message", messageContent.get("content"),
-                        "model", model != null ? model : defaultModel,
-                        "tokensUsed", usage != null ? usage.get("total_tokens") : 0,
-                        "promptTokens", usage != null ? usage.get("prompt_tokens") : 0,
-                        "completionTokens", usage != null ? usage.get("completion_tokens") : 0
-                    );
-                }
-            }
-            
-            return Map.of(
-                "success", false,
-                "error", "Empty response from OpenAI",
-                "message", generateFallbackResponse(message, systemPrompt)
-            );
-
+            return chatOpenAi(s, message, systemPrompt, model);
         } catch (Exception e) {
             return Map.of(
                 "success", false,
@@ -122,6 +73,102 @@ public class OpenAIService {
                 "message", generateFallbackResponse(message, systemPrompt)
             );
         }
+    }
+
+    /** Anthropic Messages API (/v1/messages): x-api-key + anthropic-version headers, system + messages. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private Map<String, Object> chatAnthropic(AiConfigService.AiSettings s, String message, String systemPrompt, String model) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("x-api-key", s.apiKey());
+        headers.set("anthropic-version", s.version());
+
+        String useModel = (model != null && model.toLowerCase().contains("claude")) ? model : s.model();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("model", useModel);
+        body.put("max_tokens", maxTokens);
+        body.put("messages", List.of(Map.of("role", "user", "content", message)));
+        if (systemPrompt != null && !systemPrompt.isEmpty()) {
+            body.put("system", systemPrompt);
+        }
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+            s.url(), HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+
+        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+            Map<String, Object> rb = response.getBody();
+            List<Map<String, Object>> content = (List<Map<String, Object>>) rb.get("content");
+            String text = "";
+            if (content != null) {
+                for (Map<String, Object> block : content) {
+                    if ("text".equals(block.get("type")) && block.get("text") != null) {
+                        text = String.valueOf(block.get("text"));
+                        break;
+                    }
+                }
+            }
+            Map<String, Object> usage = (Map<String, Object>) rb.get("usage");
+            int inTok = usage != null && usage.get("input_tokens") != null ? ((Number) usage.get("input_tokens")).intValue() : 0;
+            int outTok = usage != null && usage.get("output_tokens") != null ? ((Number) usage.get("output_tokens")).intValue() : 0;
+            return Map.of(
+                "success", true,
+                "message", text,
+                "model", useModel,
+                "provider", "anthropic",
+                "tokensUsed", inTok + outTok,
+                "promptTokens", inTok,
+                "completionTokens", outTok
+            );
+        }
+        return Map.of("success", false, "error", "Empty response from Claude",
+            "message", generateFallbackResponse(message, systemPrompt));
+    }
+
+    /** OpenAI-compatible /chat/completions (also covers in-house gateways like Axiom). */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private Map<String, Object> chatOpenAi(AiConfigService.AiSettings s, String message, String systemPrompt, String model) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (s.apiKey() != null && !s.apiKey().isEmpty()) {
+            headers.setBearerAuth(s.apiKey());
+        }
+        String useModel = (model != null && !model.isBlank() && !model.toLowerCase().contains("claude")) ? model : s.model();
+
+        List<Map<String, String>> messages = new ArrayList<>();
+        if (systemPrompt != null && !systemPrompt.isEmpty()) {
+            messages.add(Map.of("role", "system", "content", systemPrompt));
+        }
+        messages.add(Map.of("role", "user", "content", message));
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", useModel);
+        requestBody.put("messages", messages);
+        requestBody.put("max_tokens", maxTokens);
+        requestBody.put("temperature", temperature);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+            s.url(), HttpMethod.POST, new HttpEntity<>(requestBody, headers), Map.class);
+
+        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+            Map<String, Object> responseBody = response.getBody();
+            List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+            if (choices != null && !choices.isEmpty()) {
+                Map<String, String> messageContent = (Map<String, String>) choices.get(0).get("message");
+                Map<String, Object> usage = (Map<String, Object>) responseBody.get("usage");
+                return Map.of(
+                    "success", true,
+                    "message", messageContent.get("content"),
+                    "model", useModel,
+                    "provider", "openai",
+                    "tokensUsed", usage != null ? usage.get("total_tokens") : 0,
+                    "promptTokens", usage != null ? usage.get("prompt_tokens") : 0,
+                    "completionTokens", usage != null ? usage.get("completion_tokens") : 0
+                );
+            }
+        }
+        return Map.of("success", false, "error", "Empty response from provider",
+            "message", generateFallbackResponse(message, systemPrompt));
     }
 
     /**

@@ -24,10 +24,71 @@ export default function AIGatewayPage() {
     chatbotQueries: 0,
   });
 
+  // AI provider config (admin-settable; the key lives in system_settings, never returned in full)
+  const [cfg, setCfg] = useState<{ provider: string; model: string; configured: boolean; keyHint: string; providers: string[] }>(
+    { provider: "anthropic", model: "", configured: false, keyHint: "", providers: ["anthropic", "openai"] }
+  );
+  const [form, setForm] = useState({ provider: "anthropic", apiKey: "", model: "" });
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState("");
+  const [testInput, setTestInput] = useState("Explain the present perfect tense to a beginner in 2 sentences.");
+  const [testOut, setTestOut] = useState<{ message: string; usingRealAI: boolean; tokensUsed: number; model: string } | null>(null);
+  const [testing, setTesting] = useState(false);
+
   useEffect(() => {
     checkServiceStatus();
     fetchStats();
+    loadConfig();
   }, []);
+
+  const loadConfig = async () => {
+    try {
+      const c = await apiFetch("/api/ai/config").catch(() => null);
+      if (c) {
+        setCfg(c);
+        setForm({ provider: c.provider || "anthropic", apiKey: "", model: c.model || "" });
+      }
+    } catch {}
+  };
+
+  const saveConfig = async () => {
+    setSaving(true);
+    setSaveMsg("");
+    try {
+      const body: any = { provider: form.provider, model: form.model };
+      if (form.apiKey.trim()) body.apiKey = form.apiKey.trim();
+      const res = await apiFetch("/api/ai/config", { method: "PUT", body: JSON.stringify(body) });
+      setSaveMsg(res?.configured ? "✓ Saved — provider is configured." : "✓ Saved — add an API key to activate.");
+      setForm((f) => ({ ...f, apiKey: "" }));
+      await loadConfig();
+      await checkServiceStatus();
+    } catch (e: any) {
+      setSaveMsg("Could not save: " + (e?.message || "error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const runTest = async () => {
+    setTesting(true);
+    setTestOut(null);
+    try {
+      const res = await apiFetch("/api/ai/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: testInput, subject: "English" }),
+      });
+      setTestOut({
+        message: res?.message || "(no response)",
+        usingRealAI: !!res?.usingRealAI,
+        tokensUsed: res?.tokensUsed || 0,
+        model: res?.model || cfg.model,
+      });
+    } catch (e: any) {
+      setTestOut({ message: "Error: " + (e?.message || "request failed"), usingRealAI: false, tokensUsed: 0, model: cfg.model });
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const checkServiceStatus = async () => {
     setLoading(true);
@@ -38,9 +99,14 @@ export default function AIGatewayPage() {
       // Check Rule Engine
       const ruleEngine = await apiFetch("/api/rules/health").then(() => "running").catch(() => "stopped");
 
+      const health = await apiFetch("/api/ai/health").catch(() => null);
       setServices([
-        { name: "AI Gateway Service", status: aiGateway as any, port: "8087" },
-        { name: "OpenAI Integration", status: "not_configured", message: "API key required" },
+        { name: "AI Gateway Service", status: aiGateway as any, port: "8090" },
+        {
+          name: `AI Provider (${health?.provider || "—"})`,
+          status: health?.configured ? "running" : "not_configured",
+          message: health?.configured ? `Model: ${health?.model}` : "API key required",
+        },
         { name: "Rule Engine", status: ruleEngine as any, port: "8088" },
       ]);
     } catch (error) {
@@ -145,6 +211,98 @@ export default function AIGatewayPage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* AI Provider Configuration */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-xl font-bold">AI Provider Configuration</h2>
+              <span className={`px-2.5 py-1 text-xs rounded-full ${cfg.configured ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
+                {cfg.configured ? "Configured" : "No API key"}
+              </span>
+            </div>
+            <p className="text-sm text-gray-500 mb-5">
+              Connect Claude (or an OpenAI-compatible provider). Your API key is stored securely and never shown again — paste a new one anytime to replace it.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Provider</label>
+                <select
+                  value={form.provider}
+                  onChange={(e) => setForm({ ...form, provider: e.target.value, model: e.target.value === "anthropic" ? "claude-3-5-sonnet-20241022" : "gpt-4o-mini" })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                >
+                  <option value="anthropic">Claude (Anthropic)</option>
+                  <option value="openai">OpenAI-compatible</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                <input
+                  type="text"
+                  value={form.model}
+                  onChange={(e) => setForm({ ...form, model: e.target.value })}
+                  placeholder="claude-3-5-sonnet-20241022"
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  API Key {cfg.keyHint && <span className="text-gray-400 font-normal">(current: {cfg.keyHint})</span>}
+                </label>
+                <input
+                  type="password"
+                  value={form.apiKey}
+                  onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
+                  placeholder={cfg.configured ? "•••• (leave blank to keep)" : "sk-ant-..."}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-5">
+              <button
+                onClick={saveConfig}
+                disabled={saving}
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {saving ? "Saving…" : "Save configuration"}
+              </button>
+              {saveMsg && <span className="text-sm text-gray-600">{saveMsg}</span>}
+            </div>
+            <p className="text-xs text-gray-400 mt-3">
+              Get a Claude key at console.anthropic.com → API Keys. The key is held server-side; switching providers/keys takes effect immediately (no redeploy).
+            </p>
+          </div>
+
+          {/* Test the AI */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-4">Test the AI</h2>
+            <textarea
+              value={testInput}
+              onChange={(e) => setTestInput(e.target.value)}
+              rows={2}
+              className="w-full px-3 py-2 border rounded-lg mb-3"
+              placeholder="Ask anything…"
+            />
+            <button
+              onClick={runTest}
+              disabled={testing || !testInput.trim()}
+              className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+            >
+              {testing ? "Asking…" : "Send test message"}
+            </button>
+            {testOut && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3 mb-2 text-xs">
+                  <span className={`px-2 py-0.5 rounded-full ${testOut.usingRealAI ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-700"}`}>
+                    {testOut.usingRealAI ? `Live AI · ${testOut.model}` : "Fallback (no key) — add a key above"}
+                  </span>
+                  {testOut.usingRealAI && <span className="text-gray-400">{testOut.tokensUsed} tokens</span>}
+                </div>
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">{testOut.message}</p>
+              </div>
+            )}
           </div>
         </>
       )}
