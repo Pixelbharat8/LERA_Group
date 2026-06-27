@@ -35,8 +35,16 @@ h1, h2, h3, h4 {
     max-width: 100%;
     overflow-x: auto;
   }
+  /* Tab strips / segmented controls: a flex row of tab buttons (e.g. <nav class="flex"> or
+     <div class="flex … border-b">) should SWIPE horizontally on phones rather than get clipped
+     by the catch-all below. overflow-x:auto is a no-op when the row already fits. */
+  main nav.flex,
+  main .flex.border-b {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
   /* Catch-all: stop any stray wide element forcing a whole-page sideways scroll on phones.
-     Tables keep their own horizontal scroll (above), so data stays fully reachable. */
+     Tables + tab strips keep their own horizontal scroll (above), so content stays reachable. */
   main {
     overflow-x: hidden;
   }
