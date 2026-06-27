@@ -24,6 +24,38 @@ public class AiController {
     private final OpenAIService openAIService;
     private final AcademyStudentAccessClient academyStudentAccess;
     private final AiConfigService aiConfig;
+    private final com.lera.ai_gateway.service.AiUsageService aiUsage;
+
+    private static java.util.UUID uid(AuthUser u) { return u != null ? u.getUserId() : null; }
+    private static long tokensOf(Map<String, Object> r) {
+        Object t = r.get("tokensUsed");
+        return t instanceof Number ? ((Number) t).longValue() : 0L;
+    }
+
+    /** My current month's AI quota status. */
+    @GetMapping("/usage")
+    public ResponseEntity<?> myUsage(@AuthenticationPrincipal AuthUser authUser) {
+        return ResponseEntity.ok(aiUsage.status(uid(authUser)));
+    }
+
+    /** A user's quota status (admin — used by Feature Management). */
+    @GetMapping("/usage/{userId}")
+    public ResponseEntity<?> userUsage(@PathVariable java.util.UUID userId, @AuthenticationPrincipal AuthUser authUser) {
+        AiGatewaySecurity.assertOrgWide(authUser);
+        return ResponseEntity.ok(aiUsage.status(userId));
+    }
+
+    /** Set a monthly token budget (admin). {userId} omitted/null = global default. 0 = unlimited. */
+    @PutMapping("/budget")
+    public ResponseEntity<?> setBudget(@RequestBody Map<String, Object> req, @AuthenticationPrincipal AuthUser authUser) {
+        AiGatewaySecurity.assertOrgWide(authUser);
+        java.util.UUID userId = req.get("userId") != null && !req.get("userId").toString().isBlank()
+                ? java.util.UUID.fromString(req.get("userId").toString()) : null;
+        long budget = req.get("budget") instanceof Number ? ((Number) req.get("budget")).longValue()
+                : Long.parseLong(String.valueOf(req.getOrDefault("budget", "0")));
+        aiUsage.setBudget(userId, Math.max(0, budget));
+        return ResponseEntity.ok(aiUsage.status(userId));
+    }
 
     // Health check
     @GetMapping("/health")
@@ -109,28 +141,38 @@ public class AiController {
 
     // Chat with AI - uses real OpenAI API if configured, otherwise fallback
     @PostMapping("/chat")
-    public ResponseEntity<?> chat(@Valid @RequestBody Map<String, Object> request) {
+    public ResponseEntity<?> chat(@Valid @RequestBody Map<String, Object> request,
+                                  @AuthenticationPrincipal AuthUser authUser) {
         try {
             String message = (String) request.get("message");
             String subject = (String) request.getOrDefault("subject", "English");
             String model = (String) request.getOrDefault("model", "gpt-4o-mini");
-            String systemPrompt = (String) request.getOrDefault("systemPrompt", 
+            String systemPrompt = (String) request.getOrDefault("systemPrompt",
                 "You are an expert " + subject + " tutor helping students learn. Be clear, helpful, and encouraging.");
-            
-            // Use OpenAI service (real API or fallback)
-            Map<String, Object> result = openAIService.chat(message, systemPrompt, model);
-            
+
+            java.util.UUID me = uid(authUser);
             Map<String, Object> response = new HashMap<>();
+            // Quota gate: if over the monthly budget, don't spend real tokens.
+            if (!aiUsage.canUse(me)) {
+                response.put("message", "You've reached your monthly AI quota. Ask your administrator to increase your token budget.");
+                response.put("usingRealAI", false);
+                response.put("quotaExceeded", true);
+                response.put("usage", aiUsage.status(me));
+                return ResponseEntity.ok(response);
+            }
+
+            Map<String, Object> result = openAIService.chat(message, systemPrompt, model);
+            if (Boolean.TRUE.equals(result.get("success"))) aiUsage.record(me, tokensOf(result));
+
             response.put("message", result.get("message"));
             response.put("model", model);
             response.put("timestamp", LocalDateTime.now().toString());
             response.put("tokensUsed", result.getOrDefault("tokensUsed", 0));
             response.put("usingRealAI", result.getOrDefault("success", false));
-            
+            response.put("usage", aiUsage.status(me));
             if (result.containsKey("error")) {
                 response.put("note", result.get("error"));
             }
-            
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "An unexpected error occurred"));
@@ -158,19 +200,31 @@ public class AiController {
      * sample game (so the feature works) if no API key is set or the model returns prose.
      */
     @PostMapping("/generate-game")
-    public ResponseEntity<?> generateGame(@RequestBody Map<String, Object> req) {
+    public ResponseEntity<?> generateGame(@RequestBody Map<String, Object> req,
+                                          @AuthenticationPrincipal AuthUser authUser) {
         String topic = String.valueOf(req.getOrDefault("topic", "English lesson"));
         String level = String.valueOf(req.getOrDefault("level", "beginner"));
+        java.util.UUID me = uid(authUser);
+        // Over quota → return a sample (no real tokens spent) flagged as such.
+        if (!aiUsage.canUse(me)) {
+            Map<String, Object> game = sampleGame(topic);
+            game.put("usingRealAI", false);
+            game.put("quotaExceeded", true);
+            game.put("usage", aiUsage.status(me));
+            return ResponseEntity.ok(game);
+        }
         String system = "You are an expert English teacher building a fun classroom QUIZ game. Reply with ONLY valid JSON, no prose, no markdown fences.";
         String prompt = "Create a multiple-choice quiz game for this lesson: \"" + topic + "\" (level: " + level + "). "
             + "JSON shape: {\"title\": string, \"instructions\": string, \"questions\": "
             + "[{\"q\": string, \"options\": [string,string,string,string], \"correct\": number(0-3), \"explain\": string}]}. "
             + "Make exactly 6 age-appropriate questions tied to the lesson.";
         Map<String, Object> r = openAIService.chat(prompt, system, null);
+        if (Boolean.TRUE.equals(r.get("success"))) aiUsage.record(me, tokensOf(r));
         Map<String, Object> game = extractJson(r.get("message"));
         if (game == null || !game.containsKey("questions")) game = sampleGame(topic);
         game.put("usingRealAI", r.getOrDefault("success", false));
         game.put("tokensUsed", r.getOrDefault("tokensUsed", 0));
+        game.put("usage", aiUsage.status(me));
         return ResponseEntity.ok(game);
     }
 
@@ -179,18 +233,29 @@ public class AiController {
      * JSON the frontend renders as a slideshow; falls back to a real sample deck if unconfigured.
      */
     @PostMapping("/generate-presentation")
-    public ResponseEntity<?> generatePresentation(@RequestBody Map<String, Object> req) {
+    public ResponseEntity<?> generatePresentation(@RequestBody Map<String, Object> req,
+                                                  @AuthenticationPrincipal AuthUser authUser) {
         String topic = String.valueOf(req.getOrDefault("topic", "English lesson"));
         String level = String.valueOf(req.getOrDefault("level", "beginner"));
+        java.util.UUID me = uid(authUser);
+        if (!aiUsage.canUse(me)) {
+            Map<String, Object> deck = samplePresentation(topic);
+            deck.put("usingRealAI", false);
+            deck.put("quotaExceeded", true);
+            deck.put("usage", aiUsage.status(me));
+            return ResponseEntity.ok(deck);
+        }
         String system = "You are an expert English teacher building an engaging class slide deck. Reply with ONLY valid JSON, no prose, no markdown fences.";
         String prompt = "Create an interactive lesson presentation for: \"" + topic + "\" (level: " + level + "). "
             + "JSON shape: {\"title\": string, \"slides\": [{\"title\": string, \"bullets\": [string], \"note\": string}]}. "
             + "Make 6-8 slides: intro, key vocabulary, grammar/concept, examples, a practice activity, and a recap.";
         Map<String, Object> r = openAIService.chat(prompt, system, null);
+        if (Boolean.TRUE.equals(r.get("success"))) aiUsage.record(me, tokensOf(r));
         Map<String, Object> deck = extractJson(r.get("message"));
         if (deck == null || !deck.containsKey("slides")) deck = samplePresentation(topic);
         deck.put("usingRealAI", r.getOrDefault("success", false));
         deck.put("tokensUsed", r.getOrDefault("tokensUsed", 0));
+        deck.put("usage", aiUsage.status(me));
         return ResponseEntity.ok(deck);
     }
 

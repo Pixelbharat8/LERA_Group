@@ -50,6 +50,10 @@ export default function FeatureManagementPage() {
   const [loadingPerms, setLoadingPerms] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // AI monthly token budget (per user)
+  const [aiBudget, setAiBudget] = useState("");
+  const [aiUsed, setAiUsed] = useState<number | null>(null);
+  const [savingBudget, setSavingBudget] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -83,8 +87,25 @@ export default function FeatureManagementPage() {
         next[f.stateKey] = Boolean(p?.[f.stateKey] ?? (f.stateKey === "aiAssistant" ? p?.ai_assistant : undefined));
       });
       setPerms(next);
+      // Load this user's AI token budget + usage
+      setAiUsed(null); setAiBudget("");
+      const usage = (await apiFetch(`/api/ai/usage/${u.id}`, {}, { silent: true }).catch(() => null)) as any;
+      if (usage) { setAiUsed(Number(usage.used) || 0); setAiBudget(String(usage.budget ?? "")); }
     } finally {
       setLoadingPerms(false);
+    }
+  };
+
+  const saveBudget = async () => {
+    if (!selected) return;
+    setSavingBudget(true);
+    try {
+      await apiFetch("/api/ai/budget", { method: "PUT", body: JSON.stringify({ userId: selected.id, budget: Number(aiBudget) || 0 }) });
+      setMsg("✓ AI token budget updated.");
+    } catch (e: any) {
+      setMsg(`✗ ${e?.message || "Failed to set budget"}`);
+    } finally {
+      setSavingBudget(false);
     }
   };
 
@@ -235,6 +256,29 @@ export default function FeatureManagementPage() {
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">Backend Services</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {SERVICES.map((f) => <Toggle key={f.stateKey} f={f} />)}
+                  </div>
+
+                  {/* AI token budget — applies when "AI Assistant" is enabled */}
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2 mt-6">🤖 AI token budget (monthly)</h3>
+                  <div className="rounded-lg border border-gray-200 p-4">
+                    <p className="text-xs text-gray-500 mb-3">
+                      Cap how many AI tokens this user can spend per month (0 = unlimited). When they hit it, AI features fall back to samples until next month or you raise it.
+                      {aiUsed !== null && <span className="text-gray-700"> · Used this month: <b>{aiUsed.toLocaleString()}</b></span>}
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min={0}
+                        value={aiBudget}
+                        onChange={(e) => setAiBudget(e.target.value)}
+                        placeholder="100000"
+                        className="w-40 px-3 py-2 border rounded-lg"
+                      />
+                      <span className="text-sm text-gray-500">tokens / month</span>
+                      <button onClick={saveBudget} disabled={savingBudget || isGodMode} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                        {savingBudget ? "Saving…" : "Save budget"}
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
