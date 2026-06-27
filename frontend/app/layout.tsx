@@ -1,5 +1,20 @@
 import type { Metadata, Viewport } from 'next'
+import { Be_Vietnam_Pro, Inter } from 'next/font/google'
 import './globals.css'
+
+// Premium type system (Modern & clean). Both ship full Vietnamese diacritics.
+const display = Be_Vietnam_Pro({
+  subsets: ['latin', 'latin-ext', 'vietnamese'],
+  weight: ['600', '700', '800'],
+  variable: '--font-display',
+  display: 'swap',
+})
+const sans = Inter({
+  subsets: ['latin', 'latin-ext', 'vietnamese'],
+  weight: ['400', '500', '600'],
+  variable: '--font-sans',
+  display: 'swap',
+})
 import { LanguageProvider } from './context/LanguageContext'
 import { WebsiteSettingsProvider } from '@/hooks/useWebsiteSettings'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -110,7 +125,7 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <head>
         <script
           type="application/ld+json"

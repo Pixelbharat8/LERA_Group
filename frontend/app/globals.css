@@ -14,14 +14,44 @@ html {
 body {
   background: #f6f7fb;
   color: #222;
-  font-family: sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   min-width: 320px;
   overflow-x: hidden;
+}
+
+/* Premium type: headings adopt the display font globally so the many existing
+   inline heading utilities pick it up without per-line edits. */
+h1, h2, h3, h4 {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
+}
+h1, h2 {
+  letter-spacing: -0.02em;
 }
 
 img {
   max-width: 100%;
   height: auto;
+}
+
+/* ============================================
+   PREMIUM COMPONENT UTILITIES (public site)
+   ============================================ */
+@layer components {
+  .card-premium {
+    @apply rounded-2xl border border-gray-100 bg-white shadow-card transition-all duration-300;
+  }
+  .card-premium:hover {
+    @apply shadow-lift -translate-y-1;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-brand-orange600 text-white px-7 py-3.5 rounded-full font-semibold shadow-soft transition-all hover:shadow-lift;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 border border-brand-navy text-brand-navy hover:bg-brand-navy hover:text-white px-7 py-3.5 rounded-full font-semibold transition-all;
+  }
+  .section-eyebrow {
+    @apply text-sm font-semibold tracking-wider uppercase text-blue-600;
+  }
 }
 
 /* ============================================

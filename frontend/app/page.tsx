@@ -5,6 +5,8 @@ import { useWebsiteSettings } from "@/hooks/useWebsiteSettings";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import AnimatedCounter from "./components/AnimatedCounter";
+import { useReveal } from "./hooks/useReveal";
+import StickyTrialBar from "./components/StickyTrialBar";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { apiUrl, apiFetch } from "../lib/api";
@@ -59,6 +61,7 @@ const courseImages: Record<string, string> = {
 export default function Home() {
   const { language, t } = useLanguage();
   const { settings: siteSettings, getSetting } = useWebsiteSettings();
+  useReveal(); // tasteful fade-up reveal on .reveal sections (reveal-once, respects reduced-motion)
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [formData, setFormData] = useState({
@@ -344,18 +347,28 @@ export default function Home() {
       <Header />
 
       {/* ===== HERO ===== */}
-      <section className="relative bg-gray-50 pt-32 pb-16 sm:pt-40 sm:pb-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative pt-36 pb-20 sm:pt-44 sm:pb-28 overflow-hidden">
+        {/* Immersive classroom photo + left-weighted navy scrim (keeps left copy legible) */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src={heroImage || GALLERY_IMAGES[0].src}
+            alt=""
+            aria-hidden
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-navy/95 via-brand-navy/80 to-brand-navy/40" />
+        </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left: copy + CTAs */}
             <div className="order-2 lg:order-1">
-              <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-4">
+              <p className="text-sm font-semibold tracking-wider uppercase text-orange-300 mb-4">
                 {getContent("hero_subtitle", "Where Excellence is the Standard", "Nơi Xuất Sắc Là Tiêu Chuẩn")}
               </p>
-              <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#0a1a5c] leading-tight">
+              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
                 {getContent("hero_title", "Ready for Knowledge for the Future", "Sẵn Sàng Tri Thức Cho Tương Lai")}
               </h1>
-              <p className="mt-6 text-lg text-gray-600 leading-relaxed max-w-xl">
+              <p className="mt-6 text-lg text-white/85 leading-relaxed max-w-xl">
                 {getContent(
                   "hero_description",
                   "A premium English centre in Vietnam. International standards, native and Vietnamese teachers, and small classes that help every child grow with confidence.",
@@ -364,48 +377,37 @@ export default function Home() {
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <Link
-                  href="/book-trial"
-                  className="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-7 py-3.5 rounded-full font-bold text-base shadow-sm transition-all hover:shadow-md"
-                >
+                <Link href="/book-trial" className="btn-primary text-base">
                   {getContent("hero_cta_primary", "Book a free trial", "Đăng ký học thử")}
                   <span aria-hidden>→</span>
                 </Link>
                 <Link
                   href="/courses"
-                  className="inline-flex items-center justify-center gap-2 border border-[#0a1a5c] text-[#0a1a5c] hover:bg-[#0a1a5c] hover:text-white px-7 py-3.5 rounded-full font-semibold text-base transition-all"
+                  className="inline-flex items-center justify-center gap-2 border border-white/70 text-white hover:bg-white hover:text-brand-navy px-7 py-3.5 rounded-full font-semibold text-base transition-all"
                 >
                   {getContent("hero_cta_secondary", "Explore courses", "Khám phá khoá học")}
                 </Link>
               </div>
 
-              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-gray-600">
+              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-white/90">
                 {[
                   getContent("hero_tick_1", "Cambridge aligned", "Chuẩn Cambridge"),
                   getContent("hero_tick_2", "IELTS specialists", "Chuyên gia IELTS"),
                   getContent("hero_tick_3", "Native teachers", "Giáo viên bản ngữ"),
                 ].map((tick) => (
                   <span key={tick} className="inline-flex items-center gap-2">
-                    <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <svg className="w-5 h-5 text-orange-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     {tick}
                   </span>
                 ))}
               </div>
-
-              <div className="mt-10 hidden lg:block">
-                <img
-                  src={heroImage || GALLERY_IMAGES[0].src}
-                  alt="LERA Academy"
-                  className="w-full max-w-lg rounded-2xl object-cover shadow-sm border border-gray-100"
-                />
-              </div>
             </div>
 
             {/* Right: registration form (PRESERVED) */}
             <div className="order-1 lg:order-2">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-6 sm:p-8 w-full max-w-lg mx-auto">
+              <div className="bg-white/95 backdrop-blur rounded-3xl border border-white/40 shadow-lift p-6 sm:p-8 w-full max-w-lg mx-auto">
                 <div className="text-center mb-6">
                   <p className="text-gray-500 text-sm mb-1">
                     {getContent("form_title", "GET 1 WEEK FREE ENGLISH LEARNING", "NHẬN NGAY 1 TUẦN HỌC TIẾNG ANH MIỄN PHÍ")}
@@ -531,24 +533,23 @@ export default function Home() {
           <p className="text-center text-xs sm:text-sm font-semibold tracking-wider uppercase text-gray-400 mb-6">
             {getContent("trust_title", "Aligned with international standards", "Đạt chuẩn quốc tế")}
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 sm:gap-x-12">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:gap-x-5">
             {[
               "Cambridge English",
               "IELTS",
               "TOEFL",
               "TESOL / CELTA",
               "Cambridge Assessment",
-            ].map((name) => (
-              <div
-                key={name}
-                className="flex items-center gap-2 text-gray-500 hover:text-blue-700 transition-colors"
-                title={name}
-              >
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 12l2 2 4-4m5.6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="font-bold text-sm sm:text-base whitespace-nowrap">{name}</span>
-              </div>
+            ].map((name, i, arr) => (
+              <span key={name} className="flex items-center gap-3 sm:gap-5">
+                <span
+                  className="font-display font-semibold text-gray-400 hover:text-brand-navy transition-colors text-sm sm:text-base tracking-wide whitespace-nowrap"
+                  title={name}
+                >
+                  {name}
+                </span>
+                {i < arr.length - 1 && <span className="text-gray-300" aria-hidden>•</span>}
+              </span>
             ))}
           </div>
         </div>
@@ -556,7 +557,7 @@ export default function Home() {
 
       {/* ===== STATS ===== */}
       <section className="py-16 sm:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             {/* Parse stats from CMS or use defaults */}
             {(() => {
@@ -593,7 +594,7 @@ export default function Home() {
                 const numericValue = parseInt(stat.value.replace(/[^0-9]/g, "")) || 0;
                 const suffix = stat.value.includes("+") ? "+" : "";
                 return (
-                  <div key={idx} className="text-center bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all p-6">
+                  <div key={idx} className="text-center card-premium p-6">
                     <div className="text-4xl sm:text-5xl font-extrabold text-[#0a1a5c] mb-2">
                       {isCountable
                         ? <AnimatedCounter end={numericValue} suffix={suffix} />
@@ -610,7 +611,7 @@ export default function Home() {
 
       {/* ===== COURSES ===== */}
       <section className="py-16 sm:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 max-w-2xl mx-auto">
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
               {getContent("courses_eyebrow", "Our programmes", "Chương trình học")}
@@ -624,7 +625,7 @@ export default function Home() {
               <Link
                 key={course.id}
                 href={`/courses/${course.id}`}
-                className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden"
+                className="group block card-premium overflow-hidden"
               >
                 <div className="h-48 relative overflow-hidden">
                   <img
@@ -662,7 +663,7 @@ export default function Home() {
 
       {/* ===== WHY CHOOSE US ===== */}
       <section className="py-16 sm:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 max-w-2xl mx-auto">
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
               {getContent("why_eyebrow", "Why LERA", "Vì sao chọn LERA")}
@@ -684,7 +685,7 @@ export default function Home() {
             ]).map((feature, idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all p-6"
+                className="card-premium p-6"
               >
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-blue-50 text-blue-600 mb-4">
                   <FeatureIcon icon={feature.icon} className="w-7 h-7" />
@@ -853,7 +854,7 @@ export default function Home() {
 
       {/* ===== GALLERY ===== */}
       <section className="py-16 sm:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 max-w-2xl mx-auto">
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
               {getContent("gallery_eyebrow", "Gallery", "Hình ảnh")}
@@ -905,7 +906,7 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {achievements.map((a, idx) => (
-                <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden group">
+                <div key={idx} className="card-premium overflow-hidden group">
                   <div className="h-48 relative overflow-hidden bg-gray-100">
                     {a.image ? (
                       <img src={a.image} alt={a.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -936,7 +937,7 @@ export default function Home() {
 
       {/* ===== FINAL CTA BAND ===== */}
       <section className="py-16 sm:py-24" style={{ backgroundColor: "#0a1a5c" }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="reveal max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-4">
             {getContent("cta_title", t("ctaTitle"), t("ctaTitle"))}
           </h2>
@@ -944,7 +945,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
               href="/book-trial"
-              className="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-8 py-3.5 rounded-full font-bold transition-all hover:shadow-md"
+              className="btn-primary"
             >
               {getContent("hero_cta_primary", "Book a free trial", "Đăng ký học thử")}
               <span aria-hidden>→</span>
@@ -960,6 +961,7 @@ export default function Home() {
       </section>
 
       <Footer />
+      <StickyTrialBar />
     </div>
   );
 }
