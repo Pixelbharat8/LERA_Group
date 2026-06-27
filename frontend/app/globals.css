@@ -24,6 +24,23 @@ body {
 h1, h2, h3, h4 {
   font-family: var(--font-display), var(--font-sans), sans-serif;
 }
+
+/* Mobile (Capacitor iOS/Android load this web app): wide dashboard data tables scroll
+   horizontally within the page instead of stretching it and forcing a whole-page sideways
+   scroll. Scoped to phones/tablets so desktop layout is unchanged. */
+@media (max-width: 1023px) {
+  main table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  /* Catch-all: stop any stray wide element forcing a whole-page sideways scroll on phones.
+     Tables keep their own horizontal scroll (above), so data stays fully reachable. */
+  main {
+    overflow-x: hidden;
+  }
+}
 h1, h2 {
   letter-spacing: -0.02em;
 }
