@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
 import { apiFetch } from "@/lib/api";
+import { getAuthUserIdFromCookie } from "@/lib/auth-context";
 
 interface Conversation {
   id: string;
@@ -57,11 +58,20 @@ export default function MessagesPage() {
     setIsLoading(true);
     try {
       const data = await apiFetch("/api/chat/conversations");
-      if (Array.isArray(data) && data.length > 0) {
-        setConversations(data);
-      } else {
-        setConversations([]);
-      }
+      // Map the chat API shape (avatarInitial / lastMessageTime) → the page's Conversation shape.
+      const list = Array.isArray(data) ? data : [];
+      setConversations(
+        list.map((c: any) => ({
+          id: String(c.id),
+          name: c.name || "Conversation",
+          avatar: c.avatarInitial || (c.name || "?").charAt(0).toUpperCase(),
+          lastMessage: c.lastMessage || "",
+          timestamp: c.lastMessageTime ? new Date(c.lastMessageTime) : new Date(),
+          unreadCount: Number(c.unreadCount) || 0,
+          isOnline: !!c.isOnline,
+          type: c.type === "group" ? "group" : "direct",
+        }))
+      );
     } catch {
       setConversations([]);
     } finally {
@@ -72,11 +82,25 @@ export default function MessagesPage() {
   const fetchMessages = async (conversationId: string) => {
     try {
       const data = await apiFetch(`/api/chat/conversations/${conversationId}/messages`);
-      if (Array.isArray(data)) {
-        setMessages(data);
-      } else {
-        setMessages([]);
-      }
+      const me = getAuthUserIdFromCookie();
+      // Map raw ChatMessage entities (message / sentAt / senderId) → the page's Message shape;
+      // mark the current user's messages as "me" so they align right.
+      const list = Array.isArray(data) ? data : [];
+      setMessages(
+        list.map((m: any) => {
+          const sid = m.senderId ? String(m.senderId) : "";
+          const mine = !!me && sid === String(me);
+          return {
+            id: String(m.id ?? Date.now()),
+            senderId: mine ? "me" : sid,
+            senderName: m.senderName || "",
+            senderAvatar: (m.senderName || "?").charAt(0).toUpperCase(),
+            content: m.message ?? m.content ?? "",
+            timestamp: m.sentAt ? new Date(m.sentAt) : new Date(),
+            isRead: m.isRead ?? true,
+          };
+        })
+      );
     } catch {
       setMessages([]);
     }
@@ -108,9 +132,11 @@ export default function MessagesPage() {
     }
   };
 
-  const formatTime = (date: Date) => {
+  const formatTime = (date: Date | string | undefined | null) => {
+    const d = date instanceof Date ? date : new Date(date as any);
+    if (!d || isNaN(d.getTime())) return "";
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
+    const diff = now.getTime() - d.getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
@@ -119,7 +145,7 @@ export default function MessagesPage() {
     if (minutes < 60) return `${minutes}m`;
     if (hours < 24) return `${hours}h`;
     if (days < 7) return `${days}d`;
-    return date.toLocaleDateString();
+    return d.toLocaleDateString();
   };
 
   const filteredConversations = conversations.filter(c =>
@@ -275,7 +301,9 @@ export default function MessagesPage() {
                           <p className={`text-xs mt-1 ${
                             message.senderId === "me" ? "text-right" : ""
                           } text-gray-500`}>
-                            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {message.timestamp instanceof Date && !isNaN(message.timestamp.getTime())
+                              ? message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                              : ""}
                             {message.senderId === "me" && (
                               <span className="ml-1">{message.isRead ? "✓✓" : "✓"}</span>
                             )}
