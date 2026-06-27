@@ -51,13 +51,13 @@ export default function Footer() {
   const workingHours = getSetting('working_hours', '8:00 AM - 9:00 PM');
 
   return (
-    <footer className="bg-gray-900 text-white">
+    <footer className="bg-brand-navy text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid md:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center space-x-3 mb-6">
-              <div className="w-10 h-10 bg-[#0a1a5c] rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-brand-orange rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">L</span>
               </div>
               <div className="flex items-baseline">
@@ -73,7 +73,7 @@ export default function Footer() {
                 href={facebookUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors"
+                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors"
                 style={{ width: "2.5rem", height: "2.5rem", minWidth: "2.5rem", minHeight: "2.5rem", flexShrink: 0 }}
               >
                 <svg className="w-5 h-5" width={20} height={20} fill="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -84,7 +84,7 @@ export default function Footer() {
                 href={instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gradient-to-br hover:from-purple-600 hover:to-pink-500 transition-colors"
+                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-gradient-to-br hover:from-purple-600 hover:to-pink-500 transition-colors"
                 style={{ width: "2.5rem", height: "2.5rem", minWidth: "2.5rem", minHeight: "2.5rem", flexShrink: 0 }}
               >
                 <svg className="w-5 h-5" width={20} height={20} fill="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -95,7 +95,7 @@ export default function Footer() {
                 href={youtubeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
                 style={{ width: "2.5rem", height: "2.5rem", minWidth: "2.5rem", minHeight: "2.5rem", flexShrink: 0 }}
               >
                 <svg className="w-5 h-5" width={20} height={20} fill="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -106,7 +106,7 @@ export default function Footer() {
                 href={tiktokUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-black transition-colors"
+                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-black transition-colors"
                 style={{ width: "2.5rem", height: "2.5rem", minWidth: "2.5rem", minHeight: "2.5rem", flexShrink: 0 }}
               >
                 <svg className="w-5 h-5" width={20} height={20} fill="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -118,7 +118,7 @@ export default function Footer() {
                 href={zaloUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-blue-500 transition-colors"
+                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-blue-500 transition-colors"
                 style={{ width: "2.5rem", height: "2.5rem", minWidth: "2.5rem", minHeight: "2.5rem", flexShrink: 0 }}
               >
                 <span className="text-sm font-bold">Z</span>
@@ -128,40 +128,40 @@ export default function Footer() {
 
           {/* Pages */}
           <div>
-            <h4 className="font-bold text-lg mb-6">{t("pages")}</h4>
+            <h4 className="font-display font-bold text-lg mb-6">{t("pages")}</h4>
             <ul className="space-y-3">
-              <li><Link href="/" className="text-gray-400 hover:text-white transition-colors">{t("home")}</Link></li>
-              <li><Link href="/courses" className="text-gray-400 hover:text-white transition-colors">{t("courses")}</Link></li>
-              <li><Link href="/pricing" className="text-gray-400 hover:text-white transition-colors">{language === "VI" ? "Học phí" : "Pricing"}</Link></li>
-              <li><Link href="/enroll" className="text-gray-400 hover:text-white transition-colors">{language === "VI" ? "Đăng ký nhập học" : "Enrol online"}</Link></li>
-              <li><Link href="/portal" className="text-gray-400 hover:text-white transition-colors">{language === "VI" ? "Cổng phụ huynh" : "Parent portal"}</Link></li>
-              <li><Link href="/teachers" className="text-gray-400 hover:text-white transition-colors">{language === "VI" ? "Giáo viên" : "Teachers"}</Link></li>
-              <li><Link href="/corporate" className="text-gray-400 hover:text-white transition-colors">{language === "VI" ? "Đào tạo doanh nghiệp" : "Corporate training"}</Link></li>
-              <li><Link href="/about" className="text-gray-400 hover:text-white transition-colors">{t("about")}</Link></li>
-              <li><Link href="/contact" className="text-gray-400 hover:text-white transition-colors">{t("contact")}</Link></li>
+              <li><Link href="/" className="text-gray-400 hover:text-orange-400 transition-colors">{t("home")}</Link></li>
+              <li><Link href="/courses" className="text-gray-400 hover:text-orange-400 transition-colors">{t("courses")}</Link></li>
+              <li><Link href="/pricing" className="text-gray-400 hover:text-orange-400 transition-colors">{language === "VI" ? "Học phí" : "Pricing"}</Link></li>
+              <li><Link href="/enroll" className="text-gray-400 hover:text-orange-400 transition-colors">{language === "VI" ? "Đăng ký nhập học" : "Enrol online"}</Link></li>
+              <li><Link href="/portal" className="text-gray-400 hover:text-orange-400 transition-colors">{language === "VI" ? "Cổng phụ huynh" : "Parent portal"}</Link></li>
+              <li><Link href="/teachers" className="text-gray-400 hover:text-orange-400 transition-colors">{language === "VI" ? "Giáo viên" : "Teachers"}</Link></li>
+              <li><Link href="/corporate" className="text-gray-400 hover:text-orange-400 transition-colors">{language === "VI" ? "Đào tạo doanh nghiệp" : "Corporate training"}</Link></li>
+              <li><Link href="/about" className="text-gray-400 hover:text-orange-400 transition-colors">{t("about")}</Link></li>
+              <li><Link href="/contact" className="text-gray-400 hover:text-orange-400 transition-colors">{t("contact")}</Link></li>
             </ul>
           </div>
 
           {/* Courses - Dynamic from API */}
           <div>
-            <h4 className="font-bold text-lg mb-6">{t("coursesFooter")}</h4>
+            <h4 className="font-display font-bold text-lg mb-6">{t("coursesFooter")}</h4>
             <ul className="space-y-3">
               {courses.length > 0 ? courses.map((c: any) => {
                 const slug = codeToSlug[c.code] || c.code?.toLowerCase() || c.id;
                 const name = language === "VI" && c.nameVi ? c.nameVi : c.name;
                 return (
                   <li key={c.id || slug}>
-                    <Link href={`/courses/${slug}`} className="text-gray-400 hover:text-white transition-colors">{name}</Link>
+                    <Link href={`/courses/${slug}`} className="text-gray-400 hover:text-orange-400 transition-colors">{name}</Link>
                   </li>
                 );
               }) : (
                 <>
-                  <li><Link href="/courses/lera-starters" className="text-gray-400 hover:text-white transition-colors">LERA Starters</Link></li>
-                  <li><Link href="/courses/lera-explorers" className="text-gray-400 hover:text-white transition-colors">LERA Explorers</Link></li>
-                  <li><Link href="/courses/lera-primary" className="text-gray-400 hover:text-white transition-colors">LERA Primary</Link></li>
-                  <li><Link href="/courses/lera-teens" className="text-gray-400 hover:text-white transition-colors">LERA Teens</Link></li>
-                  <li><Link href="/courses/ielts-sat" className="text-gray-400 hover:text-white transition-colors">IELTS & SAT</Link></li>
-                  <li><Link href="/courses/business-english" className="text-gray-400 hover:text-white transition-colors">Business English</Link></li>
+                  <li><Link href="/courses/lera-starters" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Starters</Link></li>
+                  <li><Link href="/courses/lera-explorers" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Explorers</Link></li>
+                  <li><Link href="/courses/lera-primary" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Primary</Link></li>
+                  <li><Link href="/courses/lera-teens" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Teens</Link></li>
+                  <li><Link href="/courses/ielts-sat" className="text-gray-400 hover:text-orange-400 transition-colors">IELTS & SAT</Link></li>
+                  <li><Link href="/courses/business-english" className="text-gray-400 hover:text-orange-400 transition-colors">Business English</Link></li>
                 </>
               )}
             </ul>
@@ -169,7 +169,7 @@ export default function Footer() {
         </div>
 
         {/* Contact Info */}
-        <div className="border-t border-gray-800 mt-12 pt-8">
+        <div className="border-t border-white/10 mt-12 pt-8">
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             <div className="flex items-start space-x-3">
               <span className="text-2xl">📍</span>
@@ -178,7 +178,7 @@ export default function Footer() {
             <div className="flex items-start space-x-3">
               <span className="text-2xl">📞</span>
               <div>
-                <a href={`tel:${phone.replace(/\./g, '')}`} className="text-gray-400 hover:text-white">{phone}</a>
+                <a href={`tel:${phone.replace(/\./g, '')}`} className="text-gray-400 hover:text-orange-400">{phone}</a>
               </div>
             </div>
             <div className="flex items-start space-x-3">
@@ -189,13 +189,13 @@ export default function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
+        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-500 text-sm">
             © 2024 LERA Academy. {t("allRightsReserved")}
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <Link href="/privacy" className="text-gray-500 hover:text-white text-sm">{t("privacy")}</Link>
-            <Link href="/terms" className="text-gray-500 hover:text-white text-sm">{t("termsFooter")}</Link>
+            <Link href="/privacy" className="text-gray-500 hover:text-orange-400 text-sm">{t("privacy")}</Link>
+            <Link href="/terms" className="text-gray-500 hover:text-orange-400 text-sm">{t("termsFooter")}</Link>
           </div>
         </div>
       </div>

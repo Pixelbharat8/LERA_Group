@@ -354,6 +354,9 @@ export default function Home() {
             src={heroImage || GALLERY_IMAGES[0].src}
             alt=""
             aria-hidden
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-brand-navy/95 via-brand-navy/80 to-brand-navy/40" />
@@ -631,6 +634,8 @@ export default function Home() {
                   <img
                     src={course.image}
                     alt={course.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute bottom-3 left-4 bg-white/95 text-gray-800 text-xs px-3 py-1 rounded-full font-semibold shadow-sm">
@@ -741,6 +746,8 @@ export default function Home() {
                         <img
                           src={post.thumb}
                           alt={name || "LERA Academy"}
+                          loading="lazy"
+                          decoding="async"
                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
@@ -830,6 +837,8 @@ export default function Home() {
               <img
                 src={displayTestimonials[currentTestimonial % displayTestimonials.length]?.image || TESTIMONIAL_FACES[currentTestimonial % TESTIMONIAL_FACES.length]}
                 alt={displayTestimonials[currentTestimonial % displayTestimonials.length]?.name || "Parent"}
+                loading="lazy"
+                decoding="async"
                 className="w-14 h-14 rounded-full object-cover border border-gray-100"
               />
               <div className="text-left">
@@ -878,6 +887,8 @@ export default function Home() {
                 <img
                   src={img.src}
                   alt={language === "EN" ? img.caption.EN : img.caption.VI}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -909,7 +920,7 @@ export default function Home() {
                 <div key={idx} className="card-premium overflow-hidden group">
                   <div className="h-48 relative overflow-hidden bg-gray-100">
                     {a.image ? (
-                      <img src={a.image} alt={a.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={a.image} alt={a.name} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <span className="text-6xl">🎓</span>
