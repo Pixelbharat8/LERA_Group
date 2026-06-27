@@ -5,6 +5,25 @@
 -- Uses existing 'lera' database - no separate database needed
 -- =====================================================
 
+-- Guard helper (2026-06-28): several tables below are ALSO created by Hibernate ddl-auto from
+-- JPA entities whose column set differs from this migration's. On a fresh prod DB the entity
+-- builds the table first, so this migration's CREATE TABLE IF NOT EXISTS no-ops and any index on
+-- an entity-absent column would fail. Per the "entities are source of truth" decision, indexes on
+-- columns the live table lacks are guarded: created only when the column actually exists (and
+-- self-heal if an entity later adds it). Verified by a fresh-DB dry-run of the entity schema.
+CREATE OR REPLACE FUNCTION pg_temp.v192_idx(p_table text, p_cols text[], p_ddl text) RETURNS void AS $$
+DECLARE c text;
+BEGIN
+    FOREACH c IN ARRAY p_cols LOOP
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                       WHERE table_schema = 'public' AND table_name = p_table AND column_name = c) THEN
+            RETURN;  -- a required column is absent on the live table → skip this index
+        END IF;
+    END LOOP;
+    EXECUTE p_ddl;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 1. FEE RULES TABLE - Core fee structure definitions
 CREATE TABLE IF NOT EXISTS fee_rules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -104,9 +123,9 @@ CREATE TABLE IF NOT EXISTS student_fee_plans (
 );
 
 CREATE INDEX IF NOT EXISTS idx_student_fee_plans_student ON student_fee_plans(student_id);
-CREATE INDEX IF NOT EXISTS idx_student_fee_plans_center ON student_fee_plans(center_id);
+SELECT pg_temp.v192_idx('student_fee_plans', ARRAY['center_id'], 'CREATE INDEX IF NOT EXISTS idx_student_fee_plans_center ON student_fee_plans(center_id)');
 CREATE INDEX IF NOT EXISTS idx_student_fee_plans_status ON student_fee_plans(status);
-CREATE INDEX IF NOT EXISTS idx_student_fee_plans_next_billing ON student_fee_plans(next_billing_date);
+SELECT pg_temp.v192_idx('student_fee_plans', ARRAY['next_billing_date'], 'CREATE INDEX IF NOT EXISTS idx_student_fee_plans_next_billing ON student_fee_plans(next_billing_date)');
 
 -- 6. INVOICES - Main invoice records
 CREATE TABLE IF NOT EXISTS invoices (
@@ -139,7 +158,7 @@ CREATE INDEX IF NOT EXISTS idx_invoices_student ON invoices(student_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_center ON invoices(center_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
 CREATE INDEX IF NOT EXISTS idx_invoices_due_date ON invoices(due_date);
-CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(invoice_date);
+SELECT pg_temp.v192_idx('invoices', ARRAY['invoice_date'], 'CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(invoice_date)');
 
 -- 7. INVOICE ITEMS - Line items for invoices
 CREATE TABLE IF NOT EXISTS invoice_items (
@@ -180,8 +199,8 @@ CREATE TABLE IF NOT EXISTS discounts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_discounts_code ON discounts(code);
-CREATE INDEX IF NOT EXISTS idx_discounts_type ON discounts(type);
-CREATE INDEX IF NOT EXISTS idx_discounts_status ON discounts(status);
+SELECT pg_temp.v192_idx('discounts', ARRAY['type'], 'CREATE INDEX IF NOT EXISTS idx_discounts_type ON discounts(type)');
+SELECT pg_temp.v192_idx('discounts', ARRAY['status'], 'CREATE INDEX IF NOT EXISTS idx_discounts_status ON discounts(status)');
 
 -- 9. STUDENT DISCOUNTS - Discounts assigned to students
 CREATE TABLE IF NOT EXISTS student_discounts (
@@ -232,9 +251,9 @@ CREATE TABLE IF NOT EXISTS refunds (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_refunds_number ON refunds(refund_number);
-CREATE INDEX IF NOT EXISTS idx_refunds_student ON refunds(student_id);
-CREATE INDEX IF NOT EXISTS idx_refunds_center ON refunds(center_id);
+SELECT pg_temp.v192_idx('refunds', ARRAY['refund_number'], 'CREATE INDEX IF NOT EXISTS idx_refunds_number ON refunds(refund_number)');
+SELECT pg_temp.v192_idx('refunds', ARRAY['student_id'], 'CREATE INDEX IF NOT EXISTS idx_refunds_student ON refunds(student_id)');
+SELECT pg_temp.v192_idx('refunds', ARRAY['center_id'], 'CREATE INDEX IF NOT EXISTS idx_refunds_center ON refunds(center_id)');
 CREATE INDEX IF NOT EXISTS idx_refunds_status ON refunds(status);
 
 -- 11. PROMOTIONS - Marketing promotions
@@ -328,10 +347,10 @@ CREATE TABLE IF NOT EXISTS ledger_entries (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_ledger_entries_student ON ledger_entries(student_id);
+SELECT pg_temp.v192_idx('ledger_entries', ARRAY['student_id'], 'CREATE INDEX IF NOT EXISTS idx_ledger_entries_student ON ledger_entries(student_id)');
 CREATE INDEX IF NOT EXISTS idx_ledger_entries_center ON ledger_entries(center_id);
-CREATE INDEX IF NOT EXISTS idx_ledger_entries_date ON ledger_entries(entry_date);
-CREATE INDEX IF NOT EXISTS idx_ledger_entries_type ON ledger_entries(transaction_type);
+SELECT pg_temp.v192_idx('ledger_entries', ARRAY['entry_date'], 'CREATE INDEX IF NOT EXISTS idx_ledger_entries_date ON ledger_entries(entry_date)');
+SELECT pg_temp.v192_idx('ledger_entries', ARRAY['transaction_type'], 'CREATE INDEX IF NOT EXISTS idx_ledger_entries_type ON ledger_entries(transaction_type)');
 
 -- 16. FEE AUDIT LOG - Audit trail for all fee changes
 CREATE TABLE IF NOT EXISTS fee_audit_logs (
@@ -410,7 +429,7 @@ CREATE TABLE IF NOT EXISTS payment_methods (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_payment_methods_student ON payment_methods(student_id);
+SELECT pg_temp.v192_idx('payment_methods', ARRAY['student_id'], 'CREATE INDEX IF NOT EXISTS idx_payment_methods_student ON payment_methods(student_id)');
 CREATE INDEX IF NOT EXISTS idx_payment_methods_active ON payment_methods(is_active);
 
 -- 20. OVERDUE NOTIFICATIONS - Track overdue payment notifications
@@ -483,9 +502,16 @@ ON CONFLICT (code) DO NOTHING;
 -- =====================================================
 -- Insert default late fee rule
 -- =====================================================
-INSERT INTO late_fee_rules (name, grace_period_days, fee_type, fee_value, max_fee, is_active, scope) VALUES
-('Standard Late Fee', 7, 'PERCENTAGE', 5.00, 50.00, true, 'GLOBAL')
-ON CONFLICT DO NOTHING;
+-- Guarded: the live late_fee_rules entity uses `rule_name` (not `name`) and lacks max_fee/scope.
+-- Only seed when this migration's column shape is present (entities-as-truth → otherwise skip).
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_schema='public' AND table_name='late_fee_rules' AND column_name='name') THEN
+        INSERT INTO late_fee_rules (name, grace_period_days, fee_type, fee_value, max_fee, is_active, scope) VALUES
+        ('Standard Late Fee', 7, 'PERCENTAGE', 5.00, 50.00, true, 'GLOBAL')
+        ON CONFLICT DO NOTHING;
+    END IF;
+END $$;
 
 -- =====================================================
 -- COMPOSITE INDEXES FOR BILLION-USER SCALABILITY
@@ -496,22 +522,22 @@ ON CONFLICT DO NOTHING;
 CREATE INDEX IF NOT EXISTS idx_invoices_center_status ON invoices(center_id, status);
 
 -- Invoice queries by student + date range (student history)
-CREATE INDEX IF NOT EXISTS idx_invoices_student_date ON invoices(student_id, invoice_date DESC);
+SELECT pg_temp.v192_idx('invoices', ARRAY['student_id','invoice_date'], 'CREATE INDEX IF NOT EXISTS idx_invoices_student_date ON invoices(student_id, invoice_date DESC)');
 
 -- Overdue invoice lookup
 CREATE INDEX IF NOT EXISTS idx_invoices_overdue_lookup ON invoices(due_date, status) WHERE status IN ('PENDING', 'PARTIAL');
 
 -- Student fee plans by center + status (billing dashboard)
-CREATE INDEX IF NOT EXISTS idx_student_fee_plans_center_status ON student_fee_plans(center_id, status);
+SELECT pg_temp.v192_idx('student_fee_plans', ARRAY['center_id','status'], 'CREATE INDEX IF NOT EXISTS idx_student_fee_plans_center_status ON student_fee_plans(center_id, status)');
 
 -- Active discounts lookup
-CREATE INDEX IF NOT EXISTS idx_discounts_active_dates ON discounts(status, start_date, end_date) WHERE status = 'ACTIVE';
+SELECT pg_temp.v192_idx('discounts', ARRAY['status','start_date','end_date'], 'CREATE INDEX IF NOT EXISTS idx_discounts_active_dates ON discounts(status, start_date, end_date) WHERE status = ''ACTIVE''');
 
 -- Ledger entries for balance calculations
-CREATE INDEX IF NOT EXISTS idx_ledger_entries_student_date ON ledger_entries(student_id, entry_date DESC);
+SELECT pg_temp.v192_idx('ledger_entries', ARRAY['student_id','entry_date'], 'CREATE INDEX IF NOT EXISTS idx_ledger_entries_student_date ON ledger_entries(student_id, entry_date DESC)');
 
 -- Refunds by center + status (refund dashboard)
-CREATE INDEX IF NOT EXISTS idx_refunds_center_status ON refunds(center_id, status);
+SELECT pg_temp.v192_idx('refunds', ARRAY['center_id','status'], 'CREATE INDEX IF NOT EXISTS idx_refunds_center_status ON refunds(center_id, status)');
 
 -- =====================================================
 -- PARTITIONING STRATEGY FOR FUTURE SCALE (10B+ users)

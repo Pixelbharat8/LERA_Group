@@ -1,10 +1,12 @@
 -- V1__baseline.sql — Attendance Service indexes for 10M+ scale
 
-CREATE INDEX IF NOT EXISTS idx_attendance_records_student_id ON attendance_records (student_id);
-CREATE INDEX IF NOT EXISTS idx_attendance_records_class_id ON attendance_records (class_id);
-CREATE INDEX IF NOT EXISTS idx_attendance_records_date ON attendance_records (attendance_date);
-CREATE INDEX IF NOT EXISTS idx_attendance_records_center_id ON attendance_records (center_id);
-CREATE INDEX IF NOT EXISTS idx_attendance_records_status ON attendance_records (status);
+-- fixed 2026-06-28: the entity table is `attendance` (not `attendance_records`), and it is
+-- session-based — it uses session_id (not class_id) and check_in_time (not attendance_date).
+CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON attendance (student_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_session_id ON attendance (session_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_check_in ON attendance (check_in_time);
+CREATE INDEX IF NOT EXISTS idx_attendance_center_id ON attendance (center_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_status ON attendance (status);
 CREATE INDEX IF NOT EXISTS idx_teacher_staff_leaves_user_id ON teacher_staff_leaves (user_id);
 CREATE INDEX IF NOT EXISTS idx_teacher_staff_leaves_status ON teacher_staff_leaves (status);
 CREATE INDEX IF NOT EXISTS idx_teacher_sessions_teacher_id ON teacher_sessions (teacher_id);

@@ -65,6 +65,83 @@ aws cloudformation deploy --template-file aws/cloudformation-template.yaml \
   (`V20260606*`, `V20260607*` in academy + connect) must apply cleanly. Run a staging
   migration dry-run first.
 
+#### ⚠️ 3a. First-deploy schema bootstrap (do NOT skip on an empty DB)
+The Flyway migrations in every service are **incremental overlays** — indexes, constraints,
+and feature tables added *on top of* a base schema. They do **not** create the base tables.
+Each `V1__baseline.sql` says so verbatim: *"All existing tables are already created by
+Hibernate ddl-auto=update."* No migration anywhere creates `users`, `payments`, `students`,
+`leads`, `payrolls`, `attendance_records`, etc. — those come from `ddl-auto`.
+
+Prod's steady-state config is `ddl-auto=validate` + Flyway, which **validates** an existing
+schema; it never creates the base tables. So on a **truly empty prod DB, the first boot
+fails** ("relation `users` does not exist") — Flyway runs first and its overlays reference
+tables that don't exist yet, and `validate` won't build them. (Confirmed via per-service
+migration dry-run on a fresh schema: only `rule_engine` applies clean in isolation.)
+
+All 9 services share **one** database, and migrations reach **across** service boundaries
+(e.g. identity's `V20260115__gap_fix_complete.sql` reads/writes `students`, which is
+academy_service's table). So the bootstrap CANNOT be done one service at a time — the
+**complete** shared schema must exist before **any** service runs `validate`+Flyway.
+
+**Required first-deploy sequence (one-time, on the empty prod DB) — two phases, all 9 together:**
+1. **Phase 1 — build the full schema.** Boot **all 9** services with
+   `SPRING_JPA_HIBERNATE_DDL_AUTO=update` **and** `SPRING_FLYWAY_ENABLED=false`. Each service's
+   Hibernate creates its tables; together they form the complete shared schema. Wait until all
+   report healthy, then stop them all.
+2. **Phase 2 — migrate + validate.** Restart **all 9** with the prod defaults
+   (`ddl-auto=validate`, `spring.flyway.enabled=true`). Flyway sees `baseline-on-migrate=true` /
+   `baseline-version=0`, baselines the populated schema, applies V1+ overlays, and cross-service
+   references resolve because Phase 1 built every table. `validate` then confirms entities match.
+3. All **subsequent** deploys just run validate+Flyway (incremental migrations apply normally).
+
+Equivalent alternative: load a known-good `pg_dump --schema-only` of the dev schema into prod
+first, then let validate+Flyway adopt it. Either way the **full** schema must exist before the
+first validate boot.
+
+**This must be dry-run on an empty staging DB before prod** — verified 2026-06-28 with a
+single-service fresh-DB test, which already surfaced real baseline bugs (now fixed):
+- identity `V1__baseline.sql` indexed a non-existent `user_activities` table (the activity entity
+  is `activity_logs`).
+- payroll `V1__baseline.sql` indexed a non-existent `payrolls` table + `salary_structures` table
+  and columns the real `payroll` entity lacks (`user_id`, `month`, `year`) — every line was wrong.
+  Rewritten to the real tables/columns (`payroll(teacher_id, center_id, status, paid_at)`,
+  `teacher_salary_config(teacher_id)`), validated on a throwaway DB.
+
+A static column-level audit (index columns vs the ddl-auto schema) was run across **all** V1
+baselines and resolved 2026-06-28. Real phantoms found and fixed:
+- **connect** `V1__baseline.sql`: `leads(source)` → `leads(source_id)`; `tasks(assigned_to)` →
+  `tasks(assignee_id)` (real column is `assignee_id`).
+- **social** `V1__baseline.sql`: `social_analytics(platform_id)` → `(platform)`;
+  `social_platforms(platform_type)` → `(platform_name)`; dropped `social_media_posts(platform_id)`
+  (posts are multi-platform, no FK) and `social_analytics(post_id)` (per-platform/date aggregates,
+  not per-post).
+All corrected files were validated on a throwaway DB.
+
+#### ✅ 3b. Phase-2 dry-run executed — all 9 services apply clean (2026-06-28)
+The definitive gate was run as a **schema-dump simulation**: `pg_dump --schema-only` of the live
+(entity/ddl-auto) DB → throwaway DB → every service's migrations applied in Flyway version order.
+This caught a second, deeper class the static audits missed — **table-creating migrations whose
+tables are ALSO ddl-auto entities, with a divergent column set** (the entity builds the table
+first, so the migration's `CREATE TABLE IF NOT EXISTS` no-ops and later column refs fail). Fixed,
+per "entities are source of truth":
+- **payment `V192`** (18 failures): guarded every index/seed referencing entity-absent columns
+  (`student_fee_plans.center_id/next_billing_date`, `invoices.invoice_date`, `discounts.type/status`,
+  `refunds.refund_number/student_id/center_id`, `ledger_entries.student_id/entry_date/transaction_type`,
+  `payment_methods.student_id`) via a `pg_temp.v192_idx` helper; guarded the `late_fee_rules` seed
+  (entity uses `rule_name`, not `name`). The "partitioning" was already just comments.
+- **attendance `V1`**: indexed `attendance_records` → real entity table is `attendance` (session-based:
+  `session_id`/`check_in_time`, not `class_id`/`attendance_date`).
+- **connect `V1`**: indexed `followups` → real entity table is `lead_followups`.
+- **identity `V20260122`**: sample INSERT now supplies `created_at/updated_at` (entity col is NOT
+  NULL, no default); guarded the `options` UPDATE (entity has no such column).
+- **identity `V20260115`**: neutralized to a no-op — it was demo/seed data against an early schema
+  (phantom `parents`/`staff`/`courses`/`attendance_records` tables, `exams.title`/`assignments.course_id`,
+  `uuid_generate_v4()`), never run, useless on an empty prod DB, and undesirable (fake data) if it did.
+
+**Result: a fresh `pg_dump` of the entity schema + all 9 services' migrations in order = 0 failures.**
+Remaining gate is the live two-phase boot (Phase 1 ddl-auto, Phase 2 validate+Flyway) on real staging
+infra — the SQL is now proven; that step confirms the runtime ordering/Flyway-history mechanics.
+
 **Verify:** `aws cloudformation describe-stacks`; no app-service port open to `0.0.0.0/0`;
 RDS shows Multi-AZ + encrypted.
 
@@ -104,7 +181,7 @@ few sample rows (1 training session, 1 perf review, 2 job openings, 1 hostel roo
 ## Quick go/no-go gate
 - [ ] On `main`, CI green
 - [ ] Secrets rotated + history scrubbed
-- [ ] Infra deployed (us-east-1 WAF), migrations applied on prod
+- [ ] Infra deployed (us-east-1 WAF); **first-deploy schema bootstrap done (step 3a)** then migrations applied on prod
 - [ ] Logs + metrics + alerts live
 - [ ] Test creds/data rotated; `LERA_SEED_*` set in prod
 - [ ] SMTP configured; smoke-test a real login on the deployed URL
