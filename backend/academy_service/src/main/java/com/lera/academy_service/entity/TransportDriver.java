@@ -18,7 +18,7 @@ public class TransportDriver {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "id")
     private UUID id;
 
     @Column(name = "driver_code", nullable = false, unique = true, length = 50)

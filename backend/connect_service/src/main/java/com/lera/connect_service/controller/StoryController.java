@@ -470,27 +470,28 @@ public class StoryController {
             Optional<UserOnlineStatus> statusOpt = userOnlineStatusRepository.findByUserId(uuid);
 
             if (statusOpt.isEmpty()) {
-                return ResponseEntity.ok(Map.of(
-                    "userId", userId,
-                    "isOnline", false,
-                    "lastSeenAt", null
-                ));
+                // Map.of rejects null values; use a null-tolerant map
+                java.util.Map<String, Object> offline = new java.util.HashMap<>();
+                offline.put("userId", userId);
+                offline.put("isOnline", false);
+                offline.put("lastSeenAt", null);
+                return ResponseEntity.ok(offline);
             }
 
             UserOnlineStatus status = statusOpt.get();
-            return ResponseEntity.ok(Map.of(
-                "userId", status.getUserId().toString(),
-                "isOnline", status.getIsOnline(),
-                "lastSeenAt", status.getLastSeenAt().toString(),
-                "statusMessage", status.getStatusMessage() != null ? status.getStatusMessage() : "",
-                "deviceType", status.getDeviceType()
-            ));
+            java.util.Map<String, Object> body = new java.util.HashMap<>();
+            body.put("userId", status.getUserId().toString());
+            body.put("isOnline", status.getIsOnline());
+            body.put("lastSeenAt", status.getLastSeenAt() != null ? status.getLastSeenAt().toString() : null);
+            body.put("statusMessage", status.getStatusMessage() != null ? status.getStatusMessage() : "");
+            body.put("deviceType", status.getDeviceType());
+            return ResponseEntity.ok(body);
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                "userId", userId,
-                "isOnline", false,
-                "lastSeenAt", null
-            ));
+            java.util.Map<String, Object> offline = new java.util.HashMap<>();
+            offline.put("userId", userId);
+            offline.put("isOnline", false);
+            offline.put("lastSeenAt", null);
+            return ResponseEntity.ok(offline);
         }
     }
 

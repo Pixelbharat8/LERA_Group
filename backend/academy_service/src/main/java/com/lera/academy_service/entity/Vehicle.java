@@ -18,7 +18,7 @@ public class Vehicle {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "id")
     private UUID id;
 
     @Column(name = "vehicle_number", nullable = false, unique = true, length = 50)

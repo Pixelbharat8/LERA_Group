@@ -18,13 +18,13 @@ public class LibraryFine {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "borrowing_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "borrowing_id", nullable = false)
     private UUID borrowingId;
 
-    @Column(name = "student_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "student_id", nullable = false)
     private UUID studentId;
 
     @Column(name = "fine_type", nullable = false, length = 50)

@@ -18,10 +18,10 @@ public class LibraryInventory {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "book_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "book_id", nullable = false)
     private UUID bookId;
 
     @Column(name = "barcode", unique = true, length = 100)

@@ -19,16 +19,16 @@ public class TransportSchedule {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "route_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "route_id", nullable = false)
     private UUID routeId;
 
-    @Column(name = "vehicle_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "vehicle_id", nullable = false)
     private UUID vehicleId;
 
-    @Column(name = "driver_id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "driver_id")
     private UUID driverId;
 
     @Column(name = "schedule_type", nullable = false, length = 50)

@@ -18,7 +18,7 @@ public class BookCategory {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "id")
     private UUID id;
 
     @Column(name = "name", nullable = false, length = 200)
@@ -30,7 +30,7 @@ public class BookCategory {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "parent_category_id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "parent_category_id")
     private UUID parentCategoryId;
 
     @Column(name = "is_active")

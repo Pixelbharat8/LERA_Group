@@ -19,10 +19,10 @@ public class RouteStop {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "route_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "route_id", nullable = false)
     private UUID routeId;
 
     @Column(name = "stop_name", nullable = false, length = 200)
