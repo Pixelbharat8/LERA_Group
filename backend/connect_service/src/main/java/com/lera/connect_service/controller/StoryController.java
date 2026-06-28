@@ -471,7 +471,7 @@ public class StoryController {
 
             if (statusOpt.isEmpty()) {
                 // Map.of rejects null values; use a null-tolerant map
-                java.util.Map<String, Object> offline = new java.util.HashMap<>();
+                Map<String, Object> offline = new HashMap<>();
                 offline.put("userId", userId);
                 offline.put("isOnline", false);
                 offline.put("lastSeenAt", null);
@@ -479,7 +479,7 @@ public class StoryController {
             }
 
             UserOnlineStatus status = statusOpt.get();
-            java.util.Map<String, Object> body = new java.util.HashMap<>();
+            Map<String, Object> body = new HashMap<>();
             body.put("userId", status.getUserId().toString());
             body.put("isOnline", status.getIsOnline());
             body.put("lastSeenAt", status.getLastSeenAt() != null ? status.getLastSeenAt().toString() : null);
@@ -487,7 +487,7 @@ public class StoryController {
             body.put("deviceType", status.getDeviceType());
             return ResponseEntity.ok(body);
         } catch (Exception e) {
-            java.util.Map<String, Object> offline = new java.util.HashMap<>();
+            Map<String, Object> offline = new HashMap<>();
             offline.put("userId", userId);
             offline.put("isOnline", false);
             offline.put("lastSeenAt", null);
