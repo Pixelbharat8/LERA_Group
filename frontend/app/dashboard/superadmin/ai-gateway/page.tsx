@@ -101,7 +101,7 @@ export default function AIGatewayPage() {
 
       const health = await apiFetch("/api/ai/health").catch(() => null);
       setServices([
-        { name: "AI Gateway Service", status: aiGateway as any, port: "8090" },
+        { name: "AI Gateway Service", status: aiGateway as any, port: "8087" },
         {
           name: `AI Provider (${health?.provider || "—"})`,
           status: health?.configured ? "running" : "not_configured",

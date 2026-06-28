@@ -12,5 +12,6 @@ CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
 CREATE INDEX IF NOT EXISTS idx_users_center_role ON users(center_id, role_id);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at);
-CREATE INDEX IF NOT EXISTS idx_user_activities_user_id ON user_activities(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_activities_activity_type ON user_activities(activity_type);
+-- NOTE: there is no `user_activities` table/entity (the activity entity is `activity_logs`,
+-- indexed above). The two idx_user_activities_* indexes were removed — they referenced a
+-- phantom table and failed Flyway on a fresh DB. (Verified 2026-06-28 fresh-DB validate+Flyway.)

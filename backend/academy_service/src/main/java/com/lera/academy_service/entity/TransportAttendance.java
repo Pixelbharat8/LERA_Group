@@ -18,19 +18,19 @@ public class TransportAttendance {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "student_transport_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "student_transport_id", nullable = false)
     private UUID studentTransportId;
 
-    @Column(name = "schedule_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "schedule_id", nullable = false)
     private UUID scheduleId;
 
     @Column(name = "attendance_date", nullable = false)
     private LocalDateTime attendanceDate;
 
-    @Column(name = "stop_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "stop_id", nullable = false)
     private UUID stopId;
 
     @Column(name = "boarding_time")
@@ -57,7 +57,7 @@ public class TransportAttendance {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "marked_by", columnDefinition = "VARCHAR(36)")
+    @Column(name = "marked_by")
     private UUID markedBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)

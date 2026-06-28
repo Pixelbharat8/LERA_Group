@@ -18,13 +18,13 @@ public class BookBorrowing {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "book_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "book_id", nullable = false)
     private UUID bookId;
 
-    @Column(name = "student_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "student_id", nullable = false)
     private UUID studentId;
 
     @Column(name = "borrow_date", nullable = false)
@@ -52,10 +52,10 @@ public class BookBorrowing {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "issued_by", columnDefinition = "VARCHAR(36)")
+    @Column(name = "issued_by")
     private UUID issuedBy;
 
-    @Column(name = "returned_to", columnDefinition = "VARCHAR(36)")
+    @Column(name = "returned_to")
     private UUID returnedTo;
 
     @Column(name = "created_at", nullable = false, updatable = false)

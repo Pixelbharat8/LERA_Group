@@ -40,7 +40,9 @@ public class AttendanceAutomationService {
     @Value("${attendance.monthly-report.extra-notify-user-ids:}")
     private String extraMonthlyNotifyUserIds;
 
-    @Value("${attendance.class-reminder.enabled:true}")
+    // Disabled by default (2026-06-28): the reminder query joins phantom tables
+    // (class_schedules, class_students) absent from the real schema. Re-enable once rewritten.
+    @Value("${attendance.class-reminder.enabled:false}")
     private boolean classReminderEnabled;
 
     @Value("${attendance.class-reminder.send-email:true}")
@@ -54,7 +56,10 @@ public class AttendanceAutomationService {
      * Daily job to mark students as ABSENT who have scheduled classes but no attendance record
      * Runs at 11:00 PM every day (after all classes are done)
      */
-    @Scheduled(cron = "0 0 23 * * ?")
+    // DISABLED 2026-06-28 (default "-"): queries phantom tables (class_attendance, class_students,
+    // class_schedules) that don't exist in the real schema. Re-enable via the property once the
+    // automation is rebuilt against the real `attendance`/`class_sessions` tables. Was: 0 0 23 * * ?
+    @Scheduled(cron = "${attendance.automation.absent-marking.cron:-}")
     @Transactional
     public void markAbsentStudentsDaily() {
         log.info("🔄 Starting daily absent marking automation at {}", LocalDateTime.now());
@@ -102,7 +107,7 @@ public class AttendanceAutomationService {
      * Daily job to close attendance sessions that are still open
      * Runs at 10:00 PM every day
      */
-    @Scheduled(cron = "0 0 22 * * ?")
+    @Scheduled(cron = "${attendance.automation.close-sessions.cron:-}")  // disabled: phantom-table query; was 0 0 22 * * ?
     @Transactional
     public void closeOpenAttendanceSessions() {
         log.info("🔄 Closing open attendance sessions at {}", LocalDateTime.now());
@@ -130,7 +135,7 @@ public class AttendanceAutomationService {
      * Daily job to flag late arrivals (students who checked in after class start time)
      * Runs at 9:00 PM every day
      */
-    @Scheduled(cron = "0 0 21 * * ?")
+    @Scheduled(cron = "${attendance.automation.late-arrivals.cron:-}")  // disabled: phantom-table query; was 0 0 21 * * ?
     @Transactional
     public void flagLateArrivals() {
         log.info("🔄 Flagging late arrivals at {}", LocalDateTime.now());
@@ -163,7 +168,7 @@ public class AttendanceAutomationService {
      * Morning reminder job to create attendance sessions for today's classes
      * Runs at 6:00 AM every day
      */
-    @Scheduled(cron = "0 0 6 * * ?")
+    @Scheduled(cron = "${attendance.automation.create-sessions.cron:-}")  // disabled: phantom-table query; was 0 0 6 * * ?
     @Transactional
     public void createDailyAttendanceSessions() {
         log.info("🔄 Creating attendance sessions for today at {}", LocalDateTime.now());
@@ -208,7 +213,7 @@ public class AttendanceAutomationService {
      * Weekly job to calculate attendance percentages for all students
      * Runs every Sunday at 11:00 PM
      */
-    @Scheduled(cron = "0 0 23 ? * SUN")
+    @Scheduled(cron = "${attendance.automation.weekly-stats.cron:-}")  // disabled: phantom-table query; was 0 0 23 ? * SUN
     @Transactional
     public void calculateWeeklyAttendanceStats() {
         log.info("🔄 Calculating weekly attendance statistics at {}", LocalDateTime.now());
@@ -248,7 +253,7 @@ public class AttendanceAutomationService {
      * Monthly job to send attendance summary reports
      * Runs on 1st of every month at 8:00 AM
      */
-    @Scheduled(cron = "0 0 8 1 * ?")
+    @Scheduled(cron = "${attendance.automation.monthly-reports.cron:-}")  // disabled: phantom-table query; was 0 0 8 1 * ?
     public void generateMonthlyAttendanceReports() {
         log.info("🔄 Generating monthly attendance reports at {}", LocalDateTime.now());
         
@@ -520,9 +525,9 @@ public class AttendanceAutomationService {
                 COUNT(CASE WHEN status = 'ABSENT' THEN 1 END) as absent_count,
                 COUNT(CASE WHEN status = 'LATE' THEN 1 END) as late_count,
                 COUNT(CASE WHEN notes LIKE '%Auto-marked%' THEN 1 END) as auto_marked_count
-            FROM class_attendance
-            WHERE session_date = ?
-            """;
+            FROM attendance
+            WHERE created_at::date = ?
+            """;  // fixed 2026-06-28: real table is `attendance` (was phantom class_attendance/session_date)
         
         Map<String, Object> stats = jdbcTemplate.queryForMap(statsQuery, today);
         

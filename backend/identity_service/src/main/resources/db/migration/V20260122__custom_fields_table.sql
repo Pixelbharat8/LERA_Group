@@ -49,17 +49,25 @@ CREATE TABLE IF NOT EXISTS custom_field_values (
 CREATE INDEX IF NOT EXISTS idx_custom_field_values_field ON custom_field_values(custom_field_id);
 CREATE INDEX IF NOT EXISTS idx_custom_field_values_entity ON custom_field_values(entity_id);
 
--- Insert some sample custom fields for demonstration
-INSERT INTO custom_fields (id, entity_type, field_name, field_label, field_label_vi, field_type, is_required, is_active, show_in_table, show_in_form, sort_order)
-VALUES 
-    (gen_random_uuid()::varchar, 'student', 'emergency_contact', 'Emergency Contact', 'Liên hệ khẩn cấp', 'phone', false, true, true, true, 1),
-    (gen_random_uuid()::varchar, 'student', 'blood_group', 'Blood Group', 'Nhóm máu', 'select', false, true, true, true, 2),
-    (gen_random_uuid()::varchar, 'student', 'medical_conditions', 'Medical Conditions', 'Tình trạng y tế', 'textarea', false, true, false, true, 3),
-    (gen_random_uuid()::varchar, 'teacher', 'teaching_experience', 'Years of Experience', 'Số năm kinh nghiệm', 'number', false, true, true, true, 1),
-    (gen_random_uuid()::varchar, 'teacher', 'certifications', 'Certifications', 'Chứng chỉ', 'textarea', false, true, false, true, 2)
+-- Insert some sample custom fields for demonstration.
+-- NOTE (2026-06-28): created_at/updated_at supplied explicitly — the live custom_fields entity
+-- (ddl-auto) declares created_at NOT NULL with no DB-level default, so omitting it fails on a fresh DB.
+INSERT INTO custom_fields (id, entity_type, field_name, field_label, field_label_vi, field_type, is_required, is_active, show_in_table, show_in_form, sort_order, created_at, updated_at)
+VALUES
+    (gen_random_uuid()::varchar, 'student', 'emergency_contact', 'Emergency Contact', 'Liên hệ khẩn cấp', 'phone', false, true, true, true, 1, NOW(), NOW()),
+    (gen_random_uuid()::varchar, 'student', 'blood_group', 'Blood Group', 'Nhóm máu', 'select', false, true, true, true, 2, NOW(), NOW()),
+    (gen_random_uuid()::varchar, 'student', 'medical_conditions', 'Medical Conditions', 'Tình trạng y tế', 'textarea', false, true, false, true, 3, NOW(), NOW()),
+    (gen_random_uuid()::varchar, 'teacher', 'teaching_experience', 'Years of Experience', 'Số năm kinh nghiệm', 'number', false, true, true, true, 1, NOW(), NOW()),
+    (gen_random_uuid()::varchar, 'teacher', 'certifications', 'Certifications', 'Chứng chỉ', 'textarea', false, true, false, true, 2, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
--- Update options for blood_group field
-UPDATE custom_fields 
-SET options = '["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]'
-WHERE field_name = 'blood_group' AND entity_type = 'student';
+-- Update options for blood_group field — guarded: the live custom_fields entity has no `options`
+-- column (dropdown choices are modeled elsewhere). Skip when absent so the migration applies clean.
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_schema='public' AND table_name='custom_fields' AND column_name='options') THEN
+        UPDATE custom_fields
+        SET options = '["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]'
+        WHERE field_name = 'blood_group' AND entity_type = 'student';
+    END IF;
+END $$;

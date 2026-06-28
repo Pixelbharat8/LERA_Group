@@ -18,13 +18,13 @@ public class GpsTracking {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "vehicle_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "vehicle_id", nullable = false)
     private UUID vehicleId;
 
-    @Column(name = "schedule_id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "schedule_id")
     private UUID scheduleId;
 
     @Column(name = "latitude", nullable = false)

@@ -18,16 +18,16 @@ public class StudentTransport {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "student_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "student_id", nullable = false)
     private UUID studentId;
 
-    @Column(name = "route_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "route_id", nullable = false)
     private UUID routeId;
 
-    @Column(name = "stop_id", nullable = false, columnDefinition = "VARCHAR(36)")
+    @Column(name = "stop_id", nullable = false)
     private UUID stopId;
 
     @Column(name = "transport_type", nullable = false, length = 50)
