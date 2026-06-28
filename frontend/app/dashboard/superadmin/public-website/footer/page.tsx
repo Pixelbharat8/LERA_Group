@@ -58,7 +58,6 @@ const initialSettings: FooterSettings = {
         { id: 5, label: { en: "About Us", vi: "Về chúng tôi" }, url: "/about", openInNewTab: false },
         { id: 6, label: { en: "Our Teachers", vi: "Giáo viên" }, url: "/teachers", openInNewTab: false },
         { id: 7, label: { en: "Blog", vi: "Blog" }, url: "/blog", openInNewTab: false },
-        { id: 8, label: { en: "Careers", vi: "Tuyển dụng" }, url: "/careers", openInNewTab: false },
       ]
     },
     {
