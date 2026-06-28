@@ -520,9 +520,9 @@ public class AttendanceAutomationService {
                 COUNT(CASE WHEN status = 'ABSENT' THEN 1 END) as absent_count,
                 COUNT(CASE WHEN status = 'LATE' THEN 1 END) as late_count,
                 COUNT(CASE WHEN notes LIKE '%Auto-marked%' THEN 1 END) as auto_marked_count
-            FROM class_attendance
-            WHERE session_date = ?
-            """;
+            FROM attendance
+            WHERE created_at::date = ?
+            """;  // fixed 2026-06-28: real table is `attendance` (was phantom class_attendance/session_date)
         
         Map<String, Object> stats = jdbcTemplate.queryForMap(statsQuery, today);
         
