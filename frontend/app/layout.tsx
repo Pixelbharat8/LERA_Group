@@ -21,6 +21,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastContainer } from '@/components/Toast'
 import FloatingCTA from './components/FloatingCTA'
 import BrandTheme from './components/BrandTheme'
+import CursorFollower from './components/CursorFollower'
 
 // Static SEO defaults (always valid). `generateMetadata` below overlays the
 // Chairman's saved seo_settings on top of these when present, falling back to
@@ -202,6 +203,7 @@ export default function RootLayout({
       </head>
       <body className="min-w-0 overflow-x-hidden">
         <BrandTheme />
+        <CursorFollower />
         <ErrorBoundary>
           <WebsiteSettingsProvider>
             <LanguageProvider>

@@ -298,6 +298,61 @@ img {
   transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+/* Custom cursor (public site, desktop only — see components/CursorFollower.tsx).
+   Transforms are driven per-frame in JS, so they are intentionally NOT transitioned. */
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 9999px;
+  opacity: 0;
+  will-change: transform;
+}
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--brand-secondary, #f59e0b);
+  transition: opacity 0.25s ease;
+}
+.cursor-ring {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--brand-primary, #0a1a5c);
+  transition: width 0.25s ease, height 0.25s ease, border-color 0.25s ease,
+    background-color 0.25s ease, opacity 0.25s ease;
+}
+.cursor-ring.cursor-ring--hover {
+  width: 52px;
+  height: 52px;
+  border-color: var(--brand-secondary, #f59e0b);
+  background: color-mix(in srgb, var(--brand-secondary, #f59e0b) 14%, transparent);
+}
+/* Hide the native cursor only while the follower is active; keep carets on text fields. */
+html.lera-cursor,
+html.lera-cursor a,
+html.lera-cursor button,
+html.lera-cursor [role="button"],
+html.lera-cursor label,
+html.lera-cursor select,
+html.lera-cursor .cursor-pointer {
+  cursor: none;
+}
+html.lera-cursor input,
+html.lera-cursor textarea,
+html.lera-cursor [contenteditable="true"] {
+  cursor: auto;
+}
+/* Safety: never show the custom cursor on touch / coarse-pointer devices. */
+@media (hover: none), (pointer: coarse) {
+  .cursor-dot,
+  .cursor-ring {
+    display: none !important;
+  }
+}
+
 /* Neon Glow Text */
 .neon-text {
   text-shadow: 
