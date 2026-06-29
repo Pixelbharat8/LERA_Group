@@ -6,14 +6,40 @@ import { useWebsiteSettings } from "@/hooks/useWebsiteSettings";
 import { useState, useEffect } from "react";
 import { apiUrl } from "../../lib/api";
 
+type FooterLink = { id: number; label: { en: string; vi: string }; url: string; openInNewTab?: boolean };
+type FooterColumn = { id: number; title: { en: string; vi: string }; links: FooterLink[] };
+type FooterCfg = { columns?: FooterColumn[]; copyright?: { en: string; vi: string }; description?: { en: string; vi: string } };
+
 export default function Footer() {
   const { t, language } = useLanguage();
   const { getSetting } = useWebsiteSettings();
   const [courses, setCourses] = useState<any[]>([]);
-  
+  // Footer links the Chairman configures in Website Content → Footer. When a config
+  // exists we render it; otherwise we fall back to the built-in columns below, so the
+  // footer is unchanged until someone deliberately saves a configuration.
+  const [cfg, setCfg] = useState<FooterCfg | null>(null);
+  const vi = language === "VI";
+
   useEffect(() => {
     fetchCourses();
+    fetchFooterCfg();
   }, []);
+
+  const fetchFooterCfg = async () => {
+    try {
+      // Public endpoint (academy SecurityConfig permits GET /api/cms-settings/value/*).
+      const res = await fetch(apiUrl("/api/cms-settings/value/footer_settings"));
+      if (!res.ok) return;
+      const raw = await res.text();
+      if (!raw) return;
+      const parsed: FooterCfg = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.columns) && parsed.columns.length > 0) {
+        setCfg(parsed);
+      }
+    } catch {
+      /* no config / parse error → keep built-in footer */
+    }
+  };
 
   const fetchCourses = async () => {
     try {
@@ -66,7 +92,7 @@ export default function Footer() {
               </div>
             </div>
             <p className="text-gray-400 mb-6 max-w-md">
-              {t("footerDesc")}
+              {cfg?.description ? (vi ? cfg.description.vi : cfg.description.en) : t("footerDesc")}
             </p>
             <div className="flex space-x-4">
               <a
@@ -126,46 +152,71 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Pages */}
-          <div>
-            <h4 className="font-display font-bold text-lg mb-6">{t("pages")}</h4>
-            <ul className="space-y-3">
-              <li><Link href="/" className="text-gray-400 hover:text-orange-400 transition-colors">{t("home")}</Link></li>
-              <li><Link href="/courses" className="text-gray-400 hover:text-orange-400 transition-colors">{t("courses")}</Link></li>
-              <li><Link href="/pricing" className="text-gray-400 hover:text-orange-400 transition-colors">{language === "VI" ? "Học phí" : "Pricing"}</Link></li>
-              <li><Link href="/enroll" className="text-gray-400 hover:text-orange-400 transition-colors">{language === "VI" ? "Đăng ký nhập học" : "Enrol online"}</Link></li>
-              <li><Link href="/portal" className="text-gray-400 hover:text-orange-400 transition-colors">{language === "VI" ? "Cổng phụ huynh" : "Parent portal"}</Link></li>
-              <li><Link href="/teachers" className="text-gray-400 hover:text-orange-400 transition-colors">{language === "VI" ? "Giáo viên" : "Teachers"}</Link></li>
-              <li><Link href="/corporate" className="text-gray-400 hover:text-orange-400 transition-colors">{language === "VI" ? "Đào tạo doanh nghiệp" : "Corporate training"}</Link></li>
-              <li><Link href="/about" className="text-gray-400 hover:text-orange-400 transition-colors">{t("about")}</Link></li>
-              <li><Link href="/contact" className="text-gray-400 hover:text-orange-400 transition-colors">{t("contact")}</Link></li>
-            </ul>
-          </div>
+          {cfg?.columns?.length ? (
+            /* Chairman-configured columns (Website Content → Footer) */
+            cfg.columns.map((col) => (
+              <div key={col.id}>
+                <h4 className="font-display font-bold text-lg mb-6">{vi ? col.title.vi : col.title.en}</h4>
+                <ul className="space-y-3">
+                  {col.links.map((lk) => (
+                    <li key={lk.id}>
+                      <Link
+                        href={lk.url || "#"}
+                        target={lk.openInNewTab ? "_blank" : undefined}
+                        rel={lk.openInNewTab ? "noopener noreferrer" : undefined}
+                        className="text-gray-400 hover:text-orange-400 transition-colors"
+                      >
+                        {vi ? lk.label.vi : lk.label.en}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          ) : (
+            <>
+              {/* Pages */}
+              <div>
+                <h4 className="font-display font-bold text-lg mb-6">{t("pages")}</h4>
+                <ul className="space-y-3">
+                  <li><Link href="/" className="text-gray-400 hover:text-orange-400 transition-colors">{t("home")}</Link></li>
+                  <li><Link href="/courses" className="text-gray-400 hover:text-orange-400 transition-colors">{t("courses")}</Link></li>
+                  <li><Link href="/pricing" className="text-gray-400 hover:text-orange-400 transition-colors">{vi ? "Học phí" : "Pricing"}</Link></li>
+                  <li><Link href="/enroll" className="text-gray-400 hover:text-orange-400 transition-colors">{vi ? "Đăng ký nhập học" : "Enrol online"}</Link></li>
+                  <li><Link href="/portal" className="text-gray-400 hover:text-orange-400 transition-colors">{vi ? "Cổng phụ huynh" : "Parent portal"}</Link></li>
+                  <li><Link href="/teachers" className="text-gray-400 hover:text-orange-400 transition-colors">{vi ? "Giáo viên" : "Teachers"}</Link></li>
+                  <li><Link href="/corporate" className="text-gray-400 hover:text-orange-400 transition-colors">{vi ? "Đào tạo doanh nghiệp" : "Corporate training"}</Link></li>
+                  <li><Link href="/about" className="text-gray-400 hover:text-orange-400 transition-colors">{t("about")}</Link></li>
+                  <li><Link href="/contact" className="text-gray-400 hover:text-orange-400 transition-colors">{t("contact")}</Link></li>
+                </ul>
+              </div>
 
-          {/* Courses - Dynamic from API */}
-          <div>
-            <h4 className="font-display font-bold text-lg mb-6">{t("coursesFooter")}</h4>
-            <ul className="space-y-3">
-              {courses.length > 0 ? courses.map((c: any) => {
-                const slug = codeToSlug[c.code] || c.code?.toLowerCase() || c.id;
-                const name = language === "VI" && c.nameVi ? c.nameVi : c.name;
-                return (
-                  <li key={c.id || slug}>
-                    <Link href={`/courses/${slug}`} className="text-gray-400 hover:text-orange-400 transition-colors">{name}</Link>
-                  </li>
-                );
-              }) : (
-                <>
-                  <li><Link href="/courses/lera-starters" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Starters</Link></li>
-                  <li><Link href="/courses/lera-explorers" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Explorers</Link></li>
-                  <li><Link href="/courses/lera-primary" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Primary</Link></li>
-                  <li><Link href="/courses/lera-teens" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Teens</Link></li>
-                  <li><Link href="/courses/ielts-sat" className="text-gray-400 hover:text-orange-400 transition-colors">IELTS & SAT</Link></li>
-                  <li><Link href="/courses/business-english" className="text-gray-400 hover:text-orange-400 transition-colors">Business English</Link></li>
-                </>
-              )}
-            </ul>
-          </div>
+              {/* Courses - Dynamic from API */}
+              <div>
+                <h4 className="font-display font-bold text-lg mb-6">{t("coursesFooter")}</h4>
+                <ul className="space-y-3">
+                  {courses.length > 0 ? courses.map((c: any) => {
+                    const slug = codeToSlug[c.code] || c.code?.toLowerCase() || c.id;
+                    const name = vi && c.nameVi ? c.nameVi : c.name;
+                    return (
+                      <li key={c.id || slug}>
+                        <Link href={`/courses/${slug}`} className="text-gray-400 hover:text-orange-400 transition-colors">{name}</Link>
+                      </li>
+                    );
+                  }) : (
+                    <>
+                      <li><Link href="/courses/lera-starters" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Starters</Link></li>
+                      <li><Link href="/courses/lera-explorers" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Explorers</Link></li>
+                      <li><Link href="/courses/lera-primary" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Primary</Link></li>
+                      <li><Link href="/courses/lera-teens" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Teens</Link></li>
+                      <li><Link href="/courses/ielts-sat" className="text-gray-400 hover:text-orange-400 transition-colors">IELTS & SAT</Link></li>
+                      <li><Link href="/courses/business-english" className="text-gray-400 hover:text-orange-400 transition-colors">Business English</Link></li>
+                    </>
+                  )}
+                </ul>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Contact Info */}
@@ -191,7 +242,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-500 text-sm">
-            © 2024 LERA Academy. {t("allRightsReserved")}
+            {cfg?.copyright ? (vi ? cfg.copyright.vi : cfg.copyright.en) : <>© 2024 LERA Academy. {t("allRightsReserved")}</>}
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link href="/privacy" className="text-gray-500 hover:text-orange-400 text-sm">{t("privacy")}</Link>

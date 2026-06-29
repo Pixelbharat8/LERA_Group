@@ -40,34 +40,35 @@ const initialSettings: FooterSettings = {
     en: "LERA Academy - Learn English with Cambridge methodology. Trusted by 10,000+ students across Vietnam.", 
     vi: "LERA Academy - Học Tiếng Anh theo phương pháp Cambridge. Được tin tưởng bởi hơn 10,000 học viên trên toàn Việt Nam." 
   },
+  // Defaults mirror the live site footer (app/components/Footer.tsx) so saving the
+  // defaults reproduces today's footer. URLs use the real course slugs (lera-*),
+  // not the old /courses/starters placeholders (which 404).
   columns: [
     {
       id: 1,
-      title: { en: "Programs", vi: "Chương trình" },
+      title: { en: "Quick Links", vi: "Liên kết nhanh" },
       links: [
-        { id: 1, label: { en: "Starters (4-6 years)", vi: "Starters (4-6 tuổi)" }, url: "/courses/starters", openInNewTab: false },
-        { id: 2, label: { en: "Explorers (6-9 years)", vi: "Explorers (6-9 tuổi)" }, url: "/courses/explorers", openInNewTab: false },
-        { id: 3, label: { en: "Primary (9-12 years)", vi: "Primary (9-12 tuổi)" }, url: "/courses/primary", openInNewTab: false },
-        { id: 4, label: { en: "Teens (12-16 years)", vi: "Teens (12-16 tuổi)" }, url: "/courses/teens", openInNewTab: false },
+        { id: 1, label: { en: "Home", vi: "Trang chủ" }, url: "/", openInNewTab: false },
+        { id: 2, label: { en: "Courses", vi: "Khoá học" }, url: "/courses", openInNewTab: false },
+        { id: 3, label: { en: "Pricing", vi: "Học phí" }, url: "/pricing", openInNewTab: false },
+        { id: 4, label: { en: "Enrol online", vi: "Đăng ký nhập học" }, url: "/enroll", openInNewTab: false },
+        { id: 5, label: { en: "Parent portal", vi: "Cổng phụ huynh" }, url: "/portal", openInNewTab: false },
+        { id: 6, label: { en: "Teachers", vi: "Giáo viên" }, url: "/teachers", openInNewTab: false },
+        { id: 7, label: { en: "Corporate training", vi: "Đào tạo doanh nghiệp" }, url: "/corporate", openInNewTab: false },
+        { id: 8, label: { en: "About Us", vi: "Về chúng tôi" }, url: "/about", openInNewTab: false },
+        { id: 9, label: { en: "Contact", vi: "Liên hệ" }, url: "/contact", openInNewTab: false },
       ]
     },
     {
       id: 2,
-      title: { en: "Company", vi: "Công ty" },
+      title: { en: "Courses", vi: "Khoá học" },
       links: [
-        { id: 5, label: { en: "About Us", vi: "Về chúng tôi" }, url: "/about", openInNewTab: false },
-        { id: 6, label: { en: "Our Teachers", vi: "Giáo viên" }, url: "/teachers", openInNewTab: false },
-        { id: 7, label: { en: "Blog", vi: "Blog" }, url: "/blog", openInNewTab: false },
-      ]
-    },
-    {
-      id: 3,
-      title: { en: "Support", vi: "Hỗ trợ" },
-      links: [
-        { id: 9, label: { en: "Contact Us", vi: "Liên hệ" }, url: "/contact", openInNewTab: false },
-        { id: 10, label: { en: "FAQ", vi: "Câu hỏi thường gặp" }, url: "/faq", openInNewTab: false },
-        { id: 11, label: { en: "Privacy Policy", vi: "Chính sách bảo mật" }, url: "/privacy", openInNewTab: false },
-        { id: 12, label: { en: "Terms of Service", vi: "Điều khoản dịch vụ" }, url: "/terms", openInNewTab: false },
+        { id: 10, label: { en: "LERA Starters", vi: "LERA Starters" }, url: "/courses/lera-starters", openInNewTab: false },
+        { id: 11, label: { en: "LERA Explorers", vi: "LERA Explorers" }, url: "/courses/lera-explorers", openInNewTab: false },
+        { id: 12, label: { en: "LERA Primary", vi: "LERA Primary" }, url: "/courses/lera-primary", openInNewTab: false },
+        { id: 13, label: { en: "LERA Teens", vi: "LERA Teens" }, url: "/courses/lera-teens", openInNewTab: false },
+        { id: 14, label: { en: "IELTS & SAT", vi: "IELTS & SAT" }, url: "/courses/ielts-sat", openInNewTab: false },
+        { id: 15, label: { en: "Business English", vi: "Tiếng Anh doanh nghiệp" }, url: "/courses/business-english", openInNewTab: false },
       ]
     }
   ],
@@ -79,11 +80,11 @@ const initialSettings: FooterSettings = {
     { platform: "tiktok", url: "https://tiktok.com/@leraacademy", enabled: true },
   ],
   contactInfo: {
-    email: "contact@leraacademy.vn",
-    phone: "+84 28 1234 5678",
-    address: { 
-      en: "123 Nguyen Hue, District 1, Ho Chi Minh City", 
-      vi: "123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh" 
+    email: "contact@lera.edu.vn",
+    phone: "0387.633.141",
+    address: {
+      en: "95 Hai Dang, Vinhomes Marina, An Bien Ward, Hai Phong",
+      vi: "95 Hải Đăng, khu đô thị Vinhomes Marina, phường An Biên, Hải Phòng"
     }
   },
   backgroundColor: "#0a1a5c",
