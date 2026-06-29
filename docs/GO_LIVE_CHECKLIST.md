@@ -12,11 +12,13 @@ execution** — they need YOUR git + AWS credentials, so they can't be run from 
 - **Backend test suite GREEN** on `main` (9/9 modules BUILD SUCCESS).
 
 **📌 Tracked code debt (not launch-blocking):**
-- Footer admin editor's link columns aren't wired to the live (hardcoded) `Footer.tsx`.
-- SEO: dynamic detail pages `/courses/[slug]` and `/blog/[slug]` lack per-item metadata, so each
-  inherits its section's title + canonical. Needs `generateMetadata` (extract course data to a
-  shared module; server-fetch the blog post by slug).
 - `<html lang="en">` is static though the site is bilingual EN/VI.
+
+(Resolved 2026-06-29: footer admin editor is now wired to the live `Footer.tsx` — it reads
+`GET /api/cms-settings/value/footer_settings` and renders the Chairman's configured columns,
+copyright and description, with a safe fallback to the built-in footer when no config is saved;
+seed defaults corrected to real course slugs. SEO dynamic detail pages `/courses/[slug]` and
+`/blog/[slug]` now have per-item `generateMetadata` + canonicals.)
 
 (Resolved 2026-06-29: academy's 3 `@WebMvcTest` authz classes — un-quarantined via an H2-backed
 JPA test harness; full backend suite now green with zero `@Disabled`.)
