@@ -52,6 +52,41 @@ const contentSections: ContentSection[] = [
     href: "/dashboard/chairman/website-content/centers"
   },
   {
+    id: "corporate",
+    title: "Corporate Page",
+    description: "Hero, benefits & inquiry-form copy for the /corporate page",
+    icon: "🏢",
+    href: "/dashboard/chairman/website-content/corporate"
+  },
+  {
+    id: "portal",
+    title: "Portal Page",
+    description: "Hero, section headings & CTA copy for the /portal page",
+    icon: "📱",
+    href: "/dashboard/chairman/website-content/portal"
+  },
+  {
+    id: "placement",
+    title: "Placement / Level-check",
+    description: "Heading, intro & result copy for the /placement page",
+    icon: "📝",
+    href: "/dashboard/chairman/website-content/placement"
+  },
+  {
+    id: "book-trial",
+    title: "Book a Trial Page",
+    description: "Heading, subtitle & success copy for the /book-trial page",
+    icon: "🎟️",
+    href: "/dashboard/chairman/website-content/book-trial"
+  },
+  {
+    id: "enroll",
+    title: "Enrol Page",
+    description: "Hero & confirmation copy for the /enroll page",
+    icon: "✍️",
+    href: "/dashboard/chairman/website-content/enroll"
+  },
+  {
     id: "contact",
     title: "Contact Page",
     description: "Contact form settings, FAQs, and support information",

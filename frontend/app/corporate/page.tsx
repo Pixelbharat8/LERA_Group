@@ -6,11 +6,13 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useLanguage } from "../context/LanguageContext";
 import { publicFetch } from "../../lib/api";
+import { usePageContent } from "@/hooks/usePageContent";
 import { CORPORATE_LEAD_CONTEXT } from "../../lib/english-centre-vertical-scope";
 
 export default function CorporatePage() {
   const { language } = useLanguage();
   const EN = language === "EN";
+  const { c } = usePageContent("corporate"); // editable in Chairman → Website Content → Corporate
   const [form, setForm] = useState({
     company: "",
     contactName: "",
@@ -59,19 +61,28 @@ export default function CorporatePage() {
     ? ["General Business English", "Communication & Presentations", "IELTS / exam prep for staff", "Industry-specific English", "Other"]
     : ["Tiếng Anh thương mại tổng quát", "Giao tiếp & thuyết trình", "Luyện thi IELTS cho nhân viên", "Tiếng Anh chuyên ngành", "Khác"];
 
-  const benefits = EN
-    ? [
-        { icon: "🏢", title: "On-site or at our centre", desc: "Flexible delivery — we come to your office or host your team at LERA." },
-        { icon: "🎯", title: "Tailored to your goals", desc: "A needs analysis shapes a programme around your team's real tasks." },
-        { icon: "📊", title: "Progress reporting", desc: "Regular reports so HR can see attendance and measurable improvement." },
-        { icon: "👩‍🏫", title: "Qualified teachers", desc: "Native and CELTA/TESOL-qualified teachers experienced with professionals." },
-      ]
-    : [
-        { icon: "🏢", title: "Tại văn phòng hoặc tại trung tâm", desc: "Linh hoạt — chúng tôi đến văn phòng bạn hoặc đón đội ngũ tại LERA." },
-        { icon: "🎯", title: "Thiết kế theo mục tiêu", desc: "Phân tích nhu cầu để xây chương trình quanh công việc thực tế của đội ngũ." },
-        { icon: "📊", title: "Báo cáo tiến độ", desc: "Báo cáo định kỳ để HR thấy chuyên cần và tiến bộ đo lường được." },
-        { icon: "👩‍🏫", title: "Giáo viên đạt chuẩn", desc: "Giáo viên bản ngữ và đạt chuẩn CELTA/TESOL, quen làm việc với người đi làm." },
-      ];
+  const benefits = [
+    {
+      icon: "🏢",
+      title: c("benefit1_title", EN ? "On-site or at our centre" : "Tại văn phòng hoặc tại trung tâm"),
+      desc: c("benefit1_desc", EN ? "Flexible delivery — we come to your office or host your team at LERA." : "Linh hoạt — chúng tôi đến văn phòng bạn hoặc đón đội ngũ tại LERA."),
+    },
+    {
+      icon: "🎯",
+      title: c("benefit2_title", EN ? "Tailored to your goals" : "Thiết kế theo mục tiêu"),
+      desc: c("benefit2_desc", EN ? "A needs analysis shapes a programme around your team's real tasks." : "Phân tích nhu cầu để xây chương trình quanh công việc thực tế của đội ngũ."),
+    },
+    {
+      icon: "📊",
+      title: c("benefit3_title", EN ? "Progress reporting" : "Báo cáo tiến độ"),
+      desc: c("benefit3_desc", EN ? "Regular reports so HR can see attendance and measurable improvement." : "Báo cáo định kỳ để HR thấy chuyên cần và tiến bộ đo lường được."),
+    },
+    {
+      icon: "👩‍🏫",
+      title: c("benefit4_title", EN ? "Qualified teachers" : "Giáo viên đạt chuẩn"),
+      desc: c("benefit4_desc", EN ? "Native and CELTA/TESOL-qualified teachers experienced with professionals." : "Giáo viên bản ngữ và đạt chuẩn CELTA/TESOL, quen làm việc với người đi làm."),
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -81,15 +92,15 @@ export default function CorporatePage() {
       <section className="pt-32 pb-16 bg-gradient-to-br from-brand-navy via-blue-800 to-blue-700 text-white">
         <div className="max-w-5xl mx-auto px-4 text-center">
           <span className="inline-block px-4 py-2 bg-white/15 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
-            {EN ? "🏢 Corporate training" : "🏢 Đào tạo doanh nghiệp"}
+            {c("hero_badge", EN ? "🏢 Corporate training" : "🏢 Đào tạo doanh nghiệp")}
           </span>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            {EN ? "English training for your team" : "Đào tạo tiếng Anh cho doanh nghiệp"}
+            {c("hero_title", EN ? "English training for your team" : "Đào tạo tiếng Anh cho doanh nghiệp")}
           </h1>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">
-            {EN
+            {c("hero_subtitle", EN
               ? "Tailored Business English programmes for companies in Hải Phòng — delivered on-site or at our centre, built around your team's goals."
-              : "Chương trình tiếng Anh thương mại thiết kế riêng cho doanh nghiệp tại Hải Phòng — dạy tại văn phòng hoặc tại trung tâm, theo mục tiêu của đội ngũ bạn."}
+              : "Chương trình tiếng Anh thương mại thiết kế riêng cho doanh nghiệp tại Hải Phòng — dạy tại văn phòng hoặc tại trung tâm, theo mục tiêu của đội ngũ bạn.")}
           </p>
         </div>
       </section>
@@ -114,19 +125,19 @@ export default function CorporatePage() {
         <div className="max-w-2xl mx-auto px-4">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {EN ? "Request a corporate proposal" : "Yêu cầu đề xuất cho doanh nghiệp"}
+              {c("form_title", EN ? "Request a corporate proposal" : "Yêu cầu đề xuất cho doanh nghiệp")}
             </h2>
             <p className="text-gray-600 mb-6">
-              {EN
+              {c("form_subtitle", EN
                 ? "Tell us about your team and we'll prepare a tailored proposal and quote."
-                : "Cho chúng tôi biết về đội ngũ của bạn, chúng tôi sẽ chuẩn bị đề xuất và báo giá phù hợp."}
+                : "Cho chúng tôi biết về đội ngũ của bạn, chúng tôi sẽ chuẩn bị đề xuất và báo giá phù hợp.")}
             </p>
 
             {done ? (
               <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-6 text-emerald-900">
-                {EN
+                {c("success_msg", EN
                   ? "Thank you! Our team will contact you to discuss a tailored programme."
-                  : "Cảm ơn bạn! Đội ngũ của chúng tôi sẽ liên hệ để trao đổi chương trình phù hợp."}
+                  : "Cảm ơn bạn! Đội ngũ của chúng tôi sẽ liên hệ để trao đổi chương trình phù hợp.")}
                 <div className="mt-4">
                   <Link href="/" className="text-emerald-700 font-semibold underline">
                     {EN ? "Back to home" : "Về trang chủ"}

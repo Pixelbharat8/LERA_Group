@@ -4,10 +4,12 @@ import Link from "next/link";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useLanguage } from "../context/LanguageContext";
+import { usePageContent } from "@/hooks/usePageContent";
 
 export default function PortalPage() {
   const { language } = useLanguage();
   const EN = language === "EN";
+  const { c } = usePageContent("portal"); // editable in Chairman → Website Content → Portal
 
   const parentFeatures = EN
     ? [
@@ -57,15 +59,15 @@ export default function PortalPage() {
       <section className="pt-32 pb-16 bg-gradient-to-br from-brand-navy via-blue-800 to-blue-700 text-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <span className="inline-block px-4 py-2 bg-white/15 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
-            {EN ? "📱 Parent & Student Portal" : "📱 Cổng phụ huynh & học viên"}
+            {c("hero_badge", EN ? "📱 Parent & Student Portal" : "📱 Cổng phụ huynh & học viên")}
           </span>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            {EN ? "Stay connected to your child's learning" : "Luôn kết nối với việc học của con"}
+            {c("hero_title", EN ? "Stay connected to your child's learning" : "Luôn kết nối với việc học của con")}
           </h1>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">
-            {EN
+            {c("hero_subtitle", EN
               ? "Every LERA family gets a secure online portal — track progress, attendance, schedule, payments and message teachers, any time."
-              : "Mỗi gia đình LERA đều có cổng trực tuyến bảo mật — theo dõi tiến độ, điểm danh, lịch học, thanh toán và nhắn tin giáo viên, mọi lúc."}
+              : "Mỗi gia đình LERA đều có cổng trực tuyến bảo mật — theo dõi tiến độ, điểm danh, lịch học, thanh toán và nhắn tin giáo viên, mọi lúc.")}
           </p>
           <div className="mt-8 flex flex-wrap gap-3 justify-center">
             <Link href="/auth/login" className="px-6 py-3 bg-yellow-400 text-gray-900 font-bold rounded-full hover:bg-yellow-300 transition-colors">
@@ -82,8 +84,8 @@ export default function PortalPage() {
       <section className="py-16">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-10">
-            <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-2">{EN ? "For parents" : "Dành cho phụ huynh"}</p>
-            <h2 className="text-3xl font-extrabold text-brand-navy">{EN ? "Your child's progress, in your pocket" : "Tiến độ của con, ngay trong tầm tay"}</h2>
+            <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-2">{c("parents_eyebrow", EN ? "For parents" : "Dành cho phụ huynh")}</p>
+            <h2 className="text-3xl font-extrabold text-brand-navy">{c("parents_heading", EN ? "Your child's progress, in your pocket" : "Tiến độ của con, ngay trong tầm tay")}</h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {parentFeatures.map((f, i) => (
@@ -101,8 +103,8 @@ export default function PortalPage() {
       <section className="py-16 bg-white">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-10">
-            <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-2">{EN ? "For students" : "Dành cho học viên"}</p>
-            <h2 className="text-3xl font-extrabold text-brand-navy">{EN ? "Everything you need to learn" : "Mọi thứ bạn cần để học"}</h2>
+            <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-2">{c("students_eyebrow", EN ? "For students" : "Dành cho học viên")}</p>
+            <h2 className="text-3xl font-extrabold text-brand-navy">{c("students_heading", EN ? "Everything you need to learn" : "Mọi thứ bạn cần để học")}</h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {studentFeatures.map((f, i) => (
@@ -119,9 +121,9 @@ export default function PortalPage() {
       {/* CTA */}
       <section className="py-16 bg-blue-600 text-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">{EN ? "New to LERA?" : "Mới biết đến LERA?"}</h2>
+          <h2 className="text-3xl font-bold mb-4">{c("cta_heading", EN ? "New to LERA?" : "Mới biết đến LERA?")}</h2>
           <p className="text-white/80 mb-8">
-            {EN ? "Join a free trial and we'll set up your family portal when you enrol." : "Tham gia học thử miễn phí — cổng gia đình sẽ được tạo khi bạn nhập học."}
+            {c("cta_subtitle", EN ? "Join a free trial and we'll set up your family portal when you enrol." : "Tham gia học thử miễn phí — cổng gia đình sẽ được tạo khi bạn nhập học.")}
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
             <Link href="/enroll" className="px-8 py-4 bg-yellow-400 text-gray-900 font-bold rounded-xl hover:bg-yellow-300 transition-colors">

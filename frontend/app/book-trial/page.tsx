@@ -7,9 +7,12 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../context/LanguageContext";
 import { publicFetch } from "../../lib/api";
 import { FUNNEL_NOTES_PREFIX, TRIAL_BOOKING_LEAD_CONTEXT } from "../../lib/english-centre-vertical-scope";
+import { usePageContent } from "@/hooks/usePageContent";
 
 export default function BookTrialPage() {
   const { language } = useLanguage();
+  const { c } = usePageContent("book_trial"); // editable in Chairman → Website Content → Book a trial
+  const EN = language === "EN";
   const [formData, setFormData] = useState({
     parentName: "",
     phone: "",
@@ -64,19 +67,19 @@ export default function BookTrialPage() {
       <Header />
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-24">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {language === "EN" ? "Book a free trial class" : "Đăng ký học thử miễn phí"}
+          {c("title", EN ? "Book a free trial class" : "Đăng ký học thử miễn phí")}
         </h1>
         <p className="text-gray-600 mb-8">
-          {language === "EN"
+          {c("subtitle", EN
             ? "We will contact you to confirm your trial session."
-            : "Chúng tôi sẽ liên hệ để xác nhận buổi học thử."}
+            : "Chúng tôi sẽ liên hệ để xác nhận buổi học thử.")}
         </p>
 
         {done ? (
           <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-6 text-emerald-900">
-            {language === "EN"
+            {c("success_msg", EN
               ? "Thank you! Our team will reach out shortly."
-              : "Cảm ơn bạn! Đội ngũ của chúng tôi sẽ liên hệ sớm."}
+              : "Cảm ơn bạn! Đội ngũ của chúng tôi sẽ liên hệ sớm.")}
             <div className="mt-4">
               <Link href="/" className="text-emerald-700 font-semibold underline">
                 {language === "EN" ? "Back to home" : "Về trang chủ"}

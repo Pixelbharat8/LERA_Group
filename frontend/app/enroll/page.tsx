@@ -7,6 +7,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useLanguage } from "../context/LanguageContext";
 import { publicFetch } from "../../lib/api";
+import { usePageContent } from "@/hooks/usePageContent";
 import { ENROLMENT_LEAD_CONTEXT } from "../../lib/english-centre-vertical-scope";
 
 interface Course {
@@ -25,6 +26,7 @@ const fmt = (n?: number) => (n == null ? "" : new Intl.NumberFormat("vi-VN").for
 function EnrollInner() {
   const { language } = useLanguage();
   const EN = language === "EN";
+  const { c } = usePageContent("enroll"); // editable in Chairman → Website Content → Enrol page
   const params = useSearchParams();
   const presetCode = params.get("course") || "";
 
@@ -146,12 +148,12 @@ function EnrollInner() {
       <section className="pt-32 pb-12 bg-gradient-to-br from-brand-navy via-blue-800 to-blue-700 text-white">
         <div className="max-w-3xl mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            {EN ? "Enrol online" : "Đăng ký nhập học"}
+            {c("hero_title", EN ? "Enrol online" : "Đăng ký nhập học")}
           </h1>
           <p className="text-lg text-white/90">
-            {EN
+            {c("hero_subtitle", EN
               ? "Reserve your child's place in a few steps. Our team confirms availability and sends payment details — no payment needed now."
-              : "Giữ chỗ cho con chỉ trong vài bước. Đội ngũ của chúng tôi sẽ xác nhận chỗ trống và gửi thông tin thanh toán — chưa cần thanh toán ngay."}
+              : "Giữ chỗ cho con chỉ trong vài bước. Đội ngũ của chúng tôi sẽ xác nhận chỗ trống và gửi thông tin thanh toán — chưa cần thanh toán ngay.")}
           </p>
         </div>
       </section>
@@ -162,12 +164,12 @@ function EnrollInner() {
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
               <div className="text-5xl mb-4 text-center">🎉</div>
               <h2 className="text-2xl font-bold text-gray-900 text-center mb-3">
-                {EN ? "Enrolment request received" : "Đã nhận yêu cầu nhập học"}
+                {c("confirm_heading", EN ? "Enrolment request received" : "Đã nhận yêu cầu nhập học")}
               </h2>
               <p className="text-gray-600 text-center mb-6">
-                {EN
+                {c("confirm_message", EN
                   ? "Thank you! Our team will confirm your place and send payment instructions shortly."
-                  : "Cảm ơn bạn! Đội ngũ của chúng tôi sẽ xác nhận chỗ và gửi hướng dẫn thanh toán trong thời gian sớm nhất."}
+                  : "Cảm ơn bạn! Đội ngũ của chúng tôi sẽ xác nhận chỗ và gửi hướng dẫn thanh toán trong thời gian sớm nhất.")}
               </p>
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-900">
                 <p className="font-semibold mb-1">{EN ? "Next steps" : "Các bước tiếp theo"}</p>

@@ -6,6 +6,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useLanguage } from "../context/LanguageContext";
 import { publicFetch } from "../../lib/api";
+import { usePageContent } from "@/hooks/usePageContent";
 import { FUNNEL_NOTES_PREFIX, PLACEMENT_QUIZ_LEAD_CONTEXT } from "../../lib/english-centre-vertical-scope";
 
 type Q = { id: string; en: string; vi: string };
@@ -42,6 +43,8 @@ function bandFromScore(total: number): { track: string; trackVi: string } {
 
 export default function PlacementPage() {
   const { language } = useLanguage();
+  const { c } = usePageContent("placement"); // editable in Chairman → Website Content → Placement
+  const EN = language === "EN";
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [contact, setContact] = useState({ name: "", phone: "", email: "", website: "" });
   const [step, setStep] = useState(0);
@@ -92,20 +95,20 @@ export default function PlacementPage() {
       <Header />
       <main className="flex-1 max-w-xl mx-auto w-full px-4 py-24">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {language === "EN" ? "Quick English level check" : "Kiểm tra trình độ nhanh"}
+          {c("title", EN ? "Quick English level check" : "Kiểm tra trình độ nhanh")}
         </h1>
         <p className="text-gray-600 mb-8 text-sm">
-          {language === "EN"
+          {c("intro", EN
             ? "This is an informal guide — our teachers will confirm your level after a proper placement or trial."
-            : "Đây chỉ là tham khảo — giáo viên sẽ xác nhận trình độ sau khi kiểm tra hoặc học thử."}
+            : "Đây chỉ là tham khảo — giáo viên sẽ xác nhận trình độ sau khi kiểm tra hoặc học thử.")}
         </p>
 
         {done ? (
           <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-6">
             <p className="text-emerald-900 font-medium">
-              {language === "EN"
+              {c("success_msg", EN
                 ? "Thanks — we saved your result and will contact you soon."
-                : "Cảm ơn — chúng tôi đã ghi nhận và sẽ liên hệ bạn sớm."}
+                : "Cảm ơn — chúng tôi đã ghi nhận và sẽ liên hệ bạn sớm.")}
             </p>
             <Link href="/book-trial" className="inline-block mt-4 text-emerald-700 font-semibold underline">
               {language === "EN" ? "Book a trial class →" : "Đăng ký học thử →"}
@@ -161,7 +164,7 @@ export default function PlacementPage() {
           <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
             <div>
               <h2 className="font-semibold text-gray-900 mb-2">
-                {language === "EN" ? "Suggested starting point" : "Gợi ý khởi đầu"}
+                {c("result_heading", EN ? "Suggested starting point" : "Gợi ý khởi đầu")}
               </h2>
               <p className="text-lg text-emerald-700">
                 {language === "EN" ? recommendation.track : recommendation.trackVi}
