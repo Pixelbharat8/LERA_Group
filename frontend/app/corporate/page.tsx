@@ -78,7 +78,7 @@ export default function CorporatePage() {
       <Header />
 
       {/* Hero */}
-      <section className="pt-32 pb-16 bg-gradient-to-br from-[#0a1a5c] via-blue-800 to-blue-700 text-white">
+      <section className="pt-32 pb-16 bg-gradient-to-br from-brand-navy via-blue-800 to-blue-700 text-white">
         <div className="max-w-5xl mx-auto px-4 text-center">
           <span className="inline-block px-4 py-2 bg-white/15 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             {EN ? "🏢 Corporate training" : "🏢 Đào tạo doanh nghiệp"}
@@ -202,7 +202,7 @@ export default function CorporatePage() {
                     value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
                 </div>
                 <button type="submit" disabled={submitting}
-                  className="w-full py-3 rounded-lg bg-[#0a1a5c] text-white font-semibold hover:bg-blue-900 disabled:opacity-50">
+                  className="w-full py-3 rounded-lg bg-brand-navy text-white font-semibold hover:bg-blue-900 disabled:opacity-50">
                   {submitting
                     ? (EN ? "Sending…" : "Đang gửi…")
                     : (EN ? "Request a proposal" : "Yêu cầu đề xuất")}

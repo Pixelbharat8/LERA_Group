@@ -11,9 +11,11 @@ module.exports = {
       },
       colors: {
         brand: {
-          navy: '#0a1a5c',
+          // Themeable: BrandTheme injects --brand-primary/--brand-secondary from the
+          // branding editor; the fallback hex keeps the default identical until set.
+          navy: 'var(--brand-primary, #0a1a5c)',
           navy600: '#13267a',
-          orange: '#f59e0b',
+          orange: 'var(--brand-secondary, #f59e0b)',
           orange600: '#d97706',
         },
         ink: '#1a1a2e',

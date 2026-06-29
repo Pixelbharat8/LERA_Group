@@ -176,7 +176,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions for SuperAdmin */}
-      <div className="bg-gradient-to-r from-[#0a1a5c] to-blue-600 rounded-2xl p-6 text-white">
+      <div className="bg-gradient-to-r from-brand-navy to-blue-600 rounded-2xl p-6 text-white">
         <div className="flex items-center gap-3 mb-4">
           <span className="text-2xl">👑</span>
           <h2 className="text-xl font-bold">{t("superadminQuickActions")}</h2>

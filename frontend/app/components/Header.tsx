@@ -195,7 +195,7 @@ export default function Header() {
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'shadow-lg' : ''}`}>
       {/* Top bar with contact info */}
       {(settings.showPhone || settings.showEmail || settings.showSocialLinks) && (
-        <div className={`bg-gradient-to-r from-[#0a1a5c] via-[#1e3a8a] to-[#0a1a5c] text-white text-sm transition-all duration-300 ${scrolled ? 'py-1' : 'py-2'}`}>
+        <div className={`bg-gradient-to-r from-brand-navy via-[#1e3a8a] to-brand-navy text-white text-sm transition-all duration-300 ${scrolled ? 'py-1' : 'py-2'}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
             <div className="flex items-center gap-4">
               {settings.showPhone && (
@@ -252,11 +252,11 @@ export default function Header() {
                 />
               ) : (
                 <>
-                  <div className={`bg-gradient-to-br from-[#0a1a5c] to-[#3b82f6] rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-lg ${scrolled ? 'w-10 h-10' : 'w-14 h-14'}`}>
+                  <div className={`bg-gradient-to-br from-brand-navy to-[#3b82f6] rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-lg ${scrolled ? 'w-10 h-10' : 'w-14 h-14'}`}>
                     <span className={`text-white font-bold transition-all ${scrolled ? 'text-xl' : 'text-3xl'}`}>L</span>
                   </div>
                   <div className="flex items-baseline gap-2 leading-none whitespace-nowrap">
-                    <span className={`font-extrabold text-[#0a1a5c] tracking-wide transition-all ${scrolled ? 'text-xl' : 'text-3xl'}`}>LERA</span>
+                    <span className={`font-extrabold text-brand-navy tracking-wide transition-all ${scrolled ? 'text-xl' : 'text-3xl'}`}>LERA</span>
                     <span className={`font-semibold bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent transition-all ${scrolled ? 'text-xl' : 'text-3xl'}`}>ACADEMY</span>
                   </div>
                 </>

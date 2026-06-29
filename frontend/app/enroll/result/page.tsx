@@ -47,12 +47,12 @@ function ResultInner() {
             )}
             <div className="flex flex-wrap gap-3 justify-center">
               {ok ? (
-                <Link href="/" className="px-6 py-3 bg-[#0a1a5c] text-white font-semibold rounded-lg hover:bg-blue-900">
+                <Link href="/" className="px-6 py-3 bg-brand-navy text-white font-semibold rounded-lg hover:bg-blue-900">
                   {EN ? "Back to home" : "Về trang chủ"}
                 </Link>
               ) : (
                 <>
-                  <Link href="/enroll" className="px-6 py-3 bg-[#0a1a5c] text-white font-semibold rounded-lg hover:bg-blue-900">
+                  <Link href="/enroll" className="px-6 py-3 bg-brand-navy text-white font-semibold rounded-lg hover:bg-blue-900">
                     {EN ? "Try again" : "Thử lại"}
                   </Link>
                   <Link href="/contact" className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50">

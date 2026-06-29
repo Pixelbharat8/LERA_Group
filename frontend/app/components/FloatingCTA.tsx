@@ -108,7 +108,7 @@ export default function FloatingCTA() {
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="group relative text-white rounded-full shadow-2xl hover:shadow-3xl transition-all transform hover:scale-105"
-        style={{ background: "linear-gradient(135deg, #0a1a5c 0%, #1e3a8a 100%)" }}
+        style={{ background: "linear-gradient(135deg, var(--brand-primary, #0a1a5c) 0%, #1e3a8a 100%)" }}
       >
         <div className="flex items-center px-6 py-4">
           <span className="text-2xl mr-3 animate-bounce">🎁</span>

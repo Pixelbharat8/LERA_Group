@@ -20,6 +20,7 @@ import { WebsiteSettingsProvider } from '@/hooks/useWebsiteSettings'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastContainer } from '@/components/Toast'
 import FloatingCTA from './components/FloatingCTA'
+import BrandTheme from './components/BrandTheme'
 
 // Static SEO defaults (always valid). `generateMetadata` below overlays the
 // Chairman's saved seo_settings on top of these when present, falling back to
@@ -200,6 +201,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-w-0 overflow-x-hidden">
+        <BrandTheme />
         <ErrorBoundary>
           <WebsiteSettingsProvider>
             <LanguageProvider>

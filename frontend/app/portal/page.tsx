@@ -54,7 +54,7 @@ export default function PortalPage() {
       <Header />
 
       {/* Hero */}
-      <section className="pt-32 pb-16 bg-gradient-to-br from-[#0a1a5c] via-blue-800 to-blue-700 text-white">
+      <section className="pt-32 pb-16 bg-gradient-to-br from-brand-navy via-blue-800 to-blue-700 text-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <span className="inline-block px-4 py-2 bg-white/15 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             {EN ? "📱 Parent & Student Portal" : "📱 Cổng phụ huynh & học viên"}
@@ -83,7 +83,7 @@ export default function PortalPage() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-10">
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-2">{EN ? "For parents" : "Dành cho phụ huynh"}</p>
-            <h2 className="text-3xl font-extrabold text-[#0a1a5c]">{EN ? "Your child's progress, in your pocket" : "Tiến độ của con, ngay trong tầm tay"}</h2>
+            <h2 className="text-3xl font-extrabold text-brand-navy">{EN ? "Your child's progress, in your pocket" : "Tiến độ của con, ngay trong tầm tay"}</h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {parentFeatures.map((f, i) => (
@@ -102,7 +102,7 @@ export default function PortalPage() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-10">
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-2">{EN ? "For students" : "Dành cho học viên"}</p>
-            <h2 className="text-3xl font-extrabold text-[#0a1a5c]">{EN ? "Everything you need to learn" : "Mọi thứ bạn cần để học"}</h2>
+            <h2 className="text-3xl font-extrabold text-brand-navy">{EN ? "Everything you need to learn" : "Mọi thứ bạn cần để học"}</h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {studentFeatures.map((f, i) => (

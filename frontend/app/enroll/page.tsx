@@ -143,7 +143,7 @@ function EnrollInner() {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <section className="pt-32 pb-12 bg-gradient-to-br from-[#0a1a5c] via-blue-800 to-blue-700 text-white">
+      <section className="pt-32 pb-12 bg-gradient-to-br from-brand-navy via-blue-800 to-blue-700 text-white">
         <div className="max-w-3xl mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             {EN ? "Enrol online" : "Đăng ký nhập học"}
@@ -254,7 +254,7 @@ function EnrollInner() {
               </div>
 
               <button type="submit" disabled={submitting}
-                className="w-full py-3 rounded-lg bg-[#0a1a5c] text-white font-semibold hover:bg-blue-900 disabled:opacity-50">
+                className="w-full py-3 rounded-lg bg-brand-navy text-white font-semibold hover:bg-blue-900 disabled:opacity-50">
                 {submitting ? (EN ? "Submitting…" : "Đang gửi…") : (EN ? "Reserve my place" : "Giữ chỗ cho con")}
               </button>
 

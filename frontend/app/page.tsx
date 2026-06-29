@@ -418,7 +418,7 @@ export default function Home() {
                   <h2 className="text-2xl sm:text-3xl font-extrabold text-orange-500">
                     {getContent("form_subtitle", "RECEIVE NOW", "NHẬN NGAY")}
                   </h2>
-                  <p className="text-lg sm:text-xl font-bold text-[#0a1a5c]">
+                  <p className="text-lg sm:text-xl font-bold text-brand-navy">
                     {getContent("form_subheading", "1 WEEK FREE LEARNING", "1 TUẦN HỌC MIỄN PHÍ")}
                   </p>
                 </div>
@@ -598,7 +598,7 @@ export default function Home() {
                 const suffix = stat.value.includes("+") ? "+" : "";
                 return (
                   <div key={idx} className="text-center card-premium p-6">
-                    <div className="text-4xl sm:text-5xl font-extrabold text-[#0a1a5c] mb-2">
+                    <div className="text-4xl sm:text-5xl font-extrabold text-brand-navy mb-2">
                       {isCountable
                         ? <AnimatedCounter end={numericValue} suffix={suffix} />
                         : <span>{stat.value}</span>}
@@ -619,7 +619,7 @@ export default function Home() {
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
               {getContent("courses_eyebrow", "Our programmes", "Chương trình học")}
             </p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0a1a5c]">{t("learningPathTitle")}</h2>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy">{t("learningPathTitle")}</h2>
             <p className="mt-4 text-lg text-gray-600 leading-relaxed">{t("learningPathSubtitle")}</p>
           </div>
 
@@ -643,7 +643,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="p-6">
-                  <h3 className="text-xl font-bold text-[#0a1a5c] mb-1">{course.title}</h3>
+                  <h3 className="text-xl font-bold text-brand-navy mb-1">{course.title}</h3>
                   <p className="text-gray-500 mb-4">{course.age} {language === "EN" ? "years old" : "tuổi"}</p>
                   <span className="inline-flex items-center gap-2 text-blue-600 font-semibold">
                     {t("learnMore")}
@@ -657,7 +657,7 @@ export default function Home() {
           <div className="text-center mt-12">
             <Link
               href="/courses"
-              className="inline-flex items-center gap-2 bg-[#0a1a5c] hover:bg-[#0a1a5c]/90 text-white px-8 py-3.5 rounded-full font-semibold transition-all hover:shadow-md"
+              className="inline-flex items-center gap-2 bg-brand-navy hover:bg-brand-navy/90 text-white px-8 py-3.5 rounded-full font-semibold transition-all hover:shadow-md"
             >
               {t("viewCourses")}
               <span aria-hidden>→</span>
@@ -673,7 +673,7 @@ export default function Home() {
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
               {getContent("why_eyebrow", "Why LERA", "Vì sao chọn LERA")}
             </p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0a1a5c]">{t("whyChooseUs")}</h2>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy">{t("whyChooseUs")}</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -695,7 +695,7 @@ export default function Home() {
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-blue-50 text-blue-600 mb-4">
                   <FeatureIcon icon={feature.icon} className="w-7 h-7" />
                 </div>
-                <h3 className="font-bold text-[#0a1a5c] mb-2">{feature.title}</h3>
+                <h3 className="font-bold text-brand-navy mb-2">{feature.title}</h3>
                 <p className="text-gray-600 text-sm leading-relaxed">{feature.desc}</p>
               </div>
             ))}
@@ -710,7 +710,7 @@ export default function Home() {
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
               {getContent("facebook_eyebrow", "Life at LERA", "Tại LERA")}
             </p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0a1a5c]">
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy">
               {getContent("facebook_title", "From Our Facebook", "Từ Facebook của chúng tôi")}
             </h2>
             <p className="mt-4 text-lg text-gray-600 leading-relaxed">
@@ -820,7 +820,7 @@ export default function Home() {
           <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
             {getContent("testimonial_eyebrow", "Testimonials", "Cảm nhận")}
           </p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0a1a5c] mb-10">
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy mb-10">
             {getContent("testimonial_title", "What Parents Say About Us", "Phụ huynh nói gì về chúng tôi")}
           </h2>
 
@@ -842,7 +842,7 @@ export default function Home() {
                 className="w-14 h-14 rounded-full object-cover border border-gray-100"
               />
               <div className="text-left">
-                <h4 className="font-bold text-[#0a1a5c]">{displayTestimonials[currentTestimonial % displayTestimonials.length]?.name}</h4>
+                <h4 className="font-bold text-brand-navy">{displayTestimonials[currentTestimonial % displayTestimonials.length]?.name}</h4>
                 <p className="text-sm text-gray-500">{displayTestimonials[currentTestimonial % displayTestimonials.length]?.role}</p>
               </div>
             </div>
@@ -868,7 +868,7 @@ export default function Home() {
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
               {getContent("gallery_eyebrow", "Gallery", "Hình ảnh")}
             </p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0a1a5c]">
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy">
               {getContent("gallery_title", "Our Learning Environment", "Môi trường học tập")}
             </h2>
             <p className="mt-4 text-lg text-gray-600 leading-relaxed">{getContent("gallery_subtitle", "Where Excellence is the Standard", "Nơi xuất sắc là tiêu chuẩn")}</p>
@@ -910,7 +910,7 @@ export default function Home() {
               <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
                 {getContent("achievements_eyebrow", "Results", "Thành tích")}
               </p>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0a1a5c]">
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy">
                 {getContent("achievements_title", "Outstanding Students", "Gương mặt xuất sắc")}
               </h2>
               <p className="mt-4 text-lg text-gray-600 leading-relaxed">{getContent("achievements_subtitle", "Our students consistently achieve outstanding results", "Học sinh của chúng tôi luôn đạt thành tích xuất sắc")}</p>
@@ -933,7 +933,7 @@ export default function Home() {
                     )}
                   </div>
                   <div className="p-4">
-                    <h4 className="font-bold text-[#0a1a5c] text-sm">{a.name}</h4>
+                    <h4 className="font-bold text-brand-navy text-sm">{a.name}</h4>
                     {a.exam && <p className="text-xs text-blue-600 font-medium mt-1">{a.exam}</p>}
                     <p className="text-xs text-gray-500 mt-1">{language === "VI" ? a.descVI : a.descEN}</p>
                     {a.center && <p className="text-xs text-gray-400 mt-1">📍 {a.center}</p>}
@@ -947,7 +947,7 @@ export default function Home() {
       )}
 
       {/* ===== FINAL CTA BAND ===== */}
-      <section className="py-16 sm:py-24" style={{ backgroundColor: "#0a1a5c" }}>
+      <section className="py-16 sm:py-24" style={{ backgroundColor: "var(--brand-primary, #0a1a5c)" }}>
         <div className="reveal max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-4">
             {getContent("cta_title", t("ctaTitle"), t("ctaTitle"))}

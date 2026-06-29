@@ -13,12 +13,16 @@ execution** — they need YOUR git + AWS credentials, so they can't be run from 
 
 **📌 Tracked code debt (not launch-blocking):**
 - `<html lang="en">` is static though the site is bilingual EN/VI.
-- **Branding theme colours are not wired to the live site.** The brand logo IS now live —
-  Header & Footer read `branding_logo_url` (via `useBrandLogo`) and render it when set, else the
-  built-in "L"/text lockup. But `branding_primary_color` / `branding_secondary_color` are still
-  static (Tailwind config); dynamic CSS-var theming is a deliberate-decision follow-up. Also the
-  `/superadmin/public-website/branding` blob editor (`branding_settings`) remains an orphaned
-  duplicate of `/chairman/website-content/branding` and should be de-duped.
+- Minor: a few non-brand gradient accents (`#3b82f6`, `#1e3a8a`) and the `navy600`/`orange600`
+  hover shades stay static (not exposed in the branding editor) — they don't follow the primary/
+  secondary colour. Cosmetic only.
+
+(Resolved 2026-06-29: branding is now fully wired & de-duped. Logo — Header/Footer read
+`branding_logo_url` via `useBrandLogo`. Colours — the Tailwind `brand.navy`/`brand.orange`
+tokens read `var(--brand-primary/secondary, <hex>)`, `BrandTheme` injects the configured
+colours onto `<html>`, and the raw-hex usages were swept to the tokens; with nothing
+configured the static palette renders unchanged. The orphaned `/superadmin/public-website/
+branding` blob editor now redirects to the canonical `/chairman/website-content/branding`.)
 
 (Resolved 2026-06-29: footer admin editor is now wired to the live `Footer.tsx` — it reads
 `GET /api/cms-settings/value/footer_settings` and renders the Chairman's configured columns,

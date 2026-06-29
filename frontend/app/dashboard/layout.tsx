@@ -1078,7 +1078,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Top Navigation */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-[#0a1a5c] text-white z-50 flex items-center justify-between px-4 shadow-lg">
+      <header className="fixed top-0 left-0 right-0 h-16 bg-brand-navy text-white z-50 flex items-center justify-between px-4 shadow-lg">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -1090,7 +1090,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           </button>
           <Link href={isChairman ? "/dashboard/chairman" : "/dashboard/superadmin"} className="flex items-center gap-2">
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-[#0a1a5c] font-bold">L</span>
+              <span className="text-brand-navy font-bold">L</span>
             </div>
             <span className="font-bold text-lg">LERA Admin</span>
           </Link>
@@ -1242,13 +1242,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1">
             <button
               onClick={() => setLanguage("VI")}
-              className={`px-2 py-1 text-xs font-medium rounded ${language === "VI" ? "bg-white text-[#0a1a5c]" : "text-white/80 hover:text-white"}`}
+              className={`px-2 py-1 text-xs font-medium rounded ${language === "VI" ? "bg-white text-brand-navy" : "text-white/80 hover:text-white"}`}
             >
               🇻🇳 VI
             </button>
             <button
               onClick={() => setLanguage("EN")}
-              className={`px-2 py-1 text-xs font-medium rounded ${language === "EN" ? "bg-white text-[#0a1a5c]" : "text-white/80 hover:text-white"}`}
+              className={`px-2 py-1 text-xs font-medium rounded ${language === "EN" ? "bg-white text-brand-navy" : "text-white/80 hover:text-white"}`}
             >
               🇬🇧 EN
             </button>
