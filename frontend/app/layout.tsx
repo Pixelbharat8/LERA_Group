@@ -21,7 +21,14 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastContainer } from '@/components/Toast'
 import FloatingCTA from './components/FloatingCTA'
 
-export const metadata: Metadata = {
+// Static SEO defaults (always valid). `generateMetadata` below overlays the
+// Chairman's saved seo_settings on top of these when present, falling back to
+// these defaults on any error — so the SEO editor is live without losing a
+// reliable baseline. (Endpoint is the public GET /api/cms-settings/value/*.)
+const SEO_SETTINGS_URL =
+  (process.env.ACADEMY_SERVICE_URL || 'http://localhost:8082') + '/api/cms-settings/value/seo_settings'
+
+const baseMetadata: Metadata = {
   title: {
     default: 'LERA Academy - Where Excellence is the Standard | Trung tâm Anh ngữ hàng đầu Hải Phòng',
     template: '%s | LERA Academy'
@@ -90,6 +97,43 @@ export const metadata: Metadata = {
     ],
     apple: '/icons/icon-192.png',
   },
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const res = await fetch(SEO_SETTINGS_URL, { next: { revalidate: 300 } })
+    if (!res.ok) return baseMetadata
+    const raw = await res.text()
+    if (!raw) return baseMetadata
+    const s: any = JSON.parse(raw)
+    // Site primary locale is vi_VN; prefer VI, then EN, then keep the static default.
+    const pick = (b: any): string | undefined => (b && (b.vi || b.en)) || undefined
+    const title = pick(s?.title)
+    const description = pick(s?.description)
+    const kw = pick(s?.keywords)
+    const ogImage = typeof s?.ogImage === 'string' && s.ogImage ? s.ogImage : undefined
+    if (!title && !description && !kw && !ogImage) return baseMetadata
+    return {
+      ...baseMetadata,
+      ...(title ? { title: { default: title, template: '%s | LERA Academy' } } : {}),
+      ...(description ? { description } : {}),
+      ...(kw ? { keywords: kw.split(',').map((k: string) => k.trim()).filter(Boolean) } : {}),
+      openGraph: {
+        ...baseMetadata.openGraph,
+        ...(title ? { title } : {}),
+        ...(description ? { description } : {}),
+        ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630, alt: title || 'LERA Academy' }] } : {}),
+      },
+      twitter: {
+        ...baseMetadata.twitter,
+        ...(title ? { title } : {}),
+        ...(description ? { description } : {}),
+        ...(ogImage ? { images: [ogImage] } : {}),
+      },
+    }
+  } catch {
+    return baseMetadata
+  }
 }
 
 export const viewport: Viewport = {
