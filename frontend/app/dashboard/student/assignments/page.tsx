@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 import { loadMyClasses, resolveMyStudentId } from "../../../../lib/student-context";
+import { uploadFile, uploadPublicPath } from "../../../../lib/upload-file";
 
 interface Assignment {
   id: string;
@@ -20,6 +21,12 @@ export default function StudentAssignmentsPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"ALL" | "PENDING" | "SUBMITTED" | "GRADED">("ALL");
+  // Submission modal state
+  const [submitTarget, setSubmitTarget] = useState<Assignment | null>(null);
+  const [submitText, setSubmitText] = useState("");
+  const [submitFile, setSubmitFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAssignments();
@@ -66,27 +73,64 @@ export default function StudentAssignmentsPage() {
     }
   };
 
-  const handleSubmit = async (assignment: Assignment) => {
-    if (!confirm(`Submit "${assignment.title}"? You may not be able to change it afterwards.`)) return;
+  const openSubmit = (assignment: Assignment) => {
+    setSubmitTarget(assignment);
+    setSubmitText("");
+    setSubmitFile(null);
+    setSubmitError(null);
+  };
+
+  const doSubmit = async () => {
+    if (!submitTarget) return;
+    // Require at least some work — written text or a file.
+    if (!submitText.trim() && !submitFile) {
+      setSubmitError("Add a written answer or attach a file before submitting.");
+      return;
+    }
+    setSubmitting(true);
+    setSubmitError(null);
     try {
       const studentId = await resolveMyStudentId();
       if (!studentId) {
-        alert("Could not resolve your student profile. Please try again.");
+        setSubmitError("Could not resolve your student profile. Please try again.");
         return;
       }
+
+      let attachmentUrl: string | undefined;
+      let attachmentName: string | undefined;
+      let attachmentSize: number | undefined;
+      if (submitFile) {
+        const res = await uploadFile(submitFile);
+        const url = uploadPublicPath(res);
+        if (!url) {
+          setSubmitError(res.error || "File upload was rejected (allowed: images, PDF, Word, Excel; max 10MB).");
+          return;
+        }
+        attachmentUrl = url;
+        attachmentName = res.originalName || submitFile.name;
+        attachmentSize = res.size ?? submitFile.size;
+      }
+
       await apiFetch(`/api/assignment-submissions`, {
         method: "POST",
         body: JSON.stringify({
-          assignmentId: Number(assignment.id),
+          assignmentId: Number(submitTarget.id),
           studentId,
+          submissionText: submitText.trim() || null,
+          attachmentUrl: attachmentUrl || null,
+          attachmentName: attachmentName || null,
+          attachmentSize: attachmentSize ?? null,
           submittedAt: new Date().toISOString(),
           status: "SUBMITTED",
         }),
       });
+      setSubmitTarget(null);
       await fetchAssignments();
     } catch (err) {
       console.error(err);
-      alert("Failed to submit assignment. Please try again.");
+      setSubmitError("Failed to submit. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -210,7 +254,7 @@ export default function StudentAssignmentsPage() {
                 </div>
                 {assignment.status === "PENDING" && (
                   <button
-                    onClick={() => handleSubmit(assignment)}
+                    onClick={() => openSubmit(assignment)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
                   >
                     Submit
@@ -221,6 +265,60 @@ export default function StudentAssignmentsPage() {
           ))
         )}
       </div>
+
+      {submitTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !submitting && setSubmitTarget(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between p-5 border-b border-gray-100">
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-gray-900 truncate">Submit: {submitTarget.title}</h2>
+                <p className="text-sm text-gray-500">{submitTarget.className}</p>
+              </div>
+              <button onClick={() => !submitting && setSubmitTarget(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Your answer</label>
+                <textarea
+                  rows={5}
+                  value={submitText}
+                  onChange={(e) => setSubmitText(e.target.value)}
+                  placeholder="Type your answer, or just attach a file below…"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Attachment (optional)</label>
+                <input
+                  type="file"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                  onChange={(e) => setSubmitFile(e.target.files?.[0] || null)}
+                  className="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                <p className="text-xs text-gray-400 mt-1">Images, PDF, Word or Excel · up to 10MB.</p>
+                {submitFile && <p className="text-xs text-gray-600 mt-1">Selected: {submitFile.name}</p>}
+              </div>
+              {submitError && <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm">{submitError}</div>}
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={doSubmit}
+                  disabled={submitting}
+                  className="flex-1 py-2.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {submitting ? "Submitting…" : "Submit assignment"}
+                </button>
+                <button
+                  onClick={() => setSubmitTarget(null)}
+                  disabled={submitting}
+                  className="px-5 py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

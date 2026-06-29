@@ -69,7 +69,9 @@ public class AssignmentSubmissionController {
         return ResponseEntity.ok(assignmentSubmissionRepository.countByAssignmentIdAndStatus(assignmentId, status));
     }
     
+    // Students submit their OWN work here (overrides the class-level STAFF gate).
     @PostMapping
+    @PreAuthorize(AcademyRoles.STAFF_OR_STUDENT)
     public ResponseEntity<AssignmentSubmission> createSubmission(@Valid @RequestBody AssignmentSubmission submission) {
         return ResponseEntity.ok(assignmentSubmissionRepository.save(submission));
     }

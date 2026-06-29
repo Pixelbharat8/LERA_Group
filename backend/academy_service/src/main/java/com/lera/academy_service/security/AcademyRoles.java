@@ -14,4 +14,12 @@ public final class AcademyRoles {
     /** Day-to-day operations: teachers, centre staff, executives — not students/parents. */
     public static final String STAFF =
             "hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','TEACHER','TEACHING_ASSISTANT','TA','STAFF')";
+
+    /**
+     * STAFF plus STUDENT — for endpoints a student legitimately uses for their OWN work,
+     * e.g. uploading and submitting assignments. Keep this narrow; most operational APIs
+     * must stay {@link #STAFF}-only.
+     */
+    public static final String STAFF_OR_STUDENT =
+            "hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','TEACHER','TEACHING_ASSISTANT','TA','STAFF','STUDENT')";
 }

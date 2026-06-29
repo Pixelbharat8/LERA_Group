@@ -51,7 +51,10 @@ public class UploadController {
         return ext;
     }
 
+    // Students may upload their own assignment attachments here. Type/size/extension
+    // guards in storeMultipart() apply to everyone (10MB; images/PDF/Office only).
     @PostMapping
+    @PreAuthorize(AcademyRoles.STAFF_OR_STUDENT)
     public ResponseEntity<Map<String, Object>> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
             StoredObject stored = storeMultipart(file);
