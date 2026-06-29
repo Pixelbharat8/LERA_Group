@@ -1,29 +1,29 @@
 # LERA — Go-Live Checklist
 
-Status at writing: code is feature-complete and **builds clean** (full `next build` 311 pages,
-all 9 backend services compile), all data-loss stubs are real, security hardening is in code.
-The remaining blockers are **deploy / ops / security execution** — they need YOUR git + AWS
-credentials, so they can't be run from the dev assistant. Each step below is copy-paste ready.
+## Current status (updated 2026-06-29)
+Code is feature-complete, builds clean, and the recent hardening is **merged to `main` and
+pushed** (origin in sync at `2a2ee72`). The remaining blockers are **deploy / ops / security
+execution** — they need YOUR git + AWS credentials, so they can't be run from the dev assistant.
 
-Branch to ship: `feature/homepage-facebook-cms` (23 commits ahead of `main`).
+**✅ Done & verified this round:**
+- Flyway baselines deploy on a fresh DB — all 9 services dry-run clean (see 3a/3b).
+- API returns correct status codes everywhere (404/400/405/415, no spurious 500s); regression test added.
+- Frontend: 0 JS crashes across 323 routes; AI pages fixed; 0 dead nav links.
+- **Backend test suite GREEN** on `main` (9/9 modules BUILD SUCCESS).
+
+**📌 Tracked code debt (not launch-blocking):**
+- academy's 3 `@WebMvcTest` authz classes are `@Disabled` — incompatible with its app-level
+  multi-package `@EnableJpaRepositories`; needs a dedicated H2-backed JPA test harness.
+- Footer admin editor's link columns aren't wired to the live (hardcoded) `Footer.tsx`.
 
 ---
 
-## 🔴 1. Get the code into main (push + PR + merge)
-No remote is configured and nothing is pushed. From a clean checkout:
+## ✅ 1. Get the code into main — DONE
+Merged + pushed to `main` (`2a2ee72`); origin in sync. **Before deploying, confirm none of the
+edited migrations (V192, V20260115, V20260122, the V1 baselines) were ever applied in any
+environment** — they were edited, so a stale Flyway history would fail on a checksum mismatch.
 
-```bash
-git checkout feature/homepage-facebook-cms
-git push -u origin feature/homepage-facebook-cms      # also push security/go-live-hardening if separate
-gh pr create --base main --head feature/homepage-facebook-cms \
-  --title "LERA platform: hardening + CRM/employee modules + Bucket-B fixes" \
-  --body "See commits d0e97fd..HEAD"
-# review, then squash/merge to main
-```
-**Note:** the working tree has ~1,827 pre-existing uncommitted files — decide what of that
-belongs in the release and commit/stash it separately so the PR is clean.
-
-**Verify:** `git log origin/main` shows the merge; CI is green on `main`.
+**Verify:** `git log origin/main` shows the merge; CI green on `main`.
 
 ---
 
@@ -179,8 +179,8 @@ few sample rows (1 training session, 1 perf review, 2 job openings, 1 hostel roo
 ---
 
 ## Quick go/no-go gate
-- [ ] On `main`, CI green
-- [ ] Secrets rotated + history scrubbed
+- [x] On `main`, code merged + pushed; backend test suite green (2026-06-29)
+- [ ] Confirmed edited migrations were never applied in any env (checksum safety) + secrets rotated + history scrubbed
 - [ ] Infra deployed (us-east-1 WAF); **first-deploy schema bootstrap done (step 3a)** then migrations applied on prod
 - [ ] Logs + metrics + alerts live
 - [ ] Test creds/data rotated; `LERA_SEED_*` set in prod
