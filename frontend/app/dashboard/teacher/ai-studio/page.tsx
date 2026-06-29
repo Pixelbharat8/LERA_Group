@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { apiFetch, apiUrl } from "../../../../lib/api";
 import { useLanguage } from "../../../context/LanguageContext";
 import Cookies from "js-cookie";
@@ -14,8 +15,15 @@ type Deck = { title: string; slides: Slide[]; usingRealAI?: boolean; tokensUsed?
 export default function TeacherAiStudioPage() {
   const { language } = useLanguage();
   const vi = language === "VI";
+  const searchParams = useSearchParams();
   const [plans, setPlans] = useState<any[]>([]);
   const [topic, setTopic] = useState("");
+
+  // Prefill the topic when opened from a class ("Generate a game for this class").
+  useEffect(() => {
+    const t = searchParams?.get("topic");
+    if (t) setTopic(t);
+  }, [searchParams]);
   const [level, setLevel] = useState("beginner");
   const [busy, setBusy] = useState<"" | "game" | "deck">("");
   const [game, setGame] = useState<Game | null>(null);

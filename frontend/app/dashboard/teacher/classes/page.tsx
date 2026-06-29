@@ -547,7 +547,21 @@ export default function TeacherClassesPage() {
                     )}
 
                     {activeTab === "materials" && (
-                      detailLoading ? (
+                      <div className="space-y-4">
+                        {/* Prepare material with AI — generate a game tied to THIS class */}
+                        <div className="flex items-center justify-between gap-3 flex-wrap bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-xl p-4">
+                          <div>
+                            <p className="font-semibold text-gray-900">🎮 Prepare material with AI</p>
+                            <p className="text-sm text-gray-500">Generate a quiz game for today's {selectedClass?.className} lesson.</p>
+                          </div>
+                          <Link
+                            href={`/dashboard/teacher/ai-studio?topic=${encodeURIComponent([selectedClass?.courseName, selectedClass?.className].filter(Boolean).join(" — ") || "English lesson")}`}
+                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium whitespace-nowrap"
+                          >
+                            Make a game →
+                          </Link>
+                        </div>
+                        {detailLoading ? (
                         <p className="text-center text-gray-400 py-8">Loading materials…</p>
                       ) : materials.length === 0 ? (
                         <div className="text-center py-8">
@@ -576,7 +590,8 @@ export default function TeacherClassesPage() {
                             </a>
                           ))}
                         </div>
-                      )
+                      )}
+                      </div>
                     )}
 
                     {activeTab === "grades" && (
