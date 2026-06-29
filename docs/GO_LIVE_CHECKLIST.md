@@ -13,11 +13,12 @@ execution** — they need YOUR git + AWS credentials, so they can't be run from 
 
 **📌 Tracked code debt (not launch-blocking):**
 - `<html lang="en">` is static though the site is bilingual EN/VI.
-- **Branding editors are not wired to the live site.** Both `/chairman/website-content/branding`
-  (writes `branding_*` keys) and `/superadmin/public-website/branding` (writes the
-  `branding_settings` blob) are write-only — nothing live reads them. The logo (the "L" box)
-  and theme colours are static (Tailwind config). Making them live = a separate feature
-  (dynamic logo in Header/Footer + CSS-var theming); de-dup the two editors as part of that.
+- **Branding theme colours are not wired to the live site.** The brand logo IS now live —
+  Header & Footer read `branding_logo_url` (via `useBrandLogo`) and render it when set, else the
+  built-in "L"/text lockup. But `branding_primary_color` / `branding_secondary_color` are still
+  static (Tailwind config); dynamic CSS-var theming is a deliberate-decision follow-up. Also the
+  `/superadmin/public-website/branding` blob editor (`branding_settings`) remains an orphaned
+  duplicate of `/chairman/website-content/branding` and should be de-duped.
 
 (Resolved 2026-06-29: footer admin editor is now wired to the live `Footer.tsx` — it reads
 `GET /api/cms-settings/value/footer_settings` and renders the Chairman's configured columns,

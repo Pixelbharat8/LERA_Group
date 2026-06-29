@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useLanguage } from "../context/LanguageContext";
 import { useWebsiteSettings } from "@/hooks/useWebsiteSettings";
+import { useBrandLogo } from "@/hooks/useBrandLogo";
 import { useState, useEffect } from "react";
 import { apiUrl } from "../../lib/api";
 
@@ -13,6 +14,7 @@ type FooterCfg = { columns?: FooterColumn[]; copyright?: { en: string; vi: strin
 export default function Footer() {
   const { t, language } = useLanguage();
   const { getSetting } = useWebsiteSettings();
+  const { logoUrl, altEn, altVi } = useBrandLogo();
   const [courses, setCourses] = useState<any[]>([]);
   // Footer links the Chairman configures in Website Content → Footer. When a config
   // exists we render it; otherwise we fall back to the built-in columns below, so the
@@ -83,13 +85,20 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center space-x-3 mb-6">
-              <div className="w-10 h-10 bg-brand-orange rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">L</span>
-              </div>
-              <div className="flex items-baseline">
-                <span className="text-2xl font-bold text-white">LERA</span>
-                <span className="text-2xl font-light text-gray-400 ml-1">Academy</span>
-              </div>
+              {logoUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={logoUrl} alt={vi ? altVi : altEn} className="h-10 object-contain" />
+              ) : (
+                <>
+                  <div className="w-10 h-10 bg-brand-orange rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-xl">L</span>
+                  </div>
+                  <div className="flex items-baseline">
+                    <span className="text-2xl font-bold text-white">LERA</span>
+                    <span className="text-2xl font-light text-gray-400 ml-1">Academy</span>
+                  </div>
+                </>
+              )}
             </div>
             <p className="text-gray-400 mb-6 max-w-md">
               {cfg?.description ? (vi ? cfg.description.vi : cfg.description.en) : t("footerDesc")}

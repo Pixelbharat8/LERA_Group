@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../context/LanguageContext";
+import { useBrandLogo } from "@/hooks/useBrandLogo";
 import Cookies from "js-cookie";
 import { hasAuthSession } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -56,6 +57,7 @@ const defaultSettings: HeaderSettings = {
 
 export default function Header() {
   const { language, setLanguage, t } = useLanguage();
+  const { logoUrl, altEn, altVi } = useBrandLogo();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(defaultMenuItems);
@@ -241,13 +243,24 @@ export default function Header() {
           <div className="flex justify-between items-center">
             {/* Logo with animation */}
             <Link href="/" className="flex items-center space-x-3 group">
-              <div className={`bg-gradient-to-br from-[#0a1a5c] to-[#3b82f6] rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-lg ${scrolled ? 'w-10 h-10' : 'w-14 h-14'}`}>
-                <span className={`text-white font-bold transition-all ${scrolled ? 'text-xl' : 'text-3xl'}`}>L</span>
-              </div>
-              <div className="flex items-baseline gap-2 leading-none whitespace-nowrap">
-                <span className={`font-extrabold text-[#0a1a5c] tracking-wide transition-all ${scrolled ? 'text-xl' : 'text-3xl'}`}>LERA</span>
-                <span className={`font-semibold bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent transition-all ${scrolled ? 'text-xl' : 'text-3xl'}`}>ACADEMY</span>
-              </div>
+              {logoUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={logoUrl}
+                  alt={language === "VI" ? altVi : altEn}
+                  className={`object-contain transition-all duration-300 group-hover:scale-105 ${scrolled ? 'h-10' : 'h-14'}`}
+                />
+              ) : (
+                <>
+                  <div className={`bg-gradient-to-br from-[#0a1a5c] to-[#3b82f6] rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-lg ${scrolled ? 'w-10 h-10' : 'w-14 h-14'}`}>
+                    <span className={`text-white font-bold transition-all ${scrolled ? 'text-xl' : 'text-3xl'}`}>L</span>
+                  </div>
+                  <div className="flex items-baseline gap-2 leading-none whitespace-nowrap">
+                    <span className={`font-extrabold text-[#0a1a5c] tracking-wide transition-all ${scrolled ? 'text-xl' : 'text-3xl'}`}>LERA</span>
+                    <span className={`font-semibold bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent transition-all ${scrolled ? 'text-xl' : 'text-3xl'}`}>ACADEMY</span>
+                  </div>
+                </>
+              )}
             </Link>
 
             {/* Navigation with hover effects */}
