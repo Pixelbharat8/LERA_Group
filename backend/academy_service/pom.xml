@@ -87,6 +87,15 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- In-memory DB so @WebMvcTest slices can build a real EntityManagerFactory
+             (Application's multi-package @EnableJpaRepositories forces the JPA layer into
+             the web slice). ddl-auto=none means no schema is created, so Postgres-only
+             types like jsonb never reach H2. -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
