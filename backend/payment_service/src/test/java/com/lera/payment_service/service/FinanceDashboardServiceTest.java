@@ -1,6 +1,5 @@
 package com.lera.payment_service.service;
 
-import com.lera.payment_service.entity.Invoice;
 import com.lera.payment_service.entity.Refund;
 import com.lera.payment_service.repository.*;
 import org.junit.jupiter.api.Test;
@@ -8,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,16 +26,9 @@ class FinanceDashboardServiceTest {
     @Mock private LedgerEntryRepository ledgerEntryRepository;
     @Mock private RefundRepository refundRepository;
     @Mock private StudentFeePlanRepository studentFeePlanRepository;
+    @Mock private JdbcTemplate jdbcTemplate;
 
     @InjectMocks private FinanceDashboardService service;
-
-    private static Invoice invoice(String status, String amount, UUID centerId) {
-        Invoice i = new Invoice();
-        i.setStatus(status);
-        i.setTotalAmount(amount == null ? null : new BigDecimal(amount));
-        i.setCenterId(centerId);
-        return i;
-    }
 
     private static Refund refund(String amount) {
         Refund r = new Refund();
@@ -49,12 +43,13 @@ class FinanceDashboardServiceTest {
         when(paymentRepository.countByStatus("PENDING")).thenReturn(2L);
         when(paymentRepository.countByStatus("COMPLETED")).thenReturn(5L);
         when(paymentRepository.countByStatus("FAILED")).thenReturn(1L);
-        when(invoiceRepository.findAll()).thenReturn(List.of(
-                invoice("PAID", "500", null),
-                invoice("PAID", "100", null),
-                invoice("PENDING", "300", null),   // outstanding
-                invoice("OVERDUE", "200", null)     // outstanding
-        ));
+        // invoice stats are now aggregated DB-side (countByStatus), not via findAll()
+        when(invoiceRepository.count()).thenReturn(4L);
+        when(invoiceRepository.countByStatus("PAID")).thenReturn(2L);
+        when(invoiceRepository.countByStatus("PENDING")).thenReturn(1L);
+        when(invoiceRepository.countByStatus("OVERDUE")).thenReturn(1L);
+        when(invoiceRepository.countByStatus("CANCELLED")).thenReturn(0L);
+        when(invoiceRepository.sumOutstanding()).thenReturn(new BigDecimal("500"));
         when(refundRepository.findByStatus("APPROVED")).thenReturn(List.of(refund("50"), refund("30")));
         when(studentFeePlanRepository.findByStatus("ACTIVE")).thenReturn(List.of(
                 new com.lera.payment_service.entity.StudentFeePlan(),
@@ -69,7 +64,7 @@ class FinanceDashboardServiceTest {
         assertEquals(2L, s.get("pendingPayments"));
         assertEquals(5L, s.get("completedPayments"));
         assertEquals(1L, s.get("failedPayments"));
-        // only PENDING + OVERDUE invoices are outstanding: 300 + 200
+        // PENDING + OVERDUE invoices outstanding = 500 (DB-aggregated)
         assertEquals(0, ((BigDecimal) s.get("outstandingAmount")).compareTo(new BigDecimal("500")));
         // approved refunds: 50 + 30
         assertEquals(0, ((BigDecimal) s.get("refundedAmount")).compareTo(new BigDecimal("80")));
@@ -89,11 +84,12 @@ class FinanceDashboardServiceTest {
     @Test
     void dashboardSummary_handlesNullAggregatesAsZero() {
         when(paymentRepository.getTotalRevenue()).thenReturn(null);
-        when(invoiceRepository.findAll()).thenReturn(List.of());
         when(refundRepository.findByStatus("APPROVED")).thenReturn(List.of());
         when(studentFeePlanRepository.findByStatus("ACTIVE")).thenReturn(List.of());
         when(ledgerEntryRepository.getTotalCredits()).thenReturn(null);
         when(ledgerEntryRepository.getTotalDebits()).thenReturn(null);
+        // count()/countByStatus()/sumOutstanding() left unstubbed -> Mockito returns 0L/null,
+        // which the service must coerce to ZERO.
 
         Map<String, Object> s = service.getDashboardSummary(UUID.randomUUID());
 
@@ -106,12 +102,12 @@ class FinanceDashboardServiceTest {
 
     @Test
     void revenueByCenter_groupsPaidInvoicesAndSumsPerCenter() {
-        UUID centerA = UUID.randomUUID();
-        UUID centerB = UUID.randomUUID();
-        when(invoiceRepository.findByStatus("PAID")).thenReturn(List.of(
-                invoice("PAID", "100", centerA),
-                invoice("PAID", "200", centerA),
-                invoice("PAID", "50", centerB)
+        // getRevenueByCenter() now aggregates per-centre in SQL (joins the centers table)
+        when(jdbcTemplate.queryForList(anyString())).thenReturn(List.of(
+                Map.of("centerId", UUID.randomUUID().toString(), "centerName", "Center A",
+                        "totalRevenue", new BigDecimal("300")),
+                Map.of("centerId", UUID.randomUUID().toString(), "centerName", "Center B",
+                        "totalRevenue", new BigDecimal("50"))
         ));
 
         List<Map<String, Object>> result = service.getRevenueByCenter();

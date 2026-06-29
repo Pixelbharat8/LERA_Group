@@ -46,7 +46,7 @@ class PayrollGenerationServiceTest {
     /** Route fetchStaff (/api/users) and fetchTeachingHours (/hours) through one stub. */
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void mockHttp(List<Map<String, Object>> staff, String totalHours) {
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), isNull(), any(ParameterizedTypeReference.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), any(ParameterizedTypeReference.class)))
                 .thenAnswer(inv -> {
                     String url = inv.getArgument(0);
                     if (url.contains("/api/users")) return new ResponseEntity(staff, HttpStatus.OK);
@@ -88,7 +88,7 @@ class PayrollGenerationServiceTest {
 
     @Test
     void noStaff_generatesNothing() {
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), isNull(), any(ParameterizedTypeReference.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), any(ParameterizedTypeReference.class)))
                 .thenAnswer(inv -> new ResponseEntity<>(List.of(), HttpStatus.OK));
 
         assertTrue(service.generatePayrollForPeriod(req()).isEmpty());

@@ -1,13 +1,11 @@
 package com.lera.ai_gateway.service;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.*;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
@@ -22,32 +20,41 @@ class OpenAIServiceTest {
     @Mock
     private RestTemplate restTemplate;
 
+    @Mock
+    private AiConfigService aiConfig;
+
     @InjectMocks
     private OpenAIService openAIService;
 
-    @BeforeEach
-    void setUp() {
-        ReflectionTestUtils.setField(openAIService, "openaiApiKey", "test-key");
-        ReflectionTestUtils.setField(openAIService, "openaiApiUrl", "https://api.openai.com/v1/chat/completions");
-        ReflectionTestUtils.setField(openAIService, "defaultModel", "gpt-4o-mini");
-        ReflectionTestUtils.setField(openAIService, "maxTokens", 2000);
-        ReflectionTestUtils.setField(openAIService, "temperature", 0.7);
+    /**
+     * OpenAIService resolves provider/key/model from AiConfigService at call time, so the tests
+     * drive behaviour by stubbing the resolved settings: a real key = configured (calls the API),
+     * an empty key = not configured (returns the local fallback).
+     */
+    private void aiSettings(boolean configured) {
+        when(aiConfig.resolve()).thenReturn(new AiConfigService.AiSettings(
+                "openai",
+                configured ? "test-key" : "",
+                "gpt-4o-mini",
+                "https://api.openai.com/v1/chat/completions",
+                null));
     }
 
     @Test
     void isConfigured_shouldReturnTrue_whenKeySet() {
+        aiSettings(true);
         assertTrue(openAIService.isConfigured());
     }
 
     @Test
     void isConfigured_shouldReturnFalse_whenKeyEmpty() {
-        ReflectionTestUtils.setField(openAIService, "openaiApiKey", "");
+        aiSettings(false);
         assertFalse(openAIService.isConfigured());
     }
 
     @Test
     void chat_shouldReturnFallback_whenNotConfigured() {
-        ReflectionTestUtils.setField(openAIService, "openaiApiKey", "");
+        aiSettings(false);
         Map<String, Object> result = openAIService.chat("Hello", null, null);
         assertFalse((Boolean) result.get("success"));
         assertNotNull(result.get("message"));
@@ -57,6 +64,7 @@ class OpenAIServiceTest {
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
     void chat_shouldReturnSuccess_whenApiResponds() {
+        aiSettings(true);
         Map<String, Object> responseBody = new HashMap<>();
         responseBody.put("choices", List.of(
                 Map.of("message", Map.of("content", "Hello! I can help you."))
@@ -76,6 +84,7 @@ class OpenAIServiceTest {
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
     void chat_shouldReturnFallback_whenApiThrows() {
+        aiSettings(true);
         when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(Map.class)))
                 .thenThrow(new RuntimeException("Connection refused"));
 
@@ -86,8 +95,7 @@ class OpenAIServiceTest {
 
     @Test
     void generateEducationalContent_shouldCallChat() {
-        // Will use fallback since RestTemplate mock isn't configured for this specific call
-        ReflectionTestUtils.setField(openAIService, "openaiApiKey", "");
+        aiSettings(false);
         Map<String, Object> result = openAIService.generateEducationalContent("Present Tense", "English", "Beginner");
         assertFalse((Boolean) result.get("success"));
         assertNotNull(result.get("message"));
@@ -95,7 +103,7 @@ class OpenAIServiceTest {
 
     @Test
     void generateQuizQuestions_shouldCallChat() {
-        ReflectionTestUtils.setField(openAIService, "openaiApiKey", "");
+        aiSettings(false);
         Map<String, Object> result = openAIService.generateQuizQuestions("Vocabulary", "English", 5, "EASY");
         assertFalse((Boolean) result.get("success"));
         assertNotNull(result.get("message"));
@@ -103,7 +111,7 @@ class OpenAIServiceTest {
 
     @Test
     void assessAnswer_shouldCallChat() {
-        ReflectionTestUtils.setField(openAIService, "openaiApiKey", "");
+        aiSettings(false);
         Map<String, Object> result = openAIService.assessAnswer(
                 "What is present simple?", "It is for habits", "Used for habits and facts", "English");
         assertFalse((Boolean) result.get("success"));
@@ -112,7 +120,7 @@ class OpenAIServiceTest {
 
     @Test
     void generateLearningPath_shouldCallChat() {
-        ReflectionTestUtils.setField(openAIService, "openaiApiKey", "");
+        aiSettings(false);
         Map<String, Object> result = openAIService.generateLearningPath(
                 "English", "Beginner", List.of("Speaking", "Listening"), "Pass IELTS 6.5");
         assertFalse((Boolean) result.get("success"));
@@ -121,7 +129,7 @@ class OpenAIServiceTest {
 
     @Test
     void fallbackResponse_shouldMatchGrammarPattern() {
-        ReflectionTestUtils.setField(openAIService, "openaiApiKey", "");
+        aiSettings(false);
         Map<String, Object> result = openAIService.chat(
                 "Explain present simple and present continuous tenses", null, null);
         String msg = result.get("message").toString();

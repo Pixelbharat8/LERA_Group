@@ -24,4 +24,18 @@ public class WebMvcMethodSecurityTestConfig {
         http.authorizeHttpRequests(a -> a.anyRequest().permitAll());
         return http.build();
     }
+
+    /**
+     * PermissionGateFilter (a @Component OncePerRequestFilter pulled into @WebMvcTest) requires a
+     * JdbcTemplate. The filter is designed to FAIL OPEN when its permission lookup throws, so a
+     * mock that throws on every call turns the filter into a pass-through — leaving the method-level
+     * @PreAuthorize annotations as the sole access decider, which is exactly what these tests assert.
+     */
+    @Bean
+    org.springframework.jdbc.core.JdbcTemplate jdbcTemplate() throws java.sql.SQLException {
+        javax.sql.DataSource ds = org.mockito.Mockito.mock(javax.sql.DataSource.class);
+        org.mockito.Mockito.when(ds.getConnection())
+                .thenThrow(new java.sql.SQLException("no DB in @WebMvcTest slice"));
+        return new org.springframework.jdbc.core.JdbcTemplate(ds);
+    }
 }

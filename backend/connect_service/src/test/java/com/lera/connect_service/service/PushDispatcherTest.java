@@ -140,15 +140,18 @@ class PushDispatcherTest {
 
     @Test
     void nullUserId_meansBroadcastToAllRegisteredDevices() {
-        when(tokens.findAll()).thenReturn(List.of(
-                deviceToken(UUID.randomUUID(), "IOS", "i1"),
-                deviceToken(UUID.randomUUID(), "IOS", "i2")));
+        // Broadcast pages through device tokens via findAll(Pageable), 500 at a time.
+        when(tokens.findAll(any(org.springframework.data.domain.Pageable.class))).thenReturn(
+                new org.springframework.data.domain.PageImpl<>(List.of(
+                        deviceToken(UUID.randomUUID(), "IOS", "i1"),
+                        deviceToken(UUID.randomUUID(), "IOS", "i2")),
+                        org.springframework.data.domain.PageRequest.of(0, 500), 2));
         when(apns.isConfigured()).thenReturn(true);
         when(apns.send(anyString(), anyString(), anyString(), any())).thenReturn(PushResult.DELIVERED);
 
         dispatcher.send(null, "T", "B");
 
-        verify(tokens).findAll();
+        verify(tokens).findAll(any(org.springframework.data.domain.Pageable.class));
         verify(apns, times(2)).send(anyString(), anyString(), anyString(), any());
     }
 
