@@ -274,9 +274,10 @@ export default function TeacherSchedulePage() {
                     <h3 className="font-semibold text-gray-700 mb-2">{day}</h3>
                     <div className="grid gap-2">
                       {dayClasses.map((cls, idx) => (
-                        <div
+                        <Link
                           key={cls.id}
-                          className={`p-4 rounded-lg border-l-4 ${getClassColor(idx)}`}
+                          href={`/dashboard/teacher/classes?classId=${cls.id}`}
+                          className={`block p-4 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-shadow ${getClassColor(idx)}`}
                         >
                           <div className="flex justify-between items-start">
                             <div>
@@ -293,7 +294,8 @@ export default function TeacherSchedulePage() {
                           {cls.students !== undefined && (
                             <p className="text-xs mt-2 opacity-70">{cls.students} students</p>
                           )}
-                        </div>
+                          <p className="text-xs mt-2 font-medium opacity-70">Open class →</p>
+                        </Link>
                       ))}
                     </div>
                   </div>
@@ -313,9 +315,10 @@ export default function TeacherSchedulePage() {
               </h3>
               <div className="space-y-2">
                 {getClassesForDay(selectedDate.getDay()).map((cls, idx) => (
-                  <div
+                  <Link
                     key={cls.id}
-                    className={`p-4 rounded-lg border-l-4 ${getClassColor(idx)}`}
+                    href={`/dashboard/teacher/classes?classId=${cls.id}`}
+                    className={`block p-4 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-shadow ${getClassColor(idx)}`}
                   >
                     <div className="flex justify-between items-start">
                       <div>
@@ -329,7 +332,8 @@ export default function TeacherSchedulePage() {
                         {cls.roomNumber && <p className="text-xs opacity-70">Room: {cls.roomNumber}</p>}
                       </div>
                     </div>
-                  </div>
+                    <p className="text-xs mt-2 font-medium opacity-70">Open class →</p>
+                  </Link>
                 ))}
                 {getClassesForDay(selectedDate.getDay()).length === 0 && (
                   <div className="text-center py-12 text-gray-500">
@@ -379,14 +383,15 @@ export default function TeacherSchedulePage() {
                         return (
                           <div key={dayIdx} className="bg-white min-h-[60px] p-1">
                             {classAtHour && (
-                              <div
-                                className={`p-2 rounded text-xs ${getClassColor(classes.indexOf(classAtHour))}`}
+                              <Link
+                                href={`/dashboard/teacher/classes?classId=${classAtHour.id}`}
+                                className={`block p-2 rounded text-xs cursor-pointer hover:shadow-md transition-shadow ${getClassColor(classes.indexOf(classAtHour))}`}
                               >
                                 <div className="font-semibold truncate">{classAtHour.name}</div>
                                 {classAtHour.roomNumber && (
                                   <div className="opacity-70">Room {classAtHour.roomNumber}</div>
                                 )}
-                              </div>
+                              </Link>
                             )}
                           </div>
                         );
