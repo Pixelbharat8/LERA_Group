@@ -13,7 +13,11 @@ export default function TeacherLeavePage() {
   const [leaveBalance, setLeaveBalance] = useState({ remainingLeaves: 12, totalLeaves: 12, usedLeaves: 0 });
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  
+  // History filter + view
+  const [historyFilter, setHistoryFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED">("ALL");
+  const [historyView, setHistoryView] = useState<"list" | "calendar">("list");
+  const [calMonth, setCalMonth] = useState<Date>(new Date());
+
   // Form state
   const [formData, setFormData] = useState({
     leaveDate: '',
@@ -159,6 +163,45 @@ export default function TeacherLeavePage() {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // ----- History filter + calendar helpers -----
+  const filteredLeaves = historyFilter === "ALL"
+    ? leaves
+    : leaves.filter((l) => (l.status || "PENDING") === historyFilter);
+
+  const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  // Map each in-range leave day -> its status (for colouring the calendar).
+  const leaveDayStatus: Record<string, string> = {};
+  for (const l of filteredLeaves) {
+    if (!l.leaveDate) continue;
+    const start = new Date(l.leaveDate);
+    const end = l.endDate ? new Date(l.endDate) : new Date(l.leaveDate);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      leaveDayStatus[ymd(d)] = l.status || "PENDING";
+    }
+  }
+
+  const dayColor = (status?: string) => {
+    switch (status) {
+      case "APPROVED": return "bg-green-500 text-white";
+      case "PENDING": return "bg-yellow-400 text-gray-900";
+      case "REJECTED": return "bg-red-400 text-white";
+      case "CANCELLED": return "bg-gray-300 text-gray-700";
+      default: return "";
+    }
+  };
+
+  const buildCalendarCells = () => {
+    const year = calMonth.getFullYear();
+    const month = calMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+    return cells;
   };
 
   if (loading) {
@@ -350,8 +393,28 @@ export default function TeacherLeavePage() {
 
         {/* Leave History */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Leave History</h2>
-          
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Leave History</h2>
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <button onClick={() => setHistoryView("list")} className={`px-3 py-1 rounded-md text-sm font-medium ${historyView === "list" ? "bg-white shadow text-blue-600" : "text-gray-600"}`}>📋 List</button>
+              <button onClick={() => setHistoryView("calendar")} className={`px-3 py-1 rounded-md text-sm font-medium ${historyView === "calendar" ? "bg-white shadow text-blue-600" : "text-gray-600"}`}>📅 Calendar</button>
+            </div>
+          </div>
+
+          {/* Status filter */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {(["ALL", "PENDING", "APPROVED", "REJECTED", "CANCELLED"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setHistoryFilter(s)}
+                className={`px-3 py-1 rounded-full text-xs font-medium ${historyFilter === s ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+              >
+                {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
+                {s !== "ALL" && <span className="ml-1 opacity-70">({leaves.filter((l) => (l.status || "PENDING") === s).length})</span>}
+              </button>
+            ))}
+          </div>
+
           {leaves.length === 0 ? (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,6 +423,43 @@ export default function TeacherLeavePage() {
               <h3 className="mt-2 text-sm font-medium text-gray-900">No leave requests</h3>
               <p className="mt-1 text-sm text-gray-500">Get started by creating a new leave request.</p>
             </div>
+          ) : historyView === "calendar" ? (
+            <div>
+              {/* Calendar month nav */}
+              <div className="flex items-center justify-between mb-3">
+                <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))} className="px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-50">←</button>
+                <div className="font-semibold text-gray-900">{calMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</div>
+                <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))} className="px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-50">→</button>
+              </div>
+              <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-gray-400 mb-1">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => <div key={d} className="py-1">{d}</div>)}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {buildCalendarCells().map((day, i) => {
+                  if (day === null) return <div key={i} />;
+                  const key = ymd(new Date(calMonth.getFullYear(), calMonth.getMonth(), day));
+                  const status = leaveDayStatus[key];
+                  const isToday = key === ymd(new Date());
+                  return (
+                    <div
+                      key={i}
+                      title={status ? `Leave: ${status}` : undefined}
+                      className={`aspect-square flex items-center justify-center rounded-lg text-sm ${status ? dayColor(status) : "bg-gray-50 text-gray-700"} ${isToday ? "ring-2 ring-blue-500" : ""}`}
+                    >
+                      {day}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap gap-3 mt-4 text-xs text-gray-600">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500" /> Approved</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-400" /> Pending</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-400" /> Rejected</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-300" /> Cancelled</span>
+              </div>
+            </div>
+          ) : filteredLeaves.length === 0 ? (
+            <div className="text-center py-10 text-sm text-gray-500">No {historyFilter.toLowerCase()} leave requests.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -374,7 +474,7 @@ export default function TeacherLeavePage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {leaves.map((leave) => (
+                  {filteredLeaves.map((leave) => (
                     <tr key={leave.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {leave.leaveType?.replace(/_/g, ' ')}
