@@ -258,7 +258,7 @@ export default function ParentChildrenPage() {
                         {/* Quick Stats */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="bg-blue-50 rounded-xl p-4 text-center">
-                            <div className="text-2xl font-bold text-blue-600">{selectedChild.recentGrade || "A"}</div>
+                            <div className="text-2xl font-bold text-blue-600">{selectedChild.recentGrade || "—"}</div>
                             <div className="text-sm text-gray-600">Latest Grade</div>
                           </div>
                           <div className="bg-green-50 rounded-xl p-4 text-center">
@@ -266,12 +266,12 @@ export default function ParentChildrenPage() {
                             <div className="text-sm text-gray-600">Attendance</div>
                           </div>
                           <div className="bg-purple-50 rounded-xl p-4 text-center">
-                            <div className="text-2xl font-bold text-purple-600">4</div>
+                            <div className="text-2xl font-bold text-purple-600">{new Set(childGrades.map((g) => g.subject).filter(Boolean)).size}</div>
                             <div className="text-sm text-gray-600">Subjects</div>
                           </div>
                           <div className="bg-orange-50 rounded-xl p-4 text-center">
-                            <div className="text-2xl font-bold text-orange-600">2</div>
-                            <div className="text-sm text-gray-600">Pending Tasks</div>
+                            <div className="text-2xl font-bold text-orange-600">{childGrades.length}</div>
+                            <div className="text-sm text-gray-600">Assessments</div>
                           </div>
                         </div>
 
@@ -399,24 +399,17 @@ export default function ParentChildrenPage() {
                     {activeTab === "schedule" && (
                       <div className="space-y-4">
                         <h3 className="font-bold text-gray-900">Weekly Schedule</h3>
-                        <div className="grid gap-3">
-                          {[
-                            { day: "Monday", time: "09:00 - 10:30", subject: "English Speaking", teacher: "Ms. Sarah" },
-                            { day: "Wednesday", time: "14:00 - 15:30", subject: "English Listening", teacher: "Mr. John" },
-                            { day: "Friday", time: "09:00 - 10:30", subject: "English Grammar", teacher: "Ms. Sarah" },
-                            { day: "Saturday", time: "09:00 - 11:00", subject: "IELTS Preparation", teacher: "Mr. David" },
-                          ].map((schedule, i) => (
-                            <div key={i} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-                              <div className="w-24 text-center">
-                                <div className="font-bold text-blue-600">{schedule.day}</div>
-                                <div className="text-xs text-gray-500">{schedule.time}</div>
-                              </div>
-                              <div className="flex-1">
-                                <div className="font-medium text-gray-900">{schedule.subject}</div>
-                                <div className="text-sm text-gray-500">Teacher: {schedule.teacher}</div>
-                              </div>
-                            </div>
-                          ))}
+                        <div className="bg-gray-50 rounded-xl p-8 text-center">
+                          <div className="text-4xl mb-3">📅</div>
+                          <p className="text-gray-600 mb-4">
+                            See {selectedChild.fullname?.split(" ")[0] || "your child"}'s live class timetable, days and times.
+                          </p>
+                          <Link
+                            href={`/dashboard/parent/schedule?studentId=${selectedChild.id}`}
+                            className="inline-block bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-blue-700 transition"
+                          >
+                            View full schedule →
+                          </Link>
                         </div>
                       </div>
                     )}

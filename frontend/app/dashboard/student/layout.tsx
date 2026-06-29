@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { hasAuthSession } from "@/lib/api";
 
-// Student Panel Access Control Layout
-const ALLOWED_ROLES = ["CHAIRMAN", "CEO", "DIRECTOR", "SUPER_ADMIN", "SUPERADMIN", "CENTER_ADMIN", "CENTER_MANAGER", "TEACHER", "STUDENT"];
+// Student Panel Access Control Layout.
+// STUDENT (their own self-scoped data) + admin/exec roles for oversight & support.
+// TEACHER / CENTER_MANAGER are intentionally excluded — they have their own panels and
+// the student panel only ever shows the logged-in user's own record.
+const ALLOWED_ROLES = ["CHAIRMAN", "CEO", "DIRECTOR", "SUPER_ADMIN", "SUPERADMIN", "CENTER_ADMIN", "STUDENT"];
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();

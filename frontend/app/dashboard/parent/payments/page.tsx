@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { apiFetch } from "../../../../lib/api";
 import { loadMyChildren } from "../../../../lib/parent-context";
+import PayInvoiceModal from "@/components/payments/PayInvoiceModal";
 
 interface Child {
   id: string;
@@ -30,6 +31,7 @@ export default function ParentPaymentsPage() {
   const [selectedChildId, setSelectedChildId] = useState(studentIdParam || "");
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [payTarget, setPayTarget] = useState<Payment | null>(null);
 
   useEffect(() => {
     fetchChildren();
@@ -157,7 +159,7 @@ export default function ParentPaymentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {payment.status !== "PAID" && (
-                        <button className="text-blue-600 hover:text-blue-700 font-medium">Pay Now</button>
+                        <button onClick={() => setPayTarget(payment)} className="text-blue-600 hover:text-blue-700 font-medium">Pay Now</button>
                       )}
                       {payment.status === "PAID" && payment.paidDate && (
                         <span className="text-gray-500 text-xs">Paid {new Date(payment.paidDate).toLocaleDateString()}</span>
@@ -177,6 +179,15 @@ export default function ParentPaymentsPage() {
           <h3 className="text-xl font-semibold mb-2">No Payment Records</h3>
           <p className="text-gray-500">No payment data found for this child.</p>
         </div>
+      )}
+
+      {payTarget && (
+        <PayInvoiceModal
+          invoiceNumber={payTarget.invoiceNumber}
+          amount={payTarget.amount}
+          currency="VND"
+          onClose={() => setPayTarget(null)}
+        />
       )}
     </div>
   );

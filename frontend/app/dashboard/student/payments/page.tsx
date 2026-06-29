@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 import { resolveMyStudentId } from "../../../../lib/student-context";
 import { exportToCsv, datedFilename } from "../../../../lib/export-csv";
+import PayInvoiceModal from "@/components/payments/PayInvoiceModal";
 
 interface Payment {
   id: string;
@@ -23,6 +24,7 @@ export default function StudentPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"ALL" | "PENDING" | "PAID" | "OVERDUE">("ALL");
+  const [payTarget, setPayTarget] = useState<Payment | null>(null);
 
   useEffect(() => {
     fetchPayments();
@@ -251,7 +253,10 @@ export default function StudentPaymentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {(payment.status === "PENDING" || payment.status === "OVERDUE") && (
-                        <button className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                        <button
+                          onClick={() => setPayTarget(payment)}
+                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                        >
                           Pay Now
                         </button>
                       )}
@@ -294,6 +299,15 @@ export default function StudentPaymentsPage() {
           </div>
         </div>
       </div>
+
+      {payTarget && (
+        <PayInvoiceModal
+          invoiceNumber={payTarget.invoiceNumber}
+          amount={payTarget.amount}
+          currency={payTarget.currency || "VND"}
+          onClose={() => setPayTarget(null)}
+        />
+      )}
     </div>
   );
 }

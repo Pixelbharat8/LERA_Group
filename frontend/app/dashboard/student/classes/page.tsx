@@ -50,22 +50,39 @@ export default function StudentClassesPage() {
         return;
       }
       const mapped = await loadMyClasses(studentId);
-      setClasses(
-        mapped.map((c) => ({
-          id: c.id,
-          className: c.className,
-          courseName: c.courseName,
-          courseCode: "",
-          teacherName: c.teacherName,
-          teacherEmail: "",
-          schedule: c.schedule,
-          room: c.room,
-          status: c.status === "OPEN" ? "ACTIVE" : c.status,
-          progress: 0,
-          totalSessions: 0,
-          completedSessions: 0,
-        }))
+      const now = Date.now();
+      const withProgress = await Promise.all(
+        mapped.map(async (c) => {
+          // Real session counts when the student can view them; otherwise 0 (and the UI
+          // hides the progress bar rather than showing a misleading 0%).
+          let total = 0;
+          let completed = 0;
+          const sessions = await apiFetch(`/api/class-sessions?classId=${c.id}`).catch(() => []);
+          if (Array.isArray(sessions)) {
+            total = sessions.length;
+            completed = sessions.filter((s: any) => {
+              if (String(s.status || "").toUpperCase() === "COMPLETED") return true;
+              const d = s.sessionDate || s.date || s.startTime;
+              return d ? new Date(d).getTime() < now : false;
+            }).length;
+          }
+          return {
+            id: c.id,
+            className: c.className,
+            courseName: c.courseName,
+            courseCode: "",
+            teacherName: c.teacherName,
+            teacherEmail: "",
+            schedule: c.schedule,
+            room: c.room,
+            status: c.status === "OPEN" ? "ACTIVE" : c.status,
+            progress: total > 0 ? Math.round((completed / total) * 100) : 0,
+            totalSessions: total,
+            completedSessions: completed,
+          };
+        })
       );
+      setClasses(withProgress);
     } catch (err) {
       console.error(err);
       setClasses([]);
@@ -229,10 +246,10 @@ export default function StudentClassesPage() {
                     </div>
 
                     {/* Progress Bar */}
-                    {cls.progress !== undefined && (
+                    {!!cls.totalSessions && cls.totalSessions > 0 && (
                       <div className="mt-4">
                         <div className="flex justify-between text-xs text-gray-500 mb-1">
-                          <span>Progress</span>
+                          <span>Progress ({cls.completedSessions}/{cls.totalSessions} sessions)</span>
                           <span>{cls.progress}%</span>
                         </div>
                         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -272,15 +289,19 @@ export default function StudentClassesPage() {
                         <td className="px-4 py-3 text-gray-600">{cls.teacherName}</td>
                         <td className="px-4 py-3 text-gray-600">{cls.schedule}</td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-blue-500 rounded-full"
-                                style={{ width: `${cls.progress || 0}%` }}
-                              ></div>
+                          {cls.totalSessions && cls.totalSessions > 0 ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-blue-500 rounded-full"
+                                  style={{ width: `${cls.progress || 0}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-xs text-gray-500">{cls.progress || 0}%</span>
                             </div>
-                            <span className="text-xs text-gray-500">{cls.progress || 0}%</span>
-                          </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(cls.status)}`}>

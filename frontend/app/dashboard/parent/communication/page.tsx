@@ -162,7 +162,9 @@ export default function ParentCommunicationPage() {
           fullname: t.fullname,
           email: t.email,
           phone: t.phone,
-          subject: "English",
+          // Use the teacher's real subject/specialisation when available, otherwise the
+          // class they teach — never a blanket hardcoded "English".
+          subject: (t as any).subject || (t as any).specialization || t.className || "",
           className: t.className,
         }))
       );
