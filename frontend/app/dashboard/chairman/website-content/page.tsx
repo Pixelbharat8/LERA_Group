@@ -122,6 +122,13 @@ const contentSections: ContentSection[] = [
     href: "/dashboard/chairman/website-content/blog"
   },
   {
+    id: "seo-writer",
+    title: "AI SEO Article Writer",
+    description: "Generate SEO-optimised bilingual articles with Claude, then save as drafts",
+    icon: "🤖",
+    href: "/dashboard/chairman/website-content/seo-writer"
+  },
+  {
     id: "settings",
     title: "Website Settings",
     description: "General website configuration, header settings, and display options",
