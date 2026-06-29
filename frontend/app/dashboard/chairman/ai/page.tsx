@@ -58,9 +58,14 @@ export default function ChairmanAiPage() {
           <h1 className="text-2xl font-bold text-gray-900">🤖 {vi ? "Trợ lý AI (Claude)" : "AI Assistant (Claude)"}</h1>
           <p className="text-sm text-gray-500">{vi ? "Hỏi Claude về kinh doanh, tài chính, marketing, vận hành." : "Ask Claude about your business — strategy, finance, marketing, operations."}</p>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${health?.configured ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-          {health?.configured ? `${health.provider} · ${health.model}` : (vi ? "Chưa cấu hình khoá API" : "No API key set")}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-3 py-1 rounded-full text-xs font-medium ${health?.configured ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+            {health?.configured ? `${health.provider} · ${health.model}` : (vi ? "Chưa cấu hình khoá API" : "No API key set")}
+          </span>
+          <Link href="/dashboard/superadmin/ai-gateway" className="text-xs font-medium text-brand-navy underline whitespace-nowrap">
+            {vi ? "⚙️ Quản lý AI Gateway" : "⚙️ Manage AI Gateway"}
+          </Link>
+        </div>
       </div>
 
       {health && !health.configured && (
