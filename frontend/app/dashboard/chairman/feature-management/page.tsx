@@ -25,6 +25,7 @@ const MODULES: Feature[] = [
   { stateKey: "aiAssistant", putKey: "ai_assistant", label: "AI Assistant" },
   { stateKey: "communication", putKey: "communication", label: "Communication" },
   { stateKey: "documents", putKey: "documents", label: "Documents" },
+  { stateKey: "socialMedia", putKey: "socialMedia", label: "Social Media (Facebook)" },
 ];
 
 const SERVICES: Feature[] = [

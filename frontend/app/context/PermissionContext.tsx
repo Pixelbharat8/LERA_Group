@@ -19,6 +19,9 @@ export interface UserPermission {
   ai_assistant: boolean;
   communication: boolean;
   documents: boolean;
+  // Optional so existing role/default literals stay valid; granted per-user by the
+  // Chairman in Feature Management and read from the API below. Absent = no access.
+  socialMedia?: boolean;
 }
 
 const DEFAULT_PERMISSIONS: UserPermission = {
@@ -151,6 +154,7 @@ const fetchUserPermissionsFromAPI = async (userId: string): Promise<UserPermissi
         ai_assistant: (data as any).aiAssistant ?? (data as any).ai_assistant ?? false,
         communication: (data as any).communication ?? false,
         documents: (data as any).documents ?? false,
+        socialMedia: (data as any).socialMedia ?? false,
       };
     }
   } catch (error) {

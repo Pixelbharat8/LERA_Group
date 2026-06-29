@@ -60,6 +60,9 @@ public class UserPermission {
     @Column(name = "documents_access")
     private Boolean documents = false;
 
+    @Column(name = "social_media_access")
+    private Boolean socialMedia = false;
+
     @Column(name = "academy_service_enabled")
     private Boolean academyServiceEnabled = true;
 
@@ -143,6 +146,9 @@ public class UserPermission {
 
     public Boolean getDocuments() { return documents; }
     public void setDocuments(Boolean documents) { this.documents = documents; }
+
+    public Boolean getSocialMedia() { return socialMedia; }
+    public void setSocialMedia(Boolean socialMedia) { this.socialMedia = socialMedia; }
 
     public Boolean getAcademyServiceEnabled() { return academyServiceEnabled; }
     public void setAcademyServiceEnabled(Boolean academyServiceEnabled) { this.academyServiceEnabled = academyServiceEnabled; }

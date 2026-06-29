@@ -352,7 +352,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     ...(isCenterManager && !isSuperAdmin ? [{ name: `📊 ${t("dashboard")}`, href: "/dashboard/centermanager", icon: "📊", roles: ["CENTER_MANAGER"], permission: "dashboard" as const }] : []),
     ...(user?.role?.toUpperCase() === "TEACHER" ? [{ name: `📊 ${t("dashboard")}`, href: "/dashboard/teacher", icon: "📊", roles: ["TEACHER"], permission: "dashboard" as const }] : []),
     ...(user?.role?.toUpperCase() === "STAFF" ? [{ name: `📊 ${t("dashboard")}`, href: "/dashboard/staff", icon: "📊", roles: ["STAFF"], permission: "dashboard" as const }] : []),
-    
+
+    // Social Media — delegated control. Shown to any non-admin user the Chairman grants
+    // the "socialMedia" feature (admins reach it via Chairman → Marketing). The spread
+    // condition is the real gate; roles is set to the current role so the nav filter passes.
+    ...(!isSuperAdmin && checkPermission("socialMedia") ? [{ name: `📣 ${language === "VI" ? "Mạng xã hội" : "Social Media"}`, href: "/dashboard/marketing/social-media", icon: "📣", roles: [user?.role?.toUpperCase() || ""], permission: "socialMedia" as const }] : []),
+
     // Chairman Only - Full Control Panel (Highest Authority)
     ...(isChairman ? [
       {

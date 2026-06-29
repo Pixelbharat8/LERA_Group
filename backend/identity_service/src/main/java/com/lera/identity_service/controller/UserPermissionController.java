@@ -47,6 +47,7 @@ public class UserPermissionController {
         defaultPermissions.setAiAssistant(false);
         defaultPermissions.setCommunication(false);
         defaultPermissions.setDocuments(false);
+        defaultPermissions.setSocialMedia(false);
         defaultPermissions.setAcademyServiceEnabled(true);
         defaultPermissions.setPaymentServiceEnabled(true);
         defaultPermissions.setAttendanceServiceEnabled(true);
@@ -83,6 +84,7 @@ public class UserPermissionController {
         permission.setAiAssistant(dto.getAiAssistant() != null ? dto.getAiAssistant() : false);
         permission.setCommunication(dto.getCommunication() != null ? dto.getCommunication() : false);
         permission.setDocuments(dto.getDocuments() != null ? dto.getDocuments() : false);
+        permission.setSocialMedia(dto.getSocialMedia() != null ? dto.getSocialMedia() : false);
         permission.setAcademyServiceEnabled(dto.getAcademyServiceEnabled() != null ? dto.getAcademyServiceEnabled() : true);
         permission.setPaymentServiceEnabled(dto.getPaymentServiceEnabled() != null ? dto.getPaymentServiceEnabled() : true);
         permission.setAttendanceServiceEnabled(dto.getAttendanceServiceEnabled() != null ? dto.getAttendanceServiceEnabled() : true);

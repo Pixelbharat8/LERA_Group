@@ -22,6 +22,7 @@ public class UserPermissionDTO {
     private Boolean aiAssistant;
     private Boolean communication;
     private Boolean documents;
+    private Boolean socialMedia;
     private Boolean academyServiceEnabled;
     private Boolean paymentServiceEnabled;
     private Boolean attendanceServiceEnabled;
@@ -84,6 +85,9 @@ public class UserPermissionDTO {
 
     public Boolean getDocuments() { return documents; }
     public void setDocuments(Boolean documents) { this.documents = documents; }
+
+    public Boolean getSocialMedia() { return socialMedia; }
+    public void setSocialMedia(Boolean socialMedia) { this.socialMedia = socialMedia; }
 
     public Boolean getAcademyServiceEnabled() { return academyServiceEnabled; }
     public void setAcademyServiceEnabled(Boolean academyServiceEnabled) { this.academyServiceEnabled = academyServiceEnabled; }
