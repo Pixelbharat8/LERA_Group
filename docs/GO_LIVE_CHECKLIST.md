@@ -13,12 +13,19 @@ execution** — they need YOUR git + AWS credentials, so they can't be run from 
 
 **📌 Tracked code debt (not launch-blocking):**
 - `<html lang="en">` is static though the site is bilingual EN/VI.
+- **Branding editors are not wired to the live site.** Both `/chairman/website-content/branding`
+  (writes `branding_*` keys) and `/superadmin/public-website/branding` (writes the
+  `branding_settings` blob) are write-only — nothing live reads them. The logo (the "L" box)
+  and theme colours are static (Tailwind config). Making them live = a separate feature
+  (dynamic logo in Header/Footer + CSS-var theming); de-dup the two editors as part of that.
 
 (Resolved 2026-06-29: footer admin editor is now wired to the live `Footer.tsx` — it reads
 `GET /api/cms-settings/value/footer_settings` and renders the Chairman's configured columns,
 copyright and description, with a safe fallback to the built-in footer when no config is saved;
 seed defaults corrected to real course slugs. SEO dynamic detail pages `/courses/[slug]` and
-`/blog/[slug]` now have per-item `generateMetadata` + canonicals.)
+`/blog/[slug]` now have per-item `generateMetadata` + canonicals. The global SEO editor
+(`seo_settings`) is now live — the root layout overlays its title/description/keywords/OG
+image on the static defaults, with a safe fallback.)
 
 (Resolved 2026-06-29: academy's 3 `@WebMvcTest` authz classes — un-quarantined via an H2-backed
 JPA test harness; full backend suite now green with zero `@Disabled`.)
