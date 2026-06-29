@@ -282,6 +282,80 @@ public class AiController {
             "slides", slides));
     }
 
+    /**
+     * Generate an SEO-optimised, bilingual (EN + VI) blog article from a target keyword, tuned for
+     * a Hải Phòng English-centre audience. Returns ready-to-publish BlogPost-shaped JSON
+     * (titleEn/titleVi/excerptEn/excerptVi/contentEn/contentVi/slug/category, status=draft); falls
+     * back to a real sample article if the AI is unconfigured or the caller is over quota.
+     */
+    @PostMapping("/seo-article")
+    public ResponseEntity<?> generateSeoArticle(@RequestBody Map<String, Object> req,
+                                                @AuthenticationPrincipal AuthUser authUser) {
+        String keyword = String.valueOf(req.getOrDefault("keyword", "học tiếng Anh ở Hải Phòng")).trim();
+        String category = String.valueOf(req.getOrDefault("category", "Tips"));
+        java.util.UUID me = uid(authUser);
+        if (!aiUsage.canUse(me)) {
+            Map<String, Object> a = sampleSeoArticle(keyword, category);
+            a.put("usingRealAI", false);
+            a.put("quotaExceeded", true);
+            a.put("usage", aiUsage.status(me));
+            return ResponseEntity.ok(a);
+        }
+        String system = "You are an SEO content writer for LERA Academy, a premium English language centre in "
+            + "Hải Phòng, Vietnam (Vinhomes Marina). Write genuinely helpful, original, expert content. "
+            + "Reply with ONLY valid JSON, no prose, no markdown code fences.";
+        String prompt = "Write an SEO-optimised blog article targeting the keyword \"" + keyword + "\". "
+            + "Use the keyword and related local terms (Hải Phòng, Vinhomes Marina, Cambridge, IELTS) naturally, "
+            + "no keyword-stuffing. Provide BOTH English and Vietnamese. JSON shape: "
+            + "{\"titleEn\": string, \"titleVi\": string, "
+            + "\"excerptEn\": string (<=155 chars, meta description), \"excerptVi\": string (<=155 chars), "
+            + "\"slug\": string (kebab-case from the English title, ascii only), \"category\": string, "
+            + "\"contentEn\": string (HTML using <h2>/<p>/<ul>: a short intro, 3-5 H2 sections, and a closing "
+            + "call-to-action to book a free trial at LERA Academy; ~600-800 words), "
+            + "\"contentVi\": string (the same article in natural Vietnamese)}.";
+        Map<String, Object> r = openAIService.chat(prompt, system, null);
+        if (Boolean.TRUE.equals(r.get("success"))) aiUsage.record(me, tokensOf(r));
+        Map<String, Object> article = extractJson(r.get("message"));
+        if (article == null || !article.containsKey("titleEn")) article = sampleSeoArticle(keyword, category);
+        Object slug = article.get("slug");
+        article.put("slug", slugify(slug == null || String.valueOf(slug).isBlank()
+            ? String.valueOf(article.getOrDefault("titleEn", keyword)) : String.valueOf(slug)));
+        article.put("status", "draft");
+        article.put("usingRealAI", r.getOrDefault("success", false));
+        article.put("tokensUsed", r.getOrDefault("tokensUsed", 0));
+        article.put("usage", aiUsage.status(me));
+        return ResponseEntity.ok(article);
+    }
+
+    /** kebab-case ascii slug, diacritic- and đ-aware so Vietnamese titles produce clean URLs. */
+    private static String slugify(String s) {
+        String n = java.text.Normalizer.normalize(s == null ? "" : s, java.text.Normalizer.Form.NFD)
+            .replaceAll("\\p{M}+", "")
+            .replace("đ", "d").replace("Đ", "D")
+            .toLowerCase()
+            .replaceAll("[^a-z0-9]+", "-")
+            .replaceAll("(^-|-$)", "");
+        if (n.isBlank()) return "lera-article";
+        return n.length() > 80 ? n.substring(0, 80).replaceAll("-$", "") : n;
+    }
+
+    private Map<String, Object> sampleSeoArticle(String keyword, String category) {
+        Map<String, Object> a = new HashMap<>();
+        a.put("titleEn", "How to Choose the Right English Centre in Hải Phòng");
+        a.put("titleVi", "Cách chọn trung tâm tiếng Anh phù hợp ở Hải Phòng");
+        a.put("excerptEn", "A practical guide to choosing an English centre in Hải Phòng — teachers, class size, curriculum and results.");
+        a.put("excerptVi", "Hướng dẫn chọn trung tâm tiếng Anh ở Hải Phòng — giáo viên, sĩ số lớp, chương trình và kết quả học tập.");
+        a.put("slug", slugify(keyword));
+        a.put("category", category);
+        a.put("contentEn", "<h2>What to look for</h2><p>Native and qualified teachers, small classes, a clear Cambridge-aligned"
+            + " curriculum, and measurable results.</p><p><em>(Sample article — add a Claude API key in Super Admin →"
+            + " AI Gateway to generate a real, unique article for your keyword: \"" + keyword + "\".)</em></p>");
+        a.put("contentVi", "<h2>Những điều cần lưu ý</h2><p>Giáo viên bản ngữ và có chuyên môn, lớp học nhỏ, chương trình"
+            + " Cambridge rõ ràng và kết quả đo lường được.</p><p><em>(Bản mẫu — thêm Claude API key trong AI Gateway để"
+            + " tạo bài viết thật.)</em></p>");
+        return a;
+    }
+
     // AI Tutoring endpoint
     @PostMapping("/tutor")
     public ResponseEntity<?> tutor(@Valid @RequestBody Map<String, Object> request) {
