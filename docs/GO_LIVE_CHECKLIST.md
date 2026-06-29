@@ -12,9 +12,14 @@ execution** — they need YOUR git + AWS credentials, so they can't be run from 
 - **Backend test suite GREEN** on `main` (9/9 modules BUILD SUCCESS).
 
 **📌 Tracked code debt (not launch-blocking):**
-- academy's 3 `@WebMvcTest` authz classes are `@Disabled` — incompatible with its app-level
-  multi-package `@EnableJpaRepositories`; needs a dedicated H2-backed JPA test harness.
 - Footer admin editor's link columns aren't wired to the live (hardcoded) `Footer.tsx`.
+- SEO: dynamic detail pages `/courses/[slug]` and `/blog/[slug]` lack per-item metadata, so each
+  inherits its section's title + canonical. Needs `generateMetadata` (extract course data to a
+  shared module; server-fetch the blog post by slug).
+- `<html lang="en">` is static though the site is bilingual EN/VI.
+
+(Resolved 2026-06-29: academy's 3 `@WebMvcTest` authz classes — un-quarantined via an H2-backed
+JPA test harness; full backend suite now green with zero `@Disabled`.)
 
 ---
 
