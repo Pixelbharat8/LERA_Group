@@ -180,7 +180,7 @@ export default function CenterManagerDashboard() {
       setStatsData({
         students: studentCount,
         teachers: teacherCount,
-        classesToday: Math.min(classCount, 12),
+        classesToday: classCount,
         monthlyRevenue: centerRevenue,
         courses: courseCount,
         enrollments: enrollmentCount,

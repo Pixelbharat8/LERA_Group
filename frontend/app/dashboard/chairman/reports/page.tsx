@@ -65,13 +65,14 @@ export default function ChairmanReportsPage() {
     }
   };
 
-  const generateReport = async (reportId: string) => {
-    setGeneratingReport(reportId);
-    // Simulate report generation
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setGeneratingReport(null);
-    // In real implementation, this would trigger backend report generation
-    alert("Report generated successfully!");
+  const generateReport = async (report: Report) => {
+    // Produce the real artifact (CSV export) rather than a fake "generated" alert.
+    setGeneratingReport(report.id);
+    try {
+      downloadReport(report);
+    } finally {
+      setGeneratingReport(null);
+    }
   };
 
   const downloadReport = (report: Report) => {
@@ -198,11 +199,19 @@ export default function ChairmanReportsPage() {
             <div className="text-sm text-gray-500">Scheduled Reports</div>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-5">
-            <div className="text-3xl font-bold text-purple-600">12</div>
+            <div className="text-3xl font-bold text-purple-600">
+              {reports.filter((r: any) => {
+                const d = r.generatedDate || r.createdAt;
+                if (!d) return false;
+                const dt = new Date(d);
+                const now = new Date();
+                return dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear();
+              }).length}
+            </div>
             <div className="text-sm text-gray-500">Reports This Month</div>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-5">
-            <div className="text-3xl font-bold text-orange-600">24.5 MB</div>
+            <div className="text-3xl font-bold text-orange-600">—</div>
             <div className="text-sm text-gray-500">Total Storage Used</div>
           </div>
         </div>
@@ -252,7 +261,7 @@ export default function ChairmanReportsPage() {
 
                     <div className="flex gap-2">
                       <button
-                        onClick={() => generateReport(report.id)}
+                        onClick={() => generateReport(report)}
                         disabled={generatingReport === report.id}
                         className="flex-1 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 disabled:opacity-50"
                       >

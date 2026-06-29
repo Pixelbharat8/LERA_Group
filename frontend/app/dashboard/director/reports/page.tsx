@@ -38,20 +38,8 @@ export default function DirectorReportsPage() {
       setLoading(true);
       const data = await apiFetch("/api/reports").catch(() => []);
       
-      if (Array.isArray(data) && data.length > 0) {
-        setReports(data);
-      } else {
-        setReports([
-          { id: "1", title: "Monthly Academic Performance Report", type: "academic", period: "January 2026", generatedDate: "2026-01-08", status: "ready" },
-          { id: "2", title: "Q4 2025 Financial Summary", type: "financial", period: "Q4 2025", generatedDate: "2026-01-05", status: "ready" },
-          { id: "3", title: "Weekly Attendance Report", type: "operational", period: "Week 1, Jan 2026", generatedDate: "2026-01-07", status: "ready" },
-          { id: "4", title: "Staff Performance Review", type: "hr", period: "December 2025", generatedDate: "2026-01-03", status: "ready" },
-          { id: "5", title: "Marketing Campaign Analysis", type: "marketing", period: "Q4 2025", generatedDate: "2026-01-02", status: "ready" },
-          { id: "6", title: "Student Enrollment Trends", type: "academic", period: "2025 Annual", generatedDate: "2026-01-01", status: "ready" },
-          { id: "7", title: "Center Comparison Report", type: "operational", period: "December 2025", generatedDate: "2025-12-31", status: "ready" },
-          { id: "8", title: "February 2026 Forecast", type: "financial", period: "February 2026", generatedDate: "2026-01-08", status: "generating" },
-        ]);
-      }
+      // Show only real reports from the API — never fabricate a list.
+      setReports(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching reports:", error);
     } finally {
@@ -67,13 +55,15 @@ export default function DirectorReportsPage() {
         apiFetch("/api/centers").catch(() => []),
       ]);
 
+      // Real counts only; no fabricated fallbacks or invented trend percentages.
+      // Metrics without a data source show "—" instead of made-up figures.
       setMetrics([
-        { label: "Total Students", value: Array.isArray(students) ? students.length : 1230, change: 8.5, trend: "up" },
-        { label: "Total Teachers", value: Array.isArray(teachers) ? teachers.length : 45, change: 4.2, trend: "up" },
-        { label: "Active Centers", value: Array.isArray(centers) ? centers.filter((c: any) => c.status === "ACTIVE").length : 4, change: 0, trend: "stable" },
-        { label: "Avg. Class Size", value: 18, change: -2.1, trend: "down" },
-        { label: "Retention Rate", value: "92%", change: 1.5, trend: "up" },
-        { label: "Satisfaction Score", value: "4.6/5", change: 0.2, trend: "up" },
+        { label: "Total Students", value: Array.isArray(students) ? students.length : 0, change: 0, trend: "stable" },
+        { label: "Total Teachers", value: Array.isArray(teachers) ? teachers.length : 0, change: 0, trend: "stable" },
+        { label: "Active Centers", value: Array.isArray(centers) ? centers.filter((c: any) => c.status === "ACTIVE").length : 0, change: 0, trend: "stable" },
+        { label: "Avg. Class Size", value: "—", change: 0, trend: "stable" },
+        { label: "Retention Rate", value: "—", change: 0, trend: "stable" },
+        { label: "Satisfaction Score", value: "—", change: 0, trend: "stable" },
       ]);
     } catch (error) {
       console.error("Error fetching metrics:", error);
