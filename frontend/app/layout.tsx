@@ -106,7 +106,8 @@ export default function RootLayout({
 }) {
   const orgJsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'EducationalOrganization',
+    '@type': ['EducationalOrganization', 'LocalBusiness'],
+    '@id': 'https://lera.edu.vn/#organization',
     name: 'LERA Academy',
     alternateName: 'Trung tâm Anh ngữ LERA',
     description: 'Premium English language centre in Hải Phòng, Vietnam — Cambridge-aligned programmes, native and qualified teachers, small classes.',
@@ -114,14 +115,36 @@ export default function RootLayout({
     logo: 'https://lera.edu.vn/images/logo/lera-logo.png',
     image: 'https://lera.edu.vn/images/gallery/lera-hero.jpg',
     telephone: '+84387633141',
+    priceRange: '$$',
     address: {
       '@type': 'PostalAddress',
-      streetAddress: 'Vinhomes Marina',
+      streetAddress: '95 Hải Đăng, Khu đô thị Vinhomes Marina, Phường An Biên',
       addressLocality: 'Hải Phòng',
+      addressRegion: 'Hải Phòng',
       addressCountry: 'VN',
     },
-    sameAs: ['https://www.facebook.com/profile.php?id=61580971978601'],
-    areaServed: 'Hải Phòng, Vietnam',
+    // TODO: replace with the EXACT pin from your Google Business Profile
+    // (Google Maps → your listing → share → the lat,lng in the URL). These are approximate.
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: 20.8449,
+      longitude: 106.6881,
+    },
+    openingHoursSpecification: [
+      {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        opens: '08:00',
+        closes: '21:00',
+      },
+    ],
+    sameAs: [
+      'https://www.facebook.com/profile.php?id=61580971978601',
+      'https://instagram.com/leraacademy',
+      'https://youtube.com/@leraacademy',
+      'https://tiktok.com/@leraacademy',
+    ],
+    areaServed: { '@type': 'City', name: 'Hải Phòng' },
   }
 
   return (
