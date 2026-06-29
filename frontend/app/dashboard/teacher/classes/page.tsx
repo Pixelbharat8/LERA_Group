@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Cookies from "js-cookie";
 import { apiFetch } from "../../../../lib/api";
 import {
   isClassActive,
@@ -62,6 +63,19 @@ export default function TeacherClassesPage() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  // Class-management access (academic lead / center manager / CEO / admins). Mirrors the
+  // PUT /api/classes/{id} backend authz — these roles get a "Manage class" link into the
+  // full management page; teachers don't see it.
+  const [canManage, setCanManage] = useState(false);
+  useEffect(() => {
+    try {
+      const ud = Cookies.get("userData");
+      const role = ud ? String(JSON.parse(ud).roleName || "").toUpperCase() : "";
+      setCanManage(["CHAIRMAN", "CEO", "DIRECTOR", "SUPER_ADMIN", "SUPERADMIN", "CENTER_MANAGER", "ACADEMIC_MANAGER", "CENTER_ADMIN"].includes(role));
+    } catch {
+      /* default: no manage access */
+    }
+  }, []);
   const [classStudents, setClassStudents] = useState<Student[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -384,9 +398,20 @@ export default function TeacherClassesPage() {
                         <span className="text-xs text-gray-400">{selectedClass.courseCode}</span>
                       )}
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedClass.status)}`}>
-                      {selectedClass.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedClass.status)}`}>
+                        {selectedClass.status}
+                      </span>
+                      {canManage && (
+                        <Link
+                          href={`/dashboard/academy/classes/${selectedClass.id}`}
+                          className="px-3 py-1 rounded-lg bg-brand-navy text-white text-sm font-medium hover:bg-blue-900 whitespace-nowrap"
+                          title="Edit settings, manage students, attendance & more"
+                        >
+                          ⚙️ Manage class
+                        </Link>
+                      )}
+                    </div>
                   </div>
                   <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-gray-50 rounded-lg p-3">
