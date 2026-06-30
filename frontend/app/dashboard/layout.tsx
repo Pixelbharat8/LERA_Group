@@ -358,6 +358,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     // condition is the real gate; roles is set to the current role so the nav filter passes.
     ...(!isSuperAdmin && checkPermission("socialMedia") ? [{ name: `📣 ${language === "VI" ? "Mạng xã hội" : "Social Media"}`, href: "/dashboard/marketing/social-media", icon: "📣", roles: [user?.role?.toUpperCase() || ""], permission: "socialMedia" as const }] : []),
 
+    // Homepage Facebook picker — marketing/manager team curates the public "From Our Facebook" carousel.
+    ...(!isSuperAdmin && (checkPermission("socialMedia") || checkPermission("communication")) ? [{ name: `📌 ${language === "VI" ? "Bài Facebook trang chủ" : "Homepage Posts"}`, href: "/dashboard/marketing/featured-posts", icon: "📌", roles: [user?.role?.toUpperCase() || ""] }] : []),
+
     // Chairman Only - Full Control Panel (Highest Authority)
     ...(isChairman ? [
       {

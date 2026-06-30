@@ -7,6 +7,7 @@ import Footer from "./components/Footer";
 import AnimatedCounter from "./components/AnimatedCounter";
 import { useReveal } from "./hooks/useReveal";
 import StickyTrialBar from "./components/StickyTrialBar";
+import FacebookFeatured from "./components/FacebookFeatured";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { apiUrl, apiFetch } from "../lib/api";
@@ -728,53 +729,9 @@ export default function Home() {
               if (Array.isArray(parsed)) posts = parsed.filter((p: any) => p && p.thumb);
             } catch { /* ignore malformed JSON, fall back to live feed */ }
 
-            // Curated grid (ILA-style): show the hand-picked posts/videos.
+            // Curated carousel (ILA-style): 3 hand-picked posts at a time, with Next/Prev paging.
             if (posts.length > 0) {
-              return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {posts.slice(0, 6).map((post: any, idx: number) => {
-                    const name = language === "VI" ? (post.nameVI || post.nameEN) : (post.nameEN || post.nameVI);
-                    const caption = language === "VI" ? (post.captionVI || post.captionEN) : (post.captionEN || post.captionVI);
-                    return (
-                      <a
-                        key={idx}
-                        href={post.link || fbUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group relative block rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all aspect-[4/5] bg-gray-100"
-                      >
-                        <img
-                          src={post.thumb}
-                          alt={name || "LERA Academy"}
-                          loading="lazy"
-                          decoding="async"
-                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
-                        {post.isVideo && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                              <svg className="w-7 h-7 text-blue-600 ml-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            </span>
-                          </div>
-                        )}
-                        {name && (
-                          <span className="absolute top-4 left-4 text-xs font-semibold text-white bg-blue-600/90 rounded-md px-3 py-1">
-                            {name}
-                          </span>
-                        )}
-                        {caption && (
-                          <p className="absolute bottom-4 left-4 right-4 text-white font-semibold text-sm leading-snug drop-shadow">
-                            {caption}
-                          </p>
-                        )}
-                      </a>
-                    );
-                  })}
-                </div>
-              );
+              return <FacebookFeatured posts={posts} language={language} fbUrl={fbUrl} />;
             }
 
             // Fallback: live Facebook timeline embed (used until posts are curated in the admin).
