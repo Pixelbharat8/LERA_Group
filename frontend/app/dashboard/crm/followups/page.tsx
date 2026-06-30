@@ -19,12 +19,57 @@ export default function FollowupsPage() {
   const { centerId: userCenterId, shouldFilterByCenter, loading: userLoading } = useUserCenter();
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [loading, setLoading] = useState(true);
+  // Schedule modal
+  const [showModal, setShowModal] = useState(false);
+  const [leads, setLeads] = useState<{ id: string; name: string }[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ leadId: "", actionType: "PHONE", date: "", time: "", notes: "" });
+  const [formErr, setFormErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userLoading) {
       fetchFollowups();
+      fetchLeads();
     }
   }, [userLoading, userCenterId, shouldFilterByCenter]);
+
+  const fetchLeads = async () => {
+    try {
+      const data = await apiFetch("/api/leads").catch(() => []);
+      const arr = Array.isArray(data) ? data : (data as any)?.content || [];
+      setLeads(arr.map((l: any) => ({ id: l.id, name: l.parentName || l.name || l.studentName || "Lead" })));
+    } catch {
+      setLeads([]);
+    }
+  };
+
+  const handleSchedule = async () => {
+    if (!form.leadId) { setFormErr("Select a lead."); return; }
+    if (!form.date) { setFormErr("Pick a date."); return; }
+    setSaving(true);
+    setFormErr(null);
+    try {
+      const scheduledAt = `${form.date}T${form.time || "09:00"}:00`;
+      await apiFetch("/api/followups", {
+        method: "POST",
+        body: JSON.stringify({
+          leadId: form.leadId,
+          actionType: form.actionType,
+          nextFollowupDate: form.date,
+          scheduledAt,
+          notes: form.notes || null,
+          status: "PENDING",
+        }),
+      });
+      setShowModal(false);
+      setForm({ leadId: "", actionType: "PHONE", date: "", time: "", notes: "" });
+      await fetchFollowups();
+    } catch (e: any) {
+      setFormErr(e?.message || "Could not schedule the follow-up.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const fetchFollowups = async () => {
     try {
@@ -89,8 +134,8 @@ export default function FollowupsPage() {
           <h1 className="text-3xl font-bold text-gray-900">📋 Follow-ups</h1>
           <p className="text-gray-500">Track lead follow-up activities</p>
         </div>
-        <button disabled title="Coming soon" className="px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed">
-          ➕ Schedule Follow-up (soon)
+        <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+          ➕ Schedule Follow-up
         </button>
       </div>
 
@@ -165,6 +210,53 @@ export default function FollowupsPage() {
           </tbody>
         </table>
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !saving && setShowModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Schedule a follow-up</h2>
+              <button onClick={() => !saving && setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Lead *</label>
+                <select value={form.leadId} onChange={(e) => setForm({ ...form, leadId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                  <option value="">Select a lead…</option>
+                  {leads.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <select value={form.actionType} onChange={(e) => setForm({ ...form, actionType: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    {["PHONE", "EMAIL", "SMS", "MEETING", "OTHER"].map((t) => <option key={t} value={t}>{t.charAt(0) + t.slice(1).toLowerCase()}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                  <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Time (optional)</label>
+                <input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              {formErr && <div className="p-2 rounded-lg bg-red-50 text-red-700 text-sm">{formErr}</div>}
+              <div className="flex gap-3 pt-1">
+                <button onClick={handleSchedule} disabled={saving} className="flex-1 py-2.5 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-50">
+                  {saving ? "Scheduling…" : "Schedule follow-up"}
+                </button>
+                <button onClick={() => setShowModal(false)} disabled={saving} className="px-5 py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
