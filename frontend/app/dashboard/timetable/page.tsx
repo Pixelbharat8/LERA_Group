@@ -154,7 +154,7 @@ export default function TimetablePage() {
               {language === "VI" ? "Ngày" : "Day"}
             </button>
           </div>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          <button onClick={() => window.print()} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
             {language === "VI" ? "In" : "Print"} 🖨️
           </button>
         </div>
@@ -412,7 +412,7 @@ export default function TimetablePage() {
               </div>
             </div>
             <div className="mt-6 flex gap-2">
-              <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <button disabled title={language === "VI" ? "Sắp ra mắt" : "Coming soon"} className="flex-1 px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed">
                 {language === "VI" ? "Xem tài liệu" : "View Materials"}
               </button>
               <button

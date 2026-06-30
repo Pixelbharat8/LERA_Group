@@ -142,7 +142,7 @@ export default function TransportPage() {
               <div className="text-right">
                 <p className="text-sm text-gray-500">{t.monthlyFee}</p>
                 <p className="text-2xl font-bold text-blue-600">{formatCurrency(myRegistration.monthlyFee)}</p>
-                <button className="mt-4 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg">{t.cancel}</button>
+                <button disabled title="Coming soon" className="mt-4 px-4 py-2 text-gray-400 rounded-lg cursor-not-allowed">{t.cancel}</button>
               </div>
             </div>
           </div>

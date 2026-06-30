@@ -145,7 +145,7 @@ export default function LibraryPage() {
                   {book.status === "overdue" && (
                     <span className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded-full">{t.overdue}</span>
                   )}
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{t.return}</button>
+                  <button disabled title="Coming soon" className="px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed">{t.return}</button>
                 </div>
               </div>
             ))}
@@ -204,9 +204,10 @@ export default function LibraryPage() {
                   <span className={`text-sm ${book.available ? 'text-green-600' : 'text-red-600'}`}>
                     {book.available ? `✓ ${book.availableCopies} ${t.available}` : `✗ ${isVietnamese ? 'Hết' : 'Unavailable'}`}
                   </span>
-                  <button 
-                    disabled={!book.available}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium ${book.available ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+                  <button
+                    disabled
+                    title="Coming soon"
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-400 cursor-not-allowed"
                   >
                     {t.borrow}
                   </button>
