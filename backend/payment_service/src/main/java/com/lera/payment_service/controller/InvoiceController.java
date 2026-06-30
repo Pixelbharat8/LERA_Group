@@ -159,7 +159,18 @@ public class InvoiceController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
-    public ResponseEntity<Invoice> updateInvoice(@PathVariable UUID id, @Valid @RequestBody Invoice invoice) {
+    public ResponseEntity<Invoice> updateInvoice(@PathVariable UUID id,
+            @AuthenticationPrincipal AuthUser authUser,
+            @Valid @RequestBody Invoice invoice) {
+        // Object-level authorization: block a centre-scoped manager/accountant from
+        // mutating another centre's invoice by guessing its UUID. Mirrors GET /{id}.
+        Optional<Invoice> existing = invoiceService.getInvoiceById(id);
+        if (existing.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!invoiceAccess.canViewInvoice(authUser, existing.get())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         return invoiceService.updateInvoice(id, invoice)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -175,7 +186,17 @@ public class InvoiceController {
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
-    public ResponseEntity<Invoice> updateStatus(@PathVariable UUID id, @Valid @RequestBody Map<String, String> request) {
+    public ResponseEntity<Invoice> updateStatus(@PathVariable UUID id,
+            @AuthenticationPrincipal AuthUser authUser,
+            @Valid @RequestBody Map<String, String> request) {
+        // Same centre-scoping guard as updateInvoice — block cross-centre status changes.
+        Optional<Invoice> existing = invoiceService.getInvoiceById(id);
+        if (existing.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!invoiceAccess.canViewInvoice(authUser, existing.get())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         return invoiceService.updateInvoiceStatus(id, request.get("status"))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

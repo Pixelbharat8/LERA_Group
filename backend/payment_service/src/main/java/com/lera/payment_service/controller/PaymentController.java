@@ -193,7 +193,18 @@ public class PaymentController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
     public ResponseEntity<Payment> updatePayment(
             @PathVariable UUID id,
+            @AuthenticationPrincipal AuthUser authUser,
             @Valid @RequestBody Payment paymentDetails) {
+        // Object-level authorization: a centre-scoped manager/accountant must not be
+        // able to mutate a payment belonging to another centre by guessing its UUID.
+        // Mirrors the GET /{id} check — the role gate alone is not centre-aware.
+        Payment existing = paymentService.getById(id).orElse(null);
+        if (existing == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!paymentAccess.canViewPayment(authUser, existing)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
         return paymentService.update(id, paymentDetails)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -203,7 +214,16 @@ public class PaymentController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
     public ResponseEntity<Payment> updatePaymentStatus(
             @PathVariable UUID id,
+            @AuthenticationPrincipal AuthUser authUser,
             @Valid @RequestBody Map<String, String> request) {
+        // Same centre-scoping guard as updatePayment — block cross-centre status changes.
+        Payment existing = paymentService.getById(id).orElse(null);
+        if (existing == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!paymentAccess.canViewPayment(authUser, existing)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
         return paymentService.updateStatus(id, request.get("status"))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

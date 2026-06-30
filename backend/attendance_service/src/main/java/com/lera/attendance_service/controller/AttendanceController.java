@@ -26,6 +26,22 @@ public class AttendanceController {
     
     private final AttendanceService attendanceService;
     private final AttendanceAuthorizationService authz;
+    private final com.lera.attendance_service.client.StudentAccessClient studentAccessClient;
+
+    /**
+     * SECURITY: a STUDENT/PARENT may only query a student they own/are linked to. Attendance
+     * doesn't hold the parent↔student link, so academy verifies it. Staff are scoped by centre
+     * via {@link AttendanceAuthorizationService} instead.
+     */
+    private void assertStudentOwnership(AuthUser authUser, UUID studentId) {
+        String role = (authUser != null && authUser.getRoleName() != null)
+                ? authUser.getRoleName().toUpperCase() : "";
+        if (("STUDENT".equals(role) || "PARENT".equals(role))
+                && !studentAccessClient.canUserViewStudent(studentId, authUser.getUserId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You can only view your own student's attendance");
+        }
+    }
     
     @GetMapping
     public ResponseEntity<?> getAllAttendance(
@@ -46,6 +62,7 @@ public class AttendanceController {
             return ResponseEntity.ok(list);
         }
         if (studentId != null) {
+            assertStudentOwnership(authUser, studentId);
             List<AttendanceRecord> list = attendanceService.getAttendanceByStudent(studentId);
             authz.assertAttendanceRecordsForCaller(authUser, list);
             return ResponseEntity.ok(list);
@@ -107,6 +124,7 @@ public class AttendanceController {
     public ResponseEntity<List<AttendanceRecord>> getAttendanceByStudent(
             @PathVariable UUID studentId,
             @AuthenticationPrincipal AuthUser authUser) {
+        assertStudentOwnership(authUser, studentId);
         List<AttendanceRecord> list = attendanceService.getAttendanceByStudent(studentId);
         authz.assertAttendanceRecordsForCaller(authUser, list);
         return ResponseEntity.ok(list);
@@ -125,6 +143,7 @@ public class AttendanceController {
     public ResponseEntity<Map<String, Object>> getStudentStats(
             @PathVariable UUID studentId,
             @AuthenticationPrincipal AuthUser authUser) {
+        assertStudentOwnership(authUser, studentId);
         List<AttendanceRecord> list = attendanceService.getAttendanceByStudent(studentId);
         authz.assertAttendanceRecordsForCaller(authUser, list);
         return ResponseEntity.ok(attendanceService.getStudentStats(studentId));

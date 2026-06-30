@@ -91,7 +91,10 @@ public class RefundController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
-    public ResponseEntity<Refund> updateRefund(@PathVariable UUID id, @Valid @RequestBody Refund refundDetails) {
+    public ResponseEntity<Refund> updateRefund(@PathVariable UUID id,
+            @AuthenticationPrincipal AuthUser authUser,
+            @Valid @RequestBody Refund refundDetails) {
+        assertCanModifyRefund(id, authUser);
         return refundService.updateRefund(id, refundDetails)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -99,7 +102,10 @@ public class RefundController {
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
-    public ResponseEntity<Refund> updateRefundStatus(@PathVariable UUID id, @Valid @RequestBody Map<String, String> body) {
+    public ResponseEntity<Refund> updateRefundStatus(@PathVariable UUID id,
+            @AuthenticationPrincipal AuthUser authUser,
+            @Valid @RequestBody Map<String, String> body) {
+        assertCanModifyRefund(id, authUser);
         return refundService.updateRefundStatus(id, body.get("status"))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -123,7 +129,10 @@ public class RefundController {
 
     @PostMapping("/{id}/process")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
-    public ResponseEntity<Refund> processRefund(@PathVariable UUID id) {
+    public ResponseEntity<Refund> processRefund(@PathVariable UUID id,
+            @AuthenticationPrincipal AuthUser authUser) {
+        // ACCOUNTANT is centre-scoped — guard so they can't process another centre's refund.
+        assertCanModifyRefund(id, authUser);
         return refundService.updateRefundStatus(id, "PROCESSING")
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -131,10 +140,25 @@ public class RefundController {
 
     @PostMapping("/{id}/complete")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
-    public ResponseEntity<Refund> completeRefund(@PathVariable UUID id) {
+    public ResponseEntity<Refund> completeRefund(@PathVariable UUID id,
+            @AuthenticationPrincipal AuthUser authUser) {
+        assertCanModifyRefund(id, authUser);
         return refundService.updateRefundStatus(id, "COMPLETED")
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Object-level guard: a centre-scoped caller (CENTER_MANAGER/ACCOUNTANT) may only
+     * act on a refund whose underlying payment belongs to their centre. Missing refunds
+     * fall through so the downstream call returns 404 unchanged. Org-wide roles pass.
+     */
+    private void assertCanModifyRefund(UUID refundId, AuthUser authUser) {
+        refundService.getRefundById(refundId).ifPresent(r -> {
+            if (!paymentAccess.canViewPaymentId(authUser, r.getPaymentId())) {
+                throw new org.springframework.web.server.ResponseStatusException(HttpStatus.FORBIDDEN);
+            }
+        });
     }
 
     @DeleteMapping("/{id}")
