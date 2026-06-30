@@ -99,6 +99,8 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, UserPermission> = {
   DIRECTOR: { ...DEFAULT_PERMISSIONS, dashboard: true, centers: true, users: true, students: true, teachers: true, classes: true, courses: true, attendance: true, payments: true, reports: true, communication: true, documents: true },
   CENTER_ADMIN: { ...DEFAULT_PERMISSIONS, dashboard: true, users: true, students: true, teachers: true, classes: true, courses: true, attendance: true, payments: true, reports: true, communication: true, documents: true },
   CENTER_MANAGER: { ...DEFAULT_PERMISSIONS, dashboard: true, centers: true, users: true, students: true, teachers: true, classes: true, courses: true, attendance: true, payments: true, payroll: true, reports: true, settings: true, ai_assistant: true, communication: true, documents: true },
+  ACCOUNTANT: { ...DEFAULT_PERMISSIONS, dashboard: true, students: true, payments: true, payroll: true, reports: true, communication: true, documents: true },
+  FINANCE: { ...DEFAULT_PERMISSIONS, dashboard: true, students: true, payments: true, payroll: true, reports: true, communication: true, documents: true },
   TEACHER: { ...DEFAULT_PERMISSIONS, dashboard: true, students: true, classes: true, attendance: true, communication: true, documents: true },
   STUDENT: { ...DEFAULT_PERMISSIONS, dashboard: true, attendance: true, communication: true, documents: true },
   PARENT: { ...DEFAULT_PERMISSIONS, dashboard: true, attendance: true, communication: true },

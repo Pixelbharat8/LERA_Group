@@ -85,10 +85,22 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, UserPermission> = {
     classes: true, courses: true, attendance: true, payments: true, payroll: true, 
     reports: true, settings: true, ai_assistant: true, communication: true, documents: true 
   },
-  TEACHER: { 
-    dashboard: true, centers: false, users: false, students: true, teachers: false, 
-    classes: true, courses: false, attendance: true, payments: false, reports: false, 
-    settings: false, ai_assistant: false, communication: true, documents: true, payroll: false 
+  // Finance roles — default to the finance/reporting modules so UI gating doesn't hide
+  // fee-receipts/exports from them; the Chairman can still revoke per-user.
+  ACCOUNTANT: {
+    dashboard: true, centers: false, users: false, students: true, teachers: false,
+    classes: false, courses: false, attendance: false, payments: true, payroll: true,
+    reports: true, settings: false, ai_assistant: false, communication: true, documents: true
+  },
+  FINANCE: {
+    dashboard: true, centers: false, users: false, students: true, teachers: false,
+    classes: false, courses: false, attendance: false, payments: true, payroll: true,
+    reports: true, settings: false, ai_assistant: false, communication: true, documents: true
+  },
+  TEACHER: {
+    dashboard: true, centers: false, users: false, students: true, teachers: false,
+    classes: true, courses: false, attendance: true, payments: false, reports: false,
+    settings: false, ai_assistant: false, communication: true, documents: true, payroll: false
   },
   STUDENT: { 
     dashboard: true, centers: false, users: false, students: false, teachers: false, 

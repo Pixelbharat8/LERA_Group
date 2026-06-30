@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 import ExportMenu from "../../../components/ExportMenu";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
+import { usePermissions } from "../../../context/PermissionContext";
 
 interface Student {
   id: string;
@@ -42,6 +43,9 @@ interface ClassOption {
 
 export default function StudentsPage() {
   const { centerId: userCenterId, shouldFilterByCenter, loading: userLoading } = useUserCenter();
+  // Exporting the student roster is governed by the Chairman's "Students" (or "Reports") grant.
+  const { hasPermission } = usePermissions();
+  const canExport = hasPermission("students") || hasPermission("reports");
   const [students, setStudents] = useState<Student[]>([]);
   const [centers, setCenters] = useState<Center[]>([]);
   const [classes, setClasses] = useState<ClassOption[]>([]);
@@ -392,6 +396,7 @@ export default function StudentsPage() {
           <p className="text-gray-500">Manage all students across centers</p>
         </div>
         <div className="flex gap-2">
+          {canExport && (
           <ExportMenu
             filename="students"
             rows={students}
@@ -407,6 +412,7 @@ export default function StudentsPage() {
               { key: (s) => (s.classes || []).map((c) => c.name).join("; "), label: "Classes" },
             ]}
           />
+          )}
           <button
             onClick={() => setShowImportModal(true)}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"

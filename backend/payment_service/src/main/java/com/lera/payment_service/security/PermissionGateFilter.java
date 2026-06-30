@@ -15,16 +15,19 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Subtractive, fail-open permission gate. Runs AFTER JWT auth.
  *
- * For endpoints mapped below it requires the caller's ROLE to hold the matching granular
- * permission (role_permissions table, edited via the Chairman Roles & Permissions grid).
- * Unmapped endpoints pass through (role-based @PreAuthorize still applies). God-mode roles
- * are never gated. Roles are seeded generously, so this only bites once a permission is
- * explicitly REMOVED from a role in the grid.
+ * Two Chairman-controlled layers, both subtractive (only ever REMOVE access; seeded/defaulted
+ * generously so they bite only after an explicit revoke). God-mode roles are never gated.
+ *   1. ROLE layer — role_permissions table (granular codes, e.g. finance.create).
+ *   2. PER-USER layer — user_permissions table (module booleans, edited via the Chairman's
+ *      Feature Management / Roles & Permissions grid). An explicit {@code false} on the mapped
+ *      column denies this caller even if their role allows it. No row / null / true → allow.
+ * Unmapped endpoints pass through (role-based @PreAuthorize still applies).
  */
 @Component
 public class PermissionGateFilter extends OncePerRequestFilter {
@@ -37,13 +40,18 @@ public class PermissionGateFilter extends OncePerRequestFilter {
 
     // role(upper) -> (codes, expiryMillis) — tiny cache so we don't query every request.
     private final Map<String, Object[]> cache = new ConcurrentHashMap<>();
+    // (userId + ":" + column) -> (Boolean denied, expiryMillis) — same idea for the per-user layer.
+    private final Map<String, Object[]> userCache = new ConcurrentHashMap<>();
     private static final long TTL_MS = 15_000;
 
     /** This service's endpoint→module map. GET→.view, mutations→.create. null = unmapped (allow). */
     private String requiredPermission(String method, String path) {
         String base = null;
         if (matches(path, "/api/payments") || matches(path, "/api/invoices") || matches(path, "/api/refunds")
-                || matches(path, "/api/finance") || matches(path, "/api/ledger") || matches(path, "/api/student-fee-plans")) {
+                || matches(path, "/api/finance") || matches(path, "/api/ledger") || matches(path, "/api/student-fee-plans")
+                || matches(path, "/api/fee-receipts") || matches(path, "/api/fee-rules") || matches(path, "/api/late-fee-rules")
+                || matches(path, "/api/discounts") || matches(path, "/api/scholarships")
+                || matches(path, "/api/student-discounts") || matches(path, "/api/student-scholarships")) {
             base = "finance";
         }
         if (base == null) return null;
@@ -67,11 +75,62 @@ public class PermissionGateFilter extends OncePerRequestFilter {
         // No authenticated role here → let the normal security chain decide (don't 403 anonymous as "permission denied").
         if (role == null) { chain.doFilter(req, res); return; }
         String R = role.toUpperCase();
-        if (GOD_MODE.contains(R) || roleHas(R, required)) { chain.doFilter(req, res); return; }
+        // God-mode (Chairman/CEO/…) is never gated by either layer.
+        if (GOD_MODE.contains(R)) { chain.doFilter(req, res); return; }
 
+        // PER-USER layer: an explicit revoke on the Chairman's Feature Management toggle blocks
+        // this caller even if their role would allow it. Only an explicit false denies.
+        String upColumn = userPermissionColumn(req.getRequestURI());
+        UUID userId = currentUserId(auth);
+        if (upColumn != null && userId != null && userExplicitlyDenied(userId, upColumn)) {
+            deny(res, required + " (revoked for this user)");
+            return;
+        }
+
+        // ROLE layer: role_permissions must hold the granular code (seeded generously).
+        if (roleHas(R, required)) { chain.doFilter(req, res); return; }
+
+        deny(res, required);
+    }
+
+    private void deny(HttpServletResponse res, String detail) throws IOException {
         res.setStatus(HttpStatus.FORBIDDEN.value());
         res.setContentType("application/json");
-        res.getWriter().write("{\"success\":false,\"message\":\"Permission denied: " + required + "\"}");
+        res.getWriter().write("{\"success\":false,\"message\":\"Permission denied: " + detail + "\"}");
+    }
+
+    /** The user_permissions column governing this path, or null if unmapped. */
+    private String userPermissionColumn(String path) {
+        // Every finance endpoint this filter maps is governed by the "payments" toggle.
+        return requiredPermission("GET", path) != null ? "payments_access" : null;
+    }
+
+    private UUID currentUserId(Authentication auth) {
+        Object p = auth.getPrincipal();
+        return (p instanceof AuthUser au) ? au.getUserId() : null;
+    }
+
+    /** True only when a user_permissions row exists for this user AND the column is explicitly false. */
+    private boolean userExplicitlyDenied(UUID userId, String column) {
+        String key = userId + ":" + column;
+        long now = System.currentTimeMillis();
+        Object[] entry = userCache.get(key);
+        if (entry != null && (long) entry[1] > now) {
+            return (boolean) entry[0];
+        }
+        boolean denied;
+        try {
+            // `column` comes from a fixed internal allowlist (userPermissionColumn) — not user input.
+            Boolean v = jdbc.query(
+                    "SELECT " + column + " FROM user_permissions WHERE user_id = ?",
+                    ps -> ps.setObject(1, userId),
+                    rs -> rs.next() ? (Boolean) rs.getObject(1) : null);
+            denied = Boolean.FALSE.equals(v); // no row / null / true → allow
+        } catch (Exception e) {
+            denied = false; // fail-open on lookup error — never block legitimate traffic on a DB hiccup
+        }
+        userCache.put(key, new Object[]{denied, now + TTL_MS});
+        return denied;
     }
 
     @SuppressWarnings("unchecked")
