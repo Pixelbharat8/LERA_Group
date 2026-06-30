@@ -26,11 +26,30 @@ public class LeadershipMemberController {
         return ResponseEntity.ok(leadershipMemberRepository.findAllByOrderByDisplayOrderAsc());
     }
     
-    // Get active leadership members (public website)
+    // Get active leadership members (public website).
+    // SECURITY: maps to a website-safe field allowlist — never expose email/phone publicly.
     @GetMapping("/public")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<List<LeadershipMember>> getActiveLeadershipMembers() {
-        return ResponseEntity.ok(leadershipMemberRepository.findByIsActiveTrueOrderByDisplayOrderAsc());
+    public ResponseEntity<List<java.util.Map<String, Object>>> getActiveLeadershipMembers() {
+        List<java.util.Map<String, Object>> safe = leadershipMemberRepository
+                .findByIsActiveTrueOrderByDisplayOrderAsc().stream()
+                .map(m -> {
+                    java.util.Map<String, Object> dto = new java.util.HashMap<>();
+                    dto.put("id", m.getId());
+                    dto.put("name", m.getName());
+                    dto.put("nameVi", m.getNameVi());
+                    dto.put("role", m.getRole());
+                    dto.put("roleVi", m.getRoleVi());
+                    dto.put("bio", m.getBio());
+                    dto.put("bioVi", m.getBioVi());
+                    dto.put("imageUrl", m.getImageUrl());
+                    dto.put("linkedinUrl", m.getLinkedinUrl());
+                    dto.put("facebookUrl", m.getFacebookUrl());
+                    dto.put("displayOrder", m.getDisplayOrder());
+                    return dto;
+                })
+                .toList();
+        return ResponseEntity.ok(safe);
     }
     
     // Get single leadership member

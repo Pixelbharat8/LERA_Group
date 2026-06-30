@@ -51,10 +51,12 @@ public class AdAccount {
     @Builder.Default
     private String timezone = "Asia/Ho_Chi_Minh";
 
-    // Authentication
+    // Authentication — write-only: accepted on input, never serialised back in API responses.
+    @com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
     @Column(name = "access_token", columnDefinition = "TEXT")
     private String accessToken;
 
+    @com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
     @Column(name = "refresh_token", columnDefinition = "TEXT")
     private String refreshToken;
 

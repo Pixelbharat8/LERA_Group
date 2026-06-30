@@ -73,6 +73,16 @@ public class AssignmentSubmissionController {
     @PostMapping
     @PreAuthorize(AcademyRoles.STAFF_OR_STUDENT)
     public ResponseEntity<AssignmentSubmission> createSubmission(@Valid @RequestBody AssignmentSubmission submission) {
+        // SECURITY: a submission is never created already-graded — clear all grade fields so a
+        // student can't self-award a score/status. Grading happens via the STAFF-only grade
+        // and update endpoints. (status is forced to SUBMITTED.)
+        submission.setId(null);
+        submission.setScore(null);
+        submission.setGradedBy(null);
+        submission.setGradedAt(null);
+        submission.setFeedback(null);
+        submission.setStatus("SUBMITTED");
+        if (submission.getSubmittedAt() == null) submission.setSubmittedAt(java.time.LocalDateTime.now());
         return ResponseEntity.ok(assignmentSubmissionRepository.save(submission));
     }
     

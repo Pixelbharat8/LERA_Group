@@ -32,6 +32,20 @@ public class PublicPaymentController {
 
     private final VnPayService vnPayService;
     private final EnrolmentOrderRepository orderRepository;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    /** Authoritative course price (đồng) from the shared DB — never trust a client-supplied amount. */
+    private Long lookupCoursePrice(String code) {
+        if (code == null || code.isBlank()) return null;
+        try {
+            BigDecimal price = jdbcTemplate.queryForObject(
+                "SELECT price FROM course_programs WHERE code = ? AND is_active = true",
+                BigDecimal.class, code);
+            return price == null ? null : price.longValue();
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -52,15 +66,20 @@ public class PublicPaymentController {
     @PreAuthorize("permitAll()")
     public ResponseEntity<Map<String, Object>> createEnrolmentPayment(
             @RequestBody Map<String, Object> body, HttpServletRequest request) {
-        long amount = parseAmount(body.get("amount"));
-        if (amount <= 0) {
-            return ResponseEntity.badRequest().body(Map.of("error", "A positive amount is required"));
+        // SECURITY: the payable amount is derived from the course's authoritative server-side
+        // price — NEVER from the client. Otherwise a user could pay 1,000đ for a 5,000,000đ course
+        // (the server signs whatever amount it's given, so VNPay would accept the tampered figure).
+        String courseCode = str(body.get("courseCode"));
+        Long coursePrice = lookupCoursePrice(courseCode);
+        if (coursePrice == null || coursePrice <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Unknown or unpriced course — cannot start payment"));
         }
+        long amount = coursePrice;
         String txnRef = "LERA" + System.currentTimeMillis() + String.format("%04d", new Random().nextInt(10000));
 
         EnrolmentOrder order = EnrolmentOrder.builder()
                 .txnRef(txnRef)
-                .courseCode(str(body.get("courseCode")))
+                .courseCode(courseCode)
                 .amount(BigDecimal.valueOf(amount))
                 .studentName(str(body.get("studentName")))
                 .parentName(str(body.get("parentName")))

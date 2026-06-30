@@ -12,7 +12,11 @@ import { useLanguage } from "../../context/LanguageContext";
 export default function LoginPage() {
   const { t } = useLanguage();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect");
+  // SECURITY: only honour same-origin relative paths to avoid an open-redirect to a phishing
+  // site after login. Reject anything that isn't a single-slash absolute path (blocks //evil,
+  // https://evil, javascript:, etc.).
+  const rawRedirect = searchParams.get("redirect");
+  const redirectTo = rawRedirect && /^\/(?!\/)/.test(rawRedirect) ? rawRedirect : null;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

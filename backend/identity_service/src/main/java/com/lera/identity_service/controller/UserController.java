@@ -298,6 +298,17 @@ public class UserController {
             response.put("message", "Not authenticated");
             return ResponseEntity.status(401).body(response);
         }
+        // SECURITY: self-service settings must never change a user's own role, status, or
+        // organisational placement — otherwise any logged-in user could set roleName=SUPER_ADMIN.
+        // Strip every privileged field; only name/phone/password updates remain.
+        request.setRoleName(null);
+        request.setStatus(null);
+        request.setCenterId(null);
+        request.setDepartmentId(null);
+        request.setReportsTo(null);
+        request.setOrgLevel(null);
+        request.setJobTitle(null);
+        request.setEmploymentType(null);
         return userService.updateUser(authUser.getUserId(), request)
                 .map(user -> {
                     response.put("success", true);
