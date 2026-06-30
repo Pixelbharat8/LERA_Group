@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import ConsentCheckbox from "../components/ConsentCheckbox";
 import { useLanguage } from "../context/LanguageContext";
 import { publicFetch } from "../../lib/api";
 import { usePageContent } from "@/hooks/usePageContent";
@@ -50,6 +51,7 @@ export default function PlacementPage() {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   const score = useMemo(
     () => QUESTIONS.reduce((s, q) => s + (answers[q.id] ?? 0), 0),
@@ -212,9 +214,10 @@ export default function PlacementPage() {
                 onChange={(e) => setContact({ ...contact, email: e.target.value })}
               />
             </div>
+            <ConsentCheckbox checked={consent} onChange={setConsent} />
             <button
               type="button"
-              disabled={submitting || !contact.name.trim() || !contact.phone.trim()}
+              disabled={submitting || !consent || !contact.name.trim() || !contact.phone.trim()}
               onClick={submitLead}
               className="w-full py-3 rounded-lg bg-emerald-600 text-white font-semibold disabled:opacity-50"
             >

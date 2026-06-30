@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import ConsentCheckbox from "../components/ConsentCheckbox";
 import { useLanguage } from "../context/LanguageContext";
 import { publicFetch } from "../../lib/api";
 import { FUNNEL_NOTES_PREFIX, TRIAL_BOOKING_LEAD_CONTEXT } from "../../lib/english-centre-vertical-scope";
@@ -24,6 +25,7 @@ export default function BookTrialPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +40,7 @@ export default function BookTrialPage() {
           studentName: formData.studentName.trim() || undefined,
           studentAge: formData.age ? parseInt(formData.age, 10) : undefined,
           preferredSchedule: formData.preferredTime || undefined,
-          notes: `${FUNNEL_NOTES_PREFIX} Trial class booking request`,
+          notes: `${FUNNEL_NOTES_PREFIX} Trial class booking request | Consent: parental data-processing consent given ${new Date().toISOString()}`,
           utmSource: TRIAL_BOOKING_LEAD_CONTEXT.utmSource,
           utmMedium: TRIAL_BOOKING_LEAD_CONTEXT.utmMedium,
           utmCampaign: "book_trial_page",
@@ -163,9 +165,10 @@ export default function BookTrialPage() {
                 onChange={(e) => setFormData({ ...formData, preferredTime: e.target.value })}
               />
             </div>
+            <ConsentCheckbox variant="parental" checked={consent} onChange={setConsent} />
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !consent}
               className="w-full py-3 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 disabled:opacity-50"
             >
               {submitting

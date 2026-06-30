@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import ConsentCheckbox from "../components/ConsentCheckbox";
 import { useLanguage } from "../context/LanguageContext";
 import { publicFetch } from "../../lib/api";
 import { usePageContent } from "@/hooks/usePageContent";
@@ -44,6 +45,7 @@ function EnrollInner() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [consent, setConsent] = useState(false);
   const [payEnabled, setPayEnabled] = useState(false);
 
   useEffect(() => {
@@ -73,7 +75,8 @@ function EnrollInner() {
       `[Online enrolment] Course: ${courseLabel}` +
       ` | Student: ${form.studentName.trim() || "—"}${form.studentAge ? `, age ${form.studentAge}` : ""}` +
       ` | Preferred start: ${form.startPref || "—"}` +
-      (form.notes.trim() ? ` | Notes: ${form.notes.trim()}` : "");
+      (form.notes.trim() ? ` | Notes: ${form.notes.trim()}` : "") +
+      ` | Consent: parental data-processing consent given ${new Date().toISOString()}`;
     await publicFetch("/api/public/leads", {
       method: "POST",
       body: JSON.stringify({
@@ -255,13 +258,15 @@ function EnrollInner() {
                   value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
 
-              <button type="submit" disabled={submitting}
+              <ConsentCheckbox variant="parental" checked={consent} onChange={setConsent} />
+
+              <button type="submit" disabled={submitting || !consent}
                 className="w-full py-3 rounded-lg bg-brand-navy text-white font-semibold hover:bg-blue-900 disabled:opacity-50">
                 {submitting ? (EN ? "Submitting…" : "Đang gửi…") : (EN ? "Reserve my place" : "Giữ chỗ cho con")}
               </button>
 
               {payEnabled && selected?.price ? (
-                <button type="button" onClick={payNow} disabled={submitting}
+                <button type="button" onClick={payNow} disabled={submitting || !consent}
                   className="w-full py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-50">
                   {EN ? `Pay ${fmt(selected.price)} now & secure your place →` : `Thanh toán ${fmt(selected.price)} & giữ chỗ ngay →`}
                 </button>

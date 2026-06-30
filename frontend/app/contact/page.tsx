@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import ConsentCheckbox from "../components/ConsentCheckbox";
 import { publicFetch } from "../../lib/api";
 import Image from "next/image";
 import { GALLERY_IMAGES, HERO_IMAGES } from "../../config/images";
@@ -106,6 +107,7 @@ export default function ContactPage() {
   useReveal();
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "", website: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [consent, setConsent] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [contactInfo, setContactInfo] = useState<ContactInfo>(defaultContactInfo);
@@ -282,7 +284,8 @@ export default function ContactPage() {
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all resize-none" 
                     placeholder={t("message")} 
                   />
-                  <button type="submit" disabled={isSubmitting} className="btn-primary w-full disabled:opacity-50">
+                  <ConsentCheckbox checked={consent} onChange={setConsent} />
+                  <button type="submit" disabled={isSubmitting || !consent} className="btn-primary w-full disabled:opacity-50">
                     {isSubmitting ? (language === "EN" ? "Sending..." : "Đang gửi...") : t("sendMessage")}
                   </button>
                 </form>

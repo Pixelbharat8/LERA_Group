@@ -21,6 +21,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastContainer } from '@/components/Toast'
 import FloatingCTA from './components/FloatingCTA'
 import BrandTheme from './components/BrandTheme'
+import CookieConsent from './components/CookieConsent'
 
 // Static SEO defaults (always valid). `generateMetadata` below overlays the
 // Chairman's saved seo_settings on top of these when present, falling back to
@@ -208,6 +209,8 @@ export default function RootLayout({
               {children}
               {/* Single global quick-contact / promo widget (public pages only; hides on dashboard) */}
               <FloatingCTA />
+              {/* Cookie-consent notice (public pages only) */}
+              <CookieConsent />
             </LanguageProvider>
           </WebsiteSettingsProvider>
           <ToastContainer />
