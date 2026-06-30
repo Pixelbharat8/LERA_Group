@@ -293,8 +293,14 @@ export default function InvoicesPage() {
     }
   };
 
-  const sendReminder = async (invoiceId: string) => {
-    alert(`Reminder sent for invoice ${invoiceId}`);
+  const sendReminder = async (_invoiceId: string) => {
+    // Triggers the real payment-reminder run (the same job the daily scheduler runs).
+    try {
+      const res: any = await apiFetch("/api/invoices/reminders/run", { method: "POST" });
+      alert(`Payment reminders sent to overdue/upcoming invoices: ${res?.remindersSent ?? 0}`);
+    } catch (e: any) {
+      alert(e?.message || "Could not run payment reminders.");
+    }
   };
 
   const addItem = () => {

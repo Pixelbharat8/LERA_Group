@@ -89,8 +89,8 @@ export default function FollowupsPage() {
           <h1 className="text-3xl font-bold text-gray-900">📋 Follow-ups</h1>
           <p className="text-gray-500">Track lead follow-up activities</p>
         </div>
-        <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-          ➕ Schedule Follow-up
+        <button disabled title="Coming soon" className="px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed">
+          ➕ Schedule Follow-up (soon)
         </button>
       </div>
 
@@ -158,7 +158,6 @@ export default function FollowupsPage() {
                 </td>
                 <td className="px-6 py-4 text-gray-500 max-w-xs truncate">{followup.notes}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <button className="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
                   <button onClick={() => handleComplete(followup.id)} className="text-green-600 hover:text-green-800">Complete</button>
                 </td>
               </tr>

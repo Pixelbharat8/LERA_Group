@@ -65,8 +65,8 @@ export default function RegistrationsPage() {
           <h1 className="text-3xl font-bold text-gray-900">📝 Registrations</h1>
           <p className="text-gray-500">Manage new student registrations</p>
         </div>
-        <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-          ➕ New Registration
+        <button disabled title="Coming soon" className="px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed">
+          ➕ New Registration (soon)
         </button>
       </div>
 
@@ -138,7 +138,6 @@ export default function RegistrationsPage() {
                   }`}>{reg.payment}</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <button className="text-blue-600 hover:text-blue-800 mr-3">View</button>
                   <button onClick={() => handleConfirm(reg.id)} className="text-green-600 hover:text-green-800">Confirm</button>
                 </td>
               </tr>

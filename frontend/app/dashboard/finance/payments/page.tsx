@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
 
@@ -69,9 +70,9 @@ export default function PaymentsPage() {
           <h1 className="text-2xl font-bold text-gray-800">💳 Payments</h1>
           <p className="text-gray-500">Manage student payments and transactions</p>
         </div>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        <Link href="/dashboard/payments" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
           ➕ Record Payment
-        </button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -177,10 +178,7 @@ export default function PaymentsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button className="p-1 text-blue-600 hover:bg-blue-50 rounded">👁️</button>
-                      <button className="p-1 text-green-600 hover:bg-green-50 rounded">🧾</button>
-                    </div>
+                    <Link href="/dashboard/payments" className="p-1 text-blue-600 hover:bg-blue-50 rounded text-sm" title="Open in Payments">Open →</Link>
                   </td>
                 </tr>
               ))

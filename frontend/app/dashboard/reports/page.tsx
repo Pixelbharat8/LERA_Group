@@ -272,12 +272,6 @@ export default function ReportsPage() {
                         >
                           {t("download")}
                         </button>
-                        <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
-                          👁️
-                        </button>
-                        <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
-                          🗑️
-                        </button>
                       </>
                     )}
                   </div>
@@ -353,7 +347,7 @@ export default function ReportsPage() {
                 >
                   {t("cancel")}
                 </button>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button disabled title="Coming soon" className="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed">
                   {t("generate")}
                 </button>
               </div>

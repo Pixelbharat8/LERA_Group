@@ -186,8 +186,8 @@ export default function ReportsPage() {
           >
             <span>📄</span> Export to PDF
           </button>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-            <span>📧</span> Schedule Email Report
+          <button disabled title="Coming soon" className="px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed flex items-center gap-2">
+            <span>📧</span> Schedule Email Report (coming soon)
           </button>
         </div>
       </div>

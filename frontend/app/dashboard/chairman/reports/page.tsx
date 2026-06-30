@@ -302,18 +302,18 @@ export default function ChairmanReportsPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button className="px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm">
+                      <button disabled title="Coming soon" className="px-3 py-2 text-gray-400 rounded-lg text-sm cursor-not-allowed">
                         Edit
                       </button>
-                      <button className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm">
+                      <button disabled title="Coming soon" className="px-3 py-2 text-gray-400 rounded-lg text-sm cursor-not-allowed">
                         Delete
                       </button>
                     </div>
                   </div>
                 ))}
 
-                <button className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-blue-500 hover:text-blue-600 transition">
-                  ➕ Schedule New Report
+                <button disabled title="Coming soon" className="w-full py-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 cursor-not-allowed">
+                  ➕ Schedule New Report (coming soon)
                 </button>
               </div>
             )}

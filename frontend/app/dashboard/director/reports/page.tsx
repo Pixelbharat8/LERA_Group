@@ -206,9 +206,7 @@ export default function DirectorReportsPage() {
                       <span className="animate-spin">⏳</span> Generating...
                     </button>
                   ) : (
-                    <button className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200">
-                      Retry
-                    </button>
+                    <span className="px-3 py-1 text-sm text-gray-500">Generating…</span>
                   )}
                 </div>
               </div>
@@ -217,9 +215,12 @@ export default function DirectorReportsPage() {
         </div>
       </div>
 
-      {/* Quick Report Generator */}
+      {/* Quick Report Generator — disabled until the report-generation backend ships. */}
       <div className="bg-white rounded-xl shadow p-6">
-        <h3 className="text-lg font-bold mb-4">Quick Report Generator</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <h3 className="text-lg font-bold">Quick Report Generator</h3>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Coming soon</span>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { icon: "📊", label: "Daily Summary", desc: "Today's key metrics" },
@@ -227,7 +228,7 @@ export default function DirectorReportsPage() {
             { icon: "💰", label: "Revenue Report", desc: "Income breakdown" },
             { icon: "👨‍🎓", label: "Student Report", desc: "Enrollment status" },
           ].map((item, i) => (
-            <button key={i} className="p-4 border-2 border-dashed border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
+            <button key={i} disabled title="Coming soon" className="p-4 border-2 border-dashed border-gray-200 rounded-lg text-left opacity-50 cursor-not-allowed">
               <span className="text-2xl">{item.icon}</span>
               <p className="font-medium mt-2">{item.label}</p>
               <p className="text-sm text-gray-500">{item.desc}</p>
