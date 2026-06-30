@@ -63,3 +63,7 @@ docker-data/
 # stray symlink to personal cloud storage — never commit
 /OneDrive - LERA GROUP
 *.tsbuildinfo
+
+# Local QA / agent scratch (not product code)
+frontend/_crawl*.js
+.claude/
