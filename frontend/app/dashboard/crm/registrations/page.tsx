@@ -17,10 +17,59 @@ interface Registration {
 export default function RegistrationsPage() {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
+  // New-registration modal
+  const [showModal, setShowModal] = useState(false);
+  const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [formErr, setFormErr] = useState<string | null>(null);
+  const [form, setForm] = useState({ studentName: "", parentName: "", parentPhone: "", parentEmail: "", courseId: "", amount: "", notes: "" });
 
   useEffect(() => {
     fetchRegistrations();
+    fetchCourses();
   }, []);
+
+  const fetchCourses = async () => {
+    try {
+      const data = await apiFetch("/api/courses").catch(() => []);
+      const arr = Array.isArray(data) ? data : (data as any)?.content || [];
+      setCourses(arr.map((c: any) => ({ id: c.id, name: c.name || c.courseName || "Course" })));
+    } catch {
+      setCourses([]);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!form.studentName.trim()) { setFormErr("Student name is required."); return; }
+    if (!form.parentPhone.trim()) { setFormErr("Parent phone is required."); return; }
+    setSaving(true);
+    setFormErr(null);
+    try {
+      const course = courses.find((c) => c.id === form.courseId);
+      await apiFetch("/api/student-registrations", {
+        method: "POST",
+        body: JSON.stringify({
+          studentName: form.studentName.trim(),
+          parentName: form.parentName.trim() || null,
+          parentPhone: form.parentPhone.trim(),
+          parentEmail: form.parentEmail.trim() || null,
+          courseId: form.courseId || null,
+          courseName: course?.name || null,
+          amount: form.amount ? Number(form.amount) : null,
+          notes: form.notes.trim() || null,
+          status: "PENDING",
+          paymentStatus: "PENDING",
+        }),
+      });
+      setShowModal(false);
+      setForm({ studentName: "", parentName: "", parentPhone: "", parentEmail: "", courseId: "", amount: "", notes: "" });
+      await fetchRegistrations();
+    } catch (e: any) {
+      setFormErr(e?.message || "Could not create the registration.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleConfirm = async (id: string) => {
     if (!confirm("Confirm this registration?")) return;
@@ -65,8 +114,8 @@ export default function RegistrationsPage() {
           <h1 className="text-3xl font-bold text-gray-900">📝 Registrations</h1>
           <p className="text-gray-500">Manage new student registrations</p>
         </div>
-        <button disabled title="Coming soon" className="px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed">
-          ➕ New Registration (soon)
+        <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+          ➕ New Registration
         </button>
       </div>
 
@@ -145,6 +194,61 @@ export default function RegistrationsPage() {
           </tbody>
         </table>
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !saving && setShowModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[88vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">New registration</h2>
+              <button onClick={() => !saving && setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <div className="p-5 space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Student name *</label>
+                <input value={form.studentName} onChange={(e) => setForm({ ...form, studentName: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Parent name</label>
+                  <input value={form.parentName} onChange={(e) => setForm({ ...form, parentName: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Parent phone *</label>
+                  <input value={form.parentPhone} onChange={(e) => setForm({ ...form, parentPhone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Parent email</label>
+                <input type="email" value={form.parentEmail} onChange={(e) => setForm({ ...form, parentEmail: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Course</label>
+                  <select value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="">Select…</option>
+                    {courses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                  <input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              {formErr && <div className="p-2 rounded-lg bg-red-50 text-red-700 text-sm">{formErr}</div>}
+              <div className="flex gap-3 pt-1">
+                <button onClick={handleCreate} disabled={saving} className="flex-1 py-2.5 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-50">
+                  {saving ? "Saving…" : "Create registration"}
+                </button>
+                <button onClick={() => setShowModal(false)} disabled={saving} className="px-5 py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
