@@ -10,6 +10,22 @@ spring:
     username: lera
     password: ${DB_PASSWORD}
 
+  # Email for scheduled reports. host is set (so the JavaMailSender bean exists), but sending
+  # is a no-op until MAIL_ENABLED=true and real SMTP creds are supplied — see ReportEmailService.
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    from: ${MAIL_FROM:noreply@lera.edu.vn}
+    enabled: ${MAIL_ENABLED:false}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_STARTTLS:false}
+
   jpa:
     hibernate:
       ddl-auto: update

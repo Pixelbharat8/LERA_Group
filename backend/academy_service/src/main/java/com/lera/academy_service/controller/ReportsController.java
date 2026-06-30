@@ -2,6 +2,8 @@ package com.lera.academy_service.controller;
 
 import com.lera.academy_service.security.AcademyRoles;
 import com.lera.academy_service.service.CentreSummaryService;
+import com.lera.academy_service.service.ReportGenerationService;
+import com.lera.academy_service.service.ReportSchedulerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +23,9 @@ public class ReportsController {
     private final CentreSummaryService centreSummaryService;
     private final com.lera.academy_service.security.AcademyAuthorizationService authz;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    private final com.lera.academy_service.repository.ScheduledReportRepository scheduledReportRepository;
+    private final ReportGenerationService reportGenerationService;
+    private final ReportSchedulerService reportSchedulerService;
 
     /**
      * Enrolment cohort retention: groups enrolments by start month and reports how many are still
@@ -85,20 +90,76 @@ public class ReportsController {
         return ResponseEntity.ok(report);
     }
 
-    // Generate a new report
+    // Generate a report now from live data — returns a downloadable CSV + summary.
     @PostMapping("/generate")
-    public ResponseEntity<?> generateReport(@Valid @RequestBody Map<String, Object> request) {
-        String reportType = (String) request.getOrDefault("type", "summary");
-        
+    public ResponseEntity<?> generateReport(@RequestBody(required = false) Map<String, Object> request) {
+        Map<String, Object> req = request != null ? request : new HashMap<>();
+        Object typeRaw = req.getOrDefault("type", req.getOrDefault("reportType", "SUMMARY"));
+        String reportType = typeRaw != null ? String.valueOf(typeRaw) : "SUMMARY";
+        UUID centerId = null;
+        Object cid = req.get("centerId");
+        if (cid != null && !String.valueOf(cid).isBlank()) {
+            try { centerId = UUID.fromString(String.valueOf(cid)); } catch (Exception ignored) { }
+        }
+        ReportGenerationService.GeneratedReport report = reportGenerationService.generate(reportType, centerId);
         Map<String, Object> response = new HashMap<>();
-        response.put("id", UUID.randomUUID().toString());
-        response.put("name", "Generated " + reportType + " Report");
+        response.put("filename", report.filename());
+        response.put("csv", report.csv());
+        response.put("summary", report.summary());
         response.put("type", reportType);
-        response.put("status", "generating");
-        response.put("createdAt", LocalDateTime.now().toString());
-        response.put("estimatedCompletionTime", "2 minutes");
-        
+        response.put("status", "ready");
+        response.put("generatedAt", LocalDateTime.now().toString());
         return ResponseEntity.ok(response);
+    }
+
+    // ---- Scheduled reports (email on a schedule) ----
+
+    @GetMapping("/scheduled")
+    public ResponseEntity<List<com.lera.academy_service.entity.ScheduledReport>> listScheduled() {
+        return ResponseEntity.ok(scheduledReportRepository.findAllByOrderByCreatedAtDesc());
+    }
+
+    @PostMapping("/scheduled")
+    public ResponseEntity<com.lera.academy_service.entity.ScheduledReport> createScheduled(
+            @RequestBody com.lera.academy_service.entity.ScheduledReport body) {
+        body.setId(null);
+        if (body.getEnabled() == null) body.setEnabled(true);
+        if (body.getReportType() == null) body.setReportType("SUMMARY");
+        if (body.getFrequency() == null) body.setFrequency("WEEKLY");
+        if (body.getNextRun() == null) {
+            body.setNextRun(ReportSchedulerService.nextRun(body.getFrequency(), LocalDateTime.now()));
+        }
+        body.setCreatedAt(LocalDateTime.now());
+        return ResponseEntity.ok(scheduledReportRepository.save(body));
+    }
+
+    @PutMapping("/scheduled/{id}")
+    public ResponseEntity<com.lera.academy_service.entity.ScheduledReport> updateScheduled(
+            @PathVariable UUID id, @RequestBody com.lera.academy_service.entity.ScheduledReport body) {
+        return scheduledReportRepository.findById(id).map(r -> {
+            if (body.getName() != null) r.setName(body.getName());
+            if (body.getReportType() != null) r.setReportType(body.getReportType());
+            if (body.getFrequency() != null) { r.setFrequency(body.getFrequency()); r.setNextRun(ReportSchedulerService.nextRun(body.getFrequency(), LocalDateTime.now())); }
+            if (body.getRecipients() != null) r.setRecipients(body.getRecipients());
+            if (body.getCenterId() != null) r.setCenterId(body.getCenterId());
+            if (body.getEnabled() != null) r.setEnabled(body.getEnabled());
+            return ResponseEntity.ok(scheduledReportRepository.save(r));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/scheduled/{id}")
+    public ResponseEntity<Void> deleteScheduled(@PathVariable UUID id) {
+        scheduledReportRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Run a scheduled report immediately (generate + email now).
+    @PostMapping("/scheduled/{id}/run-now")
+    public ResponseEntity<?> runScheduledNow(@PathVariable UUID id) {
+        return scheduledReportRepository.findById(id).map(r -> {
+            reportSchedulerService.runOne(r);
+            return ResponseEntity.ok(Map.of("status", "ran", "lastRun", r.getLastRun().toString()));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     // Download report

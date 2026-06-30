@@ -30,6 +30,11 @@ export default function ChairmanReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [scheduledReports, setScheduledReports] = useState<ScheduledReport[]>([]);
   const [generatingReport, setGeneratingReport] = useState<string | null>(null);
+  // Schedule modal
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({ name: "", reportType: "SUMMARY", frequency: "WEEKLY", recipients: "" });
 
   useEffect(() => {
     fetchReports();
@@ -57,7 +62,14 @@ export default function ChairmanReportsPage() {
         setReports([]);
       }
 
-      setScheduledReports([]);
+      const sched = await apiFetch("/api/reports/scheduled").catch(() => []);
+      setScheduledReports((Array.isArray(sched) ? sched : []).map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        frequency: (s.frequency || "weekly").toLowerCase(),
+        nextRun: s.nextRun || "",
+        recipients: s.recipients ? String(s.recipients).split(",").map((x: string) => x.trim()).filter(Boolean) : [],
+      })));
     } catch (error) {
       console.error("Error fetching reports:", error);
     } finally {
@@ -65,13 +77,75 @@ export default function ChairmanReportsPage() {
     }
   };
 
+  const downloadCsvString = (filename: string, csv: string) => {
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const generateReport = async (report: Report) => {
-    // Produce the real artifact (CSV export) rather than a fake "generated" alert.
+    // Generate from live data on the server, then download the returned CSV.
     setGeneratingReport(report.id);
     try {
-      downloadReport(report);
+      const res: any = await apiFetch("/api/reports/generate", {
+        method: "POST",
+        body: JSON.stringify({ type: (report.type || "SUMMARY").toUpperCase() }),
+      });
+      if (res?.csv) downloadCsvString(res.filename || `${report.name}.csv`, res.csv);
+      else alert("Report generated, but no content was returned.");
+    } catch (e) {
+      alert("Could not generate the report.");
     } finally {
       setGeneratingReport(null);
+    }
+  };
+
+  const openSchedule = (s?: ScheduledReport) => {
+    if (s) {
+      setEditId(s.id);
+      setScheduleForm({ name: s.name, reportType: "SUMMARY", frequency: (s.frequency || "weekly").toUpperCase(), recipients: (s.recipients || []).join(", ") });
+    } else {
+      setEditId(null);
+      setScheduleForm({ name: "", reportType: "SUMMARY", frequency: "WEEKLY", recipients: "" });
+    }
+    setShowSchedule(true);
+  };
+
+  const saveSchedule = async () => {
+    if (!scheduleForm.name.trim()) { alert("Give the scheduled report a name."); return; }
+    setSavingSchedule(true);
+    try {
+      const body = JSON.stringify({
+        name: scheduleForm.name.trim(),
+        reportType: scheduleForm.reportType,
+        frequency: scheduleForm.frequency,
+        recipients: scheduleForm.recipients.trim(),
+      });
+      if (editId) {
+        await apiFetch(`/api/reports/scheduled/${editId}`, { method: "PUT", body });
+      } else {
+        await apiFetch("/api/reports/scheduled", { method: "POST", body });
+      }
+      setShowSchedule(false);
+      await fetchReports();
+    } catch (e: any) {
+      alert(e?.message || "Could not save the schedule.");
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  const deleteSchedule = async (id: string) => {
+    if (!confirm("Delete this scheduled report?")) return;
+    try {
+      await apiFetch(`/api/reports/scheduled/${id}`, { method: "DELETE" });
+      await fetchReports();
+    } catch (e: any) {
+      alert(e?.message || "Could not delete.");
     }
   };
 
@@ -302,18 +376,18 @@ export default function ChairmanReportsPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button disabled title="Coming soon" className="px-3 py-2 text-gray-400 rounded-lg text-sm cursor-not-allowed">
+                      <button onClick={() => openSchedule(report)} className="px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm">
                         Edit
                       </button>
-                      <button disabled title="Coming soon" className="px-3 py-2 text-gray-400 rounded-lg text-sm cursor-not-allowed">
+                      <button onClick={() => deleteSchedule(report.id)} className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm">
                         Delete
                       </button>
                     </div>
                   </div>
                 ))}
 
-                <button disabled title="Coming soon" className="w-full py-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 cursor-not-allowed">
-                  ➕ Schedule New Report (coming soon)
+                <button onClick={() => openSchedule()} className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-blue-500 hover:text-blue-600 transition">
+                  ➕ Schedule New Report
                 </button>
               </div>
             )}
@@ -362,6 +436,48 @@ export default function ChairmanReportsPage() {
           </div>
         </div>
       </div>
+
+      {showSchedule && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !savingSchedule && setShowSchedule(false)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">{editId ? "Edit scheduled report" : "Schedule a report"}</h2>
+              <button onClick={() => !savingSchedule && setShowSchedule(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Report name *</label>
+                <input value={scheduleForm.name} onChange={(e) => setScheduleForm({ ...scheduleForm, name: e.target.value })} placeholder="e.g. Weekly centre summary" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <select value={scheduleForm.reportType} onChange={(e) => setScheduleForm({ ...scheduleForm, reportType: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    {["SUMMARY", "STUDENTS", "TEACHERS", "ENROLLMENTS"].map((t) => <option key={t} value={t}>{t.charAt(0) + t.slice(1).toLowerCase()}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+                  <select value={scheduleForm.frequency} onChange={(e) => setScheduleForm({ ...scheduleForm, frequency: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    {["DAILY", "WEEKLY", "MONTHLY"].map((f) => <option key={f} value={f}>{f.charAt(0) + f.slice(1).toLowerCase()}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Recipients (comma-separated emails)</label>
+                <input value={scheduleForm.recipients} onChange={(e) => setScheduleForm({ ...scheduleForm, recipients: e.target.value })} placeholder="ceo@lera.edu.vn, director@lera.edu.vn" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <p className="text-xs text-gray-400 mt-1">Emails send only once SMTP is configured (MAIL_ENABLED); the report still generates & is logged meanwhile.</p>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button onClick={saveSchedule} disabled={savingSchedule} className="flex-1 py-2.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50">
+                  {savingSchedule ? "Saving…" : editId ? "Save changes" : "Schedule report"}
+                </button>
+                <button onClick={() => setShowSchedule(false)} disabled={savingSchedule} className="px-5 py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
