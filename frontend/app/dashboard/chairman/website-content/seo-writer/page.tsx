@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import DOMPurify from "isomorphic-dompurify";
 import { apiFetch } from "@/lib/api";
 
 type Article = {
@@ -150,7 +151,7 @@ export default function SeoWriterPage() {
           <p className="text-gray-500 text-sm mb-4 italic">{pick(article.excerptEn, article.excerptVi)}</p>
           <div
             className="max-w-none border-t border-gray-100 pt-4 leading-relaxed [&_h2]:font-semibold [&_h2]:text-brand-navy [&_h2]:mt-4 [&_h2]:mb-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:ml-5 [&_ul]:mb-3"
-            dangerouslySetInnerHTML={{ __html: pick(article.contentEn, article.contentVi) }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(pick(article.contentEn, article.contentVi)) }}
           />
           <div className="mt-5 flex gap-3">
             <button onClick={saveDraft} disabled={saving} className="btn-primary px-5 py-2 disabled:opacity-50">

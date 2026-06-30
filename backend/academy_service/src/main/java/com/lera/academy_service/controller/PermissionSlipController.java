@@ -357,6 +357,14 @@ public class PermissionSlipController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthenticated.");
         }
 
+        // SECURITY: a parent may only respond for their OWN child. Without this, anyone could
+        // POST another family's studentId and forge/overwrite their consent answer. Staff acting
+        // via parentIdOverride are exempt (they're authorised to record on behalf).
+        boolean actingAsStaff = override != null && CurrentUser.isStaff();
+        if (!actingAsStaff && !studentParentRepo.existsByStudentIdAndParentId(studentId, parentId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not linked to this student.");
+        }
+
         PermissionSlipResponse rec = responseRepo
                 .findBySlipIdAndStudentId(slipId, studentId)
                 .orElseGet(PermissionSlipResponse::new);

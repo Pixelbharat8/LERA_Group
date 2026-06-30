@@ -17,8 +17,9 @@ import java.util.UUID;
 @RequestMapping("/api/salary-config")
 @RequiredArgsConstructor
 // Reads (salary configs are sensitive HR data) limited to admin/finance + center managers.
-// Write methods further restrict to admin/finance via method-level @PreAuthorize below.
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
+// Salary data is finance/exec only. CENTER_MANAGER removed — these endpoints lacked per-centre
+// scoping, letting a manager in one centre read/edit another centre's salary configs (IDOR).
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
 public class TeacherSalaryController {
 
     private final TeacherSalaryConfigService teacherSalaryConfigService;

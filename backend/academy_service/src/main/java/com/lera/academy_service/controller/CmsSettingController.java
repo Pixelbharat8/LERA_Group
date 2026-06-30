@@ -43,13 +43,37 @@ public class CmsSettingController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
+    // SECURITY: the value/{key} and map/{category} reads are public (no auth), so they must only
+    // expose website-display content — never allow dumping an arbitrary admin key/category.
+    private static final java.util.Set<String> PUBLIC_CATEGORIES = java.util.Set.of(
+            "homepage", "hero", "about", "contact", "courses", "gallery", "achievements", "header",
+            "privacy", "terms", "social", "branding", "seo", "footer",
+            "corporate", "portal", "placement", "book_trial", "enroll");
+
+    private static final java.util.Set<String> PUBLIC_KEYS = java.util.Set.of(
+            "footer_settings", "header_menu_items", "seo_settings", "seo_pages", "branding_settings",
+            "branding_logo_url", "branding_logo_alt_text", "branding_logo_alt_text_vi",
+            "branding_primary_color", "branding_secondary_color");
+
+    private static boolean isPublicKey(String key) {
+        if (key == null) return false;
+        if (PUBLIC_KEYS.contains(key)) return true;
+        for (String c : PUBLIC_CATEGORIES) {
+            if (key.startsWith(c + "_")) return true; // page-namespaced content keys
+        }
+        return false;
+    }
+
     @GetMapping("/value/{key}")
     public ResponseEntity<String> getSettingValueByKey(@PathVariable String key) {
+        if (!isPublicKey(key)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).body("");
+        }
         return cmsSettingRepository.findBySettingKey(key)
                 .map(setting -> ResponseEntity.ok(setting.getSettingValue()))
                 .orElse(ResponseEntity.ok("")); // Return empty string instead of 404 for missing values
     }
-    
+
     @GetMapping("/map")
     @PreAuthorize(AcademyRoles.STAFF)
     public Map<String, String> getSettingsAsMap(Pageable pageable) {
@@ -59,14 +83,17 @@ public class CmsSettingController {
                         s -> s.getSettingValue() != null ? s.getSettingValue() : ""
                 ));
     }
-    
+
     @GetMapping("/map/{category}")
-    public Map<String, String> getSettingsAsMapByCategory(@PathVariable String category) {
-        return cmsSettingRepository.findByCategory(category).stream()
+    public ResponseEntity<Map<String, String>> getSettingsAsMapByCategory(@PathVariable String category) {
+        if (!PUBLIC_CATEGORIES.contains(category)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(cmsSettingRepository.findByCategory(category).stream()
                 .collect(Collectors.toMap(
                         CmsSetting::getSettingKey,
                         s -> s.getSettingValue() != null ? s.getSettingValue() : ""
-                ));
+                )));
     }
     
     @PostMapping

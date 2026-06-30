@@ -14,7 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/payroll/deductions")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
 public class DeductionController {
     
     private final DeductionService deductionService;
@@ -37,13 +37,13 @@ public class DeductionController {
     }
     
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
     public ResponseEntity<Deduction> createDeduction(@Valid @RequestBody Deduction deduction) {
         return ResponseEntity.ok(deductionService.create(deduction));
     }
     
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
     public ResponseEntity<Deduction> updateDeduction(@PathVariable Long id, @Valid @RequestBody Deduction deductionDetails) {
         return deductionService.update(id, deductionDetails)
                 .map(ResponseEntity::ok)

@@ -7,15 +7,12 @@ import { useLanguage } from "../../context/LanguageContext";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import { publicFetch } from "../../../lib/api";
+import DOMPurify from "isomorphic-dompurify";
 
-/** Simple HTML sanitizer — strips <script>, onerror=, javascript: etc. */
+/** Allowlist-based HTML sanitizer (DOMPurify) — robust against the bypasses a hand-rolled
+ *  regex misses (unquoted handlers, svg/math, data: URIs, malformed tags). */
 function sanitizeHtml(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, "")
-    .replace(/javascript\s*:/gi, "")
-    .replace(/<iframe\b[^>]*>/gi, "")
-    .replace(/<\/iframe>/gi, "");
+  return DOMPurify.sanitize(html || "");
 }
 
 interface BlogPost {

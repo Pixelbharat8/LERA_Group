@@ -14,7 +14,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/payroll/bonuses")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
+// Finance/exec only — CENTER_MANAGER removed (bonus records have no per-centre scoping → IDOR).
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
 public class BonusController {
     
     private final BonusService bonusService;
@@ -37,13 +38,13 @@ public class BonusController {
     }
     
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
     public ResponseEntity<Bonus> createBonus(@Valid @RequestBody Bonus bonus) {
         return ResponseEntity.ok(bonusService.create(bonus));
     }
     
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
     public ResponseEntity<Bonus> updateBonus(@PathVariable Long id, @Valid @RequestBody Bonus bonusDetails) {
         return bonusService.update(id, bonusDetails)
                 .map(ResponseEntity::ok)

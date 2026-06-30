@@ -27,6 +27,37 @@ public class JwtService {
     @Value("${jwt.refresh-expiration:604800000}")
     private long refreshExpiration; // 7 days
 
+    private final org.springframework.core.env.Environment environment;
+
+    public JwtService(org.springframework.core.env.Environment environment) {
+        this.environment = environment;
+    }
+
+    /**
+     * SECURITY: reject a weak shared signing key at startup. A short/low-entropy JWT_SECRET could
+     * be brute-forced to forge admin tokens accepted by every service. Fail fast in deployed
+     * profiles; warn in dev.
+     */
+    @jakarta.annotation.PostConstruct
+    void validateSecretStrength() {
+        int bytes;
+        try {
+            bytes = Decoders.BASE64.decode(secretKey).length;
+        } catch (Exception e) {
+            bytes = secretKey == null ? 0 : secretKey.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        }
+        boolean deployed = java.util.Arrays.stream(environment.getActiveProfiles())
+                .anyMatch(p -> p.equalsIgnoreCase("prod") || p.equalsIgnoreCase("docker") || p.equalsIgnoreCase("staging"));
+        if (bytes < 32) {
+            if (deployed) {
+                throw new IllegalStateException(
+                        "JWT_SECRET is too weak (" + bytes + " bytes) — require >= 32 bytes (256-bit). "
+                                + "Generate one with: openssl rand -base64 48");
+            }
+            System.err.println("WARN: JWT secret is < 32 bytes — acceptable for dev, MUST be >= 32 bytes in prod.");
+        }
+    }
+
     /** Access-token lifetime in seconds — used for cookie Max-Age. */
     public long getAccessTokenSeconds() { return jwtExpiration / 1000; }
 
