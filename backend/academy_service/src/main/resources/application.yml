@@ -30,3 +30,10 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: false
+
+management:
+  health:
+    # Don't probe SMTP on /actuator/health — mail is an optional, disabled-by-default feature,
+    # so an unreachable SMTP host must not mark the whole service DOWN.
+    mail:
+      enabled: false
