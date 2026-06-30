@@ -208,12 +208,12 @@ cd backend/payment_service && mvn spring-boot:run -DskipTests
 
 | Role | Email | Password |
 |------|-------|----------|
-| Superadmin | admin@lera.edu.vn | admin123 |
-| Chairman | chairman@lera.edu.vn | chairman123 |
-| CEO | ceo@lera.edu.vn | ceo123 |
-| Teacher | teacher@lera.edu.vn | teacher123 |
-| Student | student@lera.edu.vn | student123 |
-| Parent | parent@lera.edu.vn | parent123 |
+| Superadmin | admin@leraacademy.edu.vn | admin123 |
+| Chairman | chairman@leraacademy.edu.vn | chairman123 |
+| CEO | ceo@leraacademy.edu.vn | ceo123 |
+| Teacher | teacher@leraacademy.edu.vn | teacher123 |
+| Student | student@leraacademy.edu.vn | student123 |
+| Parent | parent@leraacademy.edu.vn | parent123 |
 
 ---
 

@@ -44,7 +44,7 @@ const baseMetadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://lera.edu.vn'),
+  metadataBase: new URL('https://leraacademy.edu.vn'),
   alternates: {
     canonical: '/',
     languages: {
@@ -55,7 +55,7 @@ const baseMetadata: Metadata = {
   openGraph: {
     title: 'LERA Academy - Where Excellence is the Standard',
     description: 'Trung tâm Anh ngữ cao cấp với giáo viên bản ngữ. Chương trình Cambridge cho mọi lứa tuổi.',
-    url: 'https://lera.edu.vn',
+    url: 'https://leraacademy.edu.vn',
     siteName: 'LERA Academy',
     images: [
       {
@@ -152,13 +152,13 @@ export default function RootLayout({
   const orgJsonLd = {
     '@context': 'https://schema.org',
     '@type': ['EducationalOrganization', 'LocalBusiness'],
-    '@id': 'https://lera.edu.vn/#organization',
+    '@id': 'https://leraacademy.edu.vn/#organization',
     name: 'LERA Academy',
     alternateName: 'Trung tâm Anh ngữ LERA',
     description: 'Premium English language centre in Hải Phòng, Vietnam — Cambridge-aligned programmes, native and qualified teachers, small classes.',
-    url: 'https://lera.edu.vn',
-    logo: 'https://lera.edu.vn/images/logo/lera-logo.png',
-    image: 'https://lera.edu.vn/images/gallery/lera-hero.jpg',
+    url: 'https://leraacademy.edu.vn',
+    logo: 'https://leraacademy.edu.vn/images/logo/lera-logo.png',
+    image: 'https://leraacademy.edu.vn/images/gallery/lera-hero.jpg',
     telephone: '+84387633141',
     priceRange: '$$',
     address: {

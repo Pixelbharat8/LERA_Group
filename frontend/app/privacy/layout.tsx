@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Privacy Policy | LERA Academy",
     description: "How LERA Academy collects, uses and protects personal data.",
-    url: "https://lera.edu.vn/privacy",
+    url: "https://leraacademy.edu.vn/privacy",
   },
 };
 

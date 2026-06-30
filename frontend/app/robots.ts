@@ -14,6 +14,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/dashboard/', '/api/', '/admin/', '/auth/'],
       },
     ],
-    sitemap: 'https://lera.edu.vn/sitemap.xml',
+    sitemap: 'https://leraacademy.edu.vn/sitemap.xml',
   }
 }

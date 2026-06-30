@@ -374,7 +374,7 @@ For technical support or questions:
 - **Phone:** 0387.633.141
 - **Zalo:** Chat via Zalo
 - **Messenger:** Facebook Messenger
-- **Email:** support@lera.edu.vn
+- **Email:** support@leraacademy.edu.vn
 
 ---
 

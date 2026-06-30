@@ -58,7 +58,7 @@ export default function PrivacyContentPage() {
           { title: "3. Information Sharing", content: "We do not sell your personal information..." },
           { title: "4. Data Security", content: "We implement appropriate security measures..." },
           { title: "5. Your Rights", content: "You have the right to access, correct, or delete..." },
-          { title: "6. Contact Us", content: "For privacy inquiries, contact privacy@lera.edu.vn" }
+          { title: "6. Contact Us", content: "For privacy inquiries, contact privacy@leraacademy.edu.vn" }
         ]);
       }
       if (sectionsVI.length === 0) {
@@ -68,7 +68,7 @@ export default function PrivacyContentPage() {
           { title: "3. Chia Sẻ Thông Tin", content: "Chúng tôi không bán thông tin cá nhân..." },
           { title: "4. Bảo Mật Dữ Liệu", content: "Chúng tôi thực hiện các biện pháp bảo mật..." },
           { title: "5. Quyền Của Bạn", content: "Bạn có quyền truy cập, sửa đổi hoặc xóa..." },
-          { title: "6. Liên Hệ", content: "Để hỏi về quyền riêng tư, liên hệ privacy@lera.edu.vn" }
+          { title: "6. Liên Hệ", content: "Để hỏi về quyền riêng tư, liên hệ privacy@leraacademy.edu.vn" }
         ]);
       }
     } catch (error) {

@@ -465,7 +465,7 @@ export default function ChairmanReportsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Recipients (comma-separated emails)</label>
-                <input value={scheduleForm.recipients} onChange={(e) => setScheduleForm({ ...scheduleForm, recipients: e.target.value })} placeholder="ceo@lera.edu.vn, director@lera.edu.vn" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <input value={scheduleForm.recipients} onChange={(e) => setScheduleForm({ ...scheduleForm, recipients: e.target.value })} placeholder="ceo@leraacademy.edu.vn, director@leraacademy.edu.vn" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                 <p className="text-xs text-gray-400 mt-1">Emails send only once SMTP is configured (MAIL_ENABLED); the report still generates & is logged meanwhile.</p>
               </div>
               <div className="flex gap-3 pt-1">

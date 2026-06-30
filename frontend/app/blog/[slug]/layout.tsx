@@ -33,7 +33,7 @@ export async function generateMetadata({
         openGraph: {
           title: `${title} | LERA Academy`,
           description,
-          url: `https://lera.edu.vn${canonical}`,
+          url: `https://leraacademy.edu.vn${canonical}`,
           type: "article",
           ...(image ? { images: [{ url: image }] } : {}),
         },

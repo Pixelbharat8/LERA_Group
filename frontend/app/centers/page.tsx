@@ -32,7 +32,7 @@ const fallbackCenters: Center[] = [
     address: "95 Hai Dang, Vinhomes Marina, An Bien Ward, Hai Phong",
     addressVi: "95 Hải Đăng, khu đô thị Vinhomes Marina, phường An Biên, Hải Phòng",
     phone: "0387.633.141",
-    email: "info@lera.edu.vn",
+    email: "info@leraacademy.edu.vn",
     imageUrl: CENTER_IMAGES["default"],
     workingHours: "8:00 AM - 9:00 PM",
   },

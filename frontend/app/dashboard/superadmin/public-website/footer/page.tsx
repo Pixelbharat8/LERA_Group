@@ -80,7 +80,7 @@ const initialSettings: FooterSettings = {
     { platform: "tiktok", url: "https://tiktok.com/@leraacademy", enabled: true },
   ],
   contactInfo: {
-    email: "contact@lera.edu.vn",
+    email: "contact@leraacademy.edu.vn",
     phone: "0387.633.141",
     address: {
       en: "95 Hai Dang, Vinhomes Marina, An Bien Ward, Hai Phong",

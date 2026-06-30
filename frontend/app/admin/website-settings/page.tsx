@@ -577,7 +577,7 @@ export default function WebsiteSettingsPage() {
               </div>
               <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-5 border border-green-200">
                 <div className="text-3xl mb-3">📧</div>
-                <p className="font-bold text-gray-800">{editedSettings.contact_email || 'info@lera.edu.vn'}</p>
+                <p className="font-bold text-gray-800">{editedSettings.contact_email || 'info@leraacademy.edu.vn'}</p>
               </div>
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 border border-purple-200">
                 <div className="text-3xl mb-3">📍</div>

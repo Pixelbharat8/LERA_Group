@@ -59,7 +59,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${seo.title} | LERA Academy`,
       description: seo.description,
-      url: `https://lera.edu.vn${canonical}`,
+      url: `https://leraacademy.edu.vn${canonical}`,
     },
   };
 }

@@ -30,7 +30,7 @@ async function safeJson(path: string): Promise<any[]> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://lera.edu.vn'
+  const baseUrl = 'https://leraacademy.edu.vn'
 
   const staticPages = [
     '',

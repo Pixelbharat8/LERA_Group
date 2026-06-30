@@ -52,7 +52,7 @@ const defaultSectionsEN: Section[] = [
   {
     title: "6. Contact Us",
     content: `If you have questions about this Privacy Policy, please contact us at:
-    Email: privacy@lera.edu.vn
+    Email: privacy@leraacademy.edu.vn
     Phone: 0387.633.141
     Address: 95 Hải Đăng, khu đô thị Vinhomes Marina, phường An Biên, Hải Phòng`
   },
@@ -98,7 +98,7 @@ const defaultSectionsVI: Section[] = [
   {
     title: "6. Liên Hệ",
     content: `Nếu bạn có câu hỏi về Chính Sách Bảo Mật này, vui lòng liên hệ:
-    Email: privacy@lera.edu.vn
+    Email: privacy@leraacademy.edu.vn
     Điện thoại: 0387.633.141
     Địa chỉ: 95 Hải Đăng, khu đô thị Vinhomes Marina, phường An Biên, Hải Phòng`
   },

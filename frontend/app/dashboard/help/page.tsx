@@ -108,7 +108,7 @@ export default function HelpPage() {
     contactDesc: isVietnamese 
       ? "Không tìm thấy câu trả lời? Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ." 
       : "Can't find what you're looking for? Our support team is here to help.",
-    email: "support@lera.edu.vn",
+    email: "support@leraacademy.edu.vn",
     phone: getSetting('contact_phone', '0387.633.141'),
     quickLinks: isVietnamese ? "Liên kết nhanh" : "Quick Links",
   };

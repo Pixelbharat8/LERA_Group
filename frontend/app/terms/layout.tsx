@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Terms of Service | LERA Academy",
     description: "The terms governing enrolment, payments and use of LERA Academy's services.",
-    url: "https://lera.edu.vn/terms",
+    url: "https://leraacademy.edu.vn/terms",
   },
 };
 

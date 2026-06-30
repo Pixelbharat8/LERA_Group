@@ -383,7 +383,7 @@ export default function CourseDetailPage() {
     "@type": "Course",
     name: course.name,
     description: course.description,
-    provider: { "@type": "EducationalOrganization", name: "LERA Academy", url: "https://lera.edu.vn" },
+    provider: { "@type": "EducationalOrganization", name: "LERA Academy", url: "https://leraacademy.edu.vn" },
     ...(course.price ? {
       offers: { "@type": "Offer", price: course.price, priceCurrency: "VND", category: "Tuition" },
     } : {}),

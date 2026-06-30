@@ -180,7 +180,7 @@ Metrics (`/actuator/prometheus`) and `traceId` logging are emitted but nothing c
 
 ## 🔴 5. Reset test credentials + clean test data (before real users)
 Created during this session in the **local dev** DB (NOT prod): passwords
-`Chairman@Leraacademy.edu.vn`=`Chairman@2026`, `teacher1@lera.edu.vn`=`Teacher@2026`, plus a
+`Chairman@Leraacademy.edu.vn`=`Chairman@2026`, `teacher1@leraacademy.edu.vn`=`Teacher@2026`, plus a
 few sample rows (1 training session, 1 perf review, 2 job openings, 1 hostel room, 1 product).
 
 - **Prod is unaffected** — it seeds fresh via `LERA_SEED_*` env (set strong values there).

@@ -445,7 +445,7 @@ export default function WebsiteSettingsPage() {
               </div>
               <div className="bg-green-50 rounded-lg p-3 flex items-center gap-3">
                 <span className="text-xl">📧</span>
-                <span className="font-medium">{settings.contact_email || 'info@lera.edu.vn'}</span>
+                <span className="font-medium">{settings.contact_email || 'info@leraacademy.edu.vn'}</span>
               </div>
               <div className="bg-purple-50 rounded-lg p-3 flex items-center gap-3">
                 <span className="text-xl">📍</span>

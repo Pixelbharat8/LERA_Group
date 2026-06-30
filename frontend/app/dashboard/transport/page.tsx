@@ -221,8 +221,8 @@ export default function TransportPage() {
           <a href="tel:0387633141" className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 flex items-center gap-2">
             📞 0387.633.141
           </a>
-          <a href="mailto:transport@lera.edu.vn" className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 flex items-center gap-2">
-            📧 transport@lera.edu.vn
+          <a href="mailto:transport@leraacademy.edu.vn" className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 flex items-center gap-2">
+            📧 transport@leraacademy.edu.vn
           </a>
         </div>
       </div>

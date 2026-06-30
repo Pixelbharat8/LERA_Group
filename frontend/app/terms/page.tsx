@@ -86,7 +86,7 @@ const defaultSectionsEN: Section[] = [
   {
     title: "10. Contact",
     content: `For questions about these Terms of Service, please contact:
-    • Email: legal@lera.edu.vn
+    • Email: legal@leraacademy.edu.vn
     • Phone: 0387.633.141
     • Address: 95 Hải Đăng, khu đô thị Vinhomes Marina, phường An Biên, Hải Phòng`
   }
@@ -166,7 +166,7 @@ const defaultSectionsVI: Section[] = [
   {
     title: "10. Liên Hệ",
     content: `Để biết thêm về Điều khoản Sử dụng, vui lòng liên hệ:
-    • Email: legal@lera.edu.vn
+    • Email: legal@leraacademy.edu.vn
     • Điện thoại: 0387.633.141
     • Địa chỉ: 95 Hải Đăng, khu đô thị Vinhomes Marina, phường An Biên, Hải Phòng`
   }

@@ -39,7 +39,7 @@ const defaultMenuItems: MenuItem[] = [
 
 const defaultSettings: HeaderSettings = {
   phone: "0387.633.141",
-  email: "info@lera.edu.vn",
+  email: "info@leraacademy.edu.vn",
   showPhone: true,
   showEmail: true,
   facebookUrl: "https://facebook.com/leraacademy",
@@ -263,7 +263,7 @@ export default function HeaderMenuPage() {
                   value={settings.email}
                   onChange={(e) => setSettings({ ...settings, email: e.target.value })}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
-                  placeholder="info@lera.edu.vn"
+                  placeholder="info@leraacademy.edu.vn"
                 />
                 <label className="flex items-center gap-2 px-3 bg-gray-50 rounded-lg">
                   <input

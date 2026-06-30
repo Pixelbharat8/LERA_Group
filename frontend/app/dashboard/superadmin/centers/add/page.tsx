@@ -111,7 +111,7 @@ export default function AddCenterPage() {
                 value={formData.email}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border rounded-lg" 
-                placeholder="center@lera.edu.vn" 
+                placeholder="center@leraacademy.edu.vn" 
                 required
               />
             </div>
@@ -185,7 +185,7 @@ export default function AddCenterPage() {
                 value={formData.adminEmail}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border rounded-lg" 
-                placeholder="admin@center.lera.edu.vn" 
+                placeholder="admin@center.leraacademy.edu.vn" 
                 required
               />
             </div>

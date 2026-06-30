@@ -70,7 +70,7 @@ Access: `http://localhost:3000/admin/website-settings`
 | Setting Key | Value |
 |-------------|-------|
 | `contact_phone` | 0387.633.141 |
-| `contact_email` | info@lera.edu.vn |
+| `contact_email` | info@leraacademy.edu.vn |
 | `contact_address` | 95 Hải Đăng, khu đô thị Vinhomes Marina, phường An Biên, Hải Phòng |
 | `contact_address_en` | 95 Hai Dang, Vinhomes Marina, An Bien Ward, Hai Phong |
 | `working_hours` | 8:00 AM - 9:00 PM |

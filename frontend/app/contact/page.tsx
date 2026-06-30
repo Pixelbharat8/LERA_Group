@@ -36,7 +36,7 @@ interface FaqItem {
 const defaultContactInfo: ContactInfo = {
   address: "95 Hải Đăng, khu đô thị Vinhomes Marina, phường An Biên, Hải Phòng",
   phone: "0387.633.141",
-  email: "info@lera.edu.vn",
+  email: "info@leraacademy.edu.vn",
   workingHours: "8:00 AM - 9:00 PM",
   workingDays: "Monday - Sunday",
   facebookUrl: "https://www.facebook.com/profile.php?id=61580971978601",

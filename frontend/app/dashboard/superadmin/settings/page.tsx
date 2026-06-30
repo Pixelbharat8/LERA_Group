@@ -7,8 +7,8 @@ import { apiFetch } from "../../../../lib/api";
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
     siteName: "LERA Academy",
-    siteUrl: "https://lera.edu.vn",
-    supportEmail: "support@lera.edu.vn",
+    siteUrl: "https://leraacademy.edu.vn",
+    supportEmail: "support@leraacademy.edu.vn",
     phone: "0225 123 4567",
     address: "95 Hải Đăng, khu đô thị Vinhomes Marina, phường An Biên, Hải Phòng",
     timezone: "Asia/Ho_Chi_Minh",

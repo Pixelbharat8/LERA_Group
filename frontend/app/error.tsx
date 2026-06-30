@@ -72,8 +72,8 @@ export default function Error({
               📞 0387.633.141
             </a>
             <span className="hidden sm:inline text-gray-600">•</span>
-            <a href="mailto:info@lera.edu.vn" className="text-yellow-400 hover:underline flex items-center justify-center gap-2">
-              ✉️ info@lera.edu.vn
+            <a href="mailto:info@leraacademy.edu.vn" className="text-yellow-400 hover:underline flex items-center justify-center gap-2">
+              ✉️ info@leraacademy.edu.vn
             </a>
           </div>
         </div>

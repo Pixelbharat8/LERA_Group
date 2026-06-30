@@ -17,7 +17,7 @@ export default function ContactContentPage() {
 
   // Contact Info
   const [phone, setPhone] = useState("0387.633.141");
-  const [email, setEmail] = useState("info@lera.edu.vn");
+  const [email, setEmail] = useState("info@leraacademy.edu.vn");
   const [addressEN, setAddressEN] = useState("95 Hai Dang, Vinhomes Marina, An Bien Ward, Hai Phong");
   const [addressVI, setAddressVI] = useState("95 Hải Đăng, khu đô thị Vinhomes Marina, phường An Biên, Hải Phòng");
   const [workingHoursEN, setWorkingHoursEN] = useState("Mon-Fri: 8:00 AM - 9:00 PM, Sat-Sun: 8:00 AM - 5:00 PM");

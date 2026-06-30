@@ -42,7 +42,7 @@ const defaultMenuItems: MenuItem[] = [
 
 const defaultSettings: HeaderSettings = {
   phone: "0387.633.141",
-  email: "info@lera.edu.vn",
+  email: "info@leraacademy.edu.vn",
   showPhone: true,
   showEmail: false,
   facebookUrl: "https://facebook.com/leraacademy",

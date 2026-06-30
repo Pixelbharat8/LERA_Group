@@ -17,7 +17,7 @@ spring:
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
-    from: ${MAIL_FROM:noreply@lera.edu.vn}
+    from: ${MAIL_FROM:noreply@leraacademy.edu.vn}
     enabled: ${MAIL_ENABLED:false}
     properties:
       mail:

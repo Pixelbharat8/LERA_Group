@@ -19,7 +19,7 @@ public class ReportEmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.from:noreply@lera.edu.vn}")
+    @Value("${spring.mail.from:noreply@leraacademy.edu.vn}")
     private String from;
 
     @Value("${spring.mail.enabled:false}")

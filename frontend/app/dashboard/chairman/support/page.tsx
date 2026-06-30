@@ -40,7 +40,7 @@ export default function ChairmanSupportPage() {
   const [contactMessage, setContactMessage] = useState("");
 
   const handleSendMessage = () => {
-    const mailto = `mailto:support@lera.edu.vn?subject=${encodeURIComponent(
+    const mailto = `mailto:support@leraacademy.edu.vn?subject=${encodeURIComponent(
       contactSubject || "Support inquiry"
     )}&body=${encodeURIComponent(contactMessage)}`;
     window.location.href = mailto;
@@ -281,8 +281,8 @@ export default function ChairmanSupportPage() {
                       <div className="text-2xl">📧</div>
                       <div>
                         <div className="font-medium">Email Support</div>
-                        <a href="mailto:support@lera.edu.vn" className="text-blue-600 hover:underline">
-                          support@lera.edu.vn
+                        <a href="mailto:support@leraacademy.edu.vn" className="text-blue-600 hover:underline">
+                          support@leraacademy.edu.vn
                         </a>
                         <p className="text-sm text-gray-500 mt-1">Response within 24 hours</p>
                       </div>
