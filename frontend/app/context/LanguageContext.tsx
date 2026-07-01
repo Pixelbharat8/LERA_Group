@@ -34,7 +34,7 @@ export const translations = {
     
     // Promo Timer
     promoTitle: "GET NOW",
-    promoSubtitle: "1 MONTH FREE TRIAL",
+    promoSubtitle: "1 WEEK FREE TRIAL",
     promoUrgent: "Limited time offer!",
     days: "Days",
     timerHours: "Hours",
@@ -156,7 +156,7 @@ export const translations = {
     ctaDesc: "Register now for a free trial lesson and personalized learning path",
     
     // Floating CTA
-    floatingCta: "1 MONTH FREE TRIAL",
+    floatingCta: "1 WEEK FREE TRIAL",
     scholarshipThisMonth: "Scholarship this month",
     exploreClass: "Explore classes",
     teacherQuality: "Teacher quality",
@@ -786,7 +786,7 @@ export const translations = {
     
     // Promo Timer
     promoTitle: "NHẬN NGAY",
-    promoSubtitle: "1 THÁNG HỌC MIỄN PHÍ",
+    promoSubtitle: "1 TUẦN HỌC THỬ MIỄN PHÍ",
     promoUrgent: "Thời gian ưu đãi có hạn!",
     days: "Ngày",
     timerHours: "Giờ",
@@ -908,7 +908,7 @@ export const translations = {
     ctaDesc: "Đăng ký ngay để nhận buổi học thử miễn phí và lộ trình học tập cá nhân hóa",
     
     // Floating CTA
-    floatingCta: "1 THÁNG HỌC THỬ MIỄN PHÍ",
+    floatingCta: "1 TUẦN HỌC THỬ MIỄN PHÍ",
     scholarshipThisMonth: "Học bổng trong tháng",
     exploreClass: "Khám phá lớp học",
     teacherQuality: "Chất lượng giáo viên",
