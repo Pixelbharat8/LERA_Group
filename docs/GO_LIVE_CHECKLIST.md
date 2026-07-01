@@ -197,8 +197,40 @@ few sample rows (1 training session, 1 perf review, 2 job openings, 1 hostel roo
 
 ---
 
+## 🔐 6. Cybersecurity & Vietnam compliance
+
+**Layer 1 — application security: ✅ DONE in code** (audited + hardened 2026-06/07). For reference:
+JWT secret-strength enforced in prod · role + per-user (Chairman-controlled) authz enforced across
+all 9 services · IDOR fixes (attendance, payment centre-scoping) · self-escalation blocked · rate
+limiting on every service + a dedicated auth brute-force filter (identity) · CSP/HSTS/X-Frame
+security headers on all 9 + frontend · XSS sanitized (DOMPurify) · open-redirect fixed · payment
+amount server-derived + VNPay signature verified · **Swagger/API-docs disabled in docker+prod on
+ALL 9 services** (2026-07-01) · secret tokens `@JsonProperty(WRITE_ONLY)`.
+
+**Layer 2 — infra/network security (artifacts ready, ACTIVATE on deploy):**
+- [ ] **Rotate secrets + scrub git history** (see §2) — old values are in history. Fresh strong
+      values generated; put them in the server secrets store, never git. All prod vars are now in
+      `.env.example` (seed passwords, VNPAY_*, `ACADEMY_SERVICE_URL`, `DOMAIN`, video).
+- [ ] **TLS/HTTPS** live via `docker-compose.https.yml` + nginx (set `DOMAIN`); auto-renew certs.
+- [ ] **WAF** in front (CloudFront WebACL, us-east-1 — see §3) or provider WAF.
+- [ ] **Firewall**: expose only 80/443; DB/MinIO/pgadmin bound to the private network, never public.
+- [ ] **Backups**: automated Postgres backups + restore test.
+- [ ] **Monitoring/alerts** (see §4).
+- [ ] **Penetration test** before real users.
+
+**Layer 3 — Vietnam cyber-law / regulatory (LEGAL/OPERATIONAL — cannot be coded):**
+- [x] **Data privacy (PDPD, Nghị định 13/2023)** — consent, cookie banner, bilingual privacy policy shipped.
+- [ ] **Data localization (Cybersecurity Law, Nghị định 53/2022)** — host prod app **and DB inside
+      Vietnam** (your PA Vietnam VPS satisfies this; a foreign cloud may not). Set `DB_HOST`/hosting accordingly.
+- [ ] **Bộ Công Thương** e-commerce/website registration at **online.gov.vn** (display the đã thông báo logo).
+- [ ] **A05 / MPS** notification if your personal-data volume/processing crosses the threshold — check with counsel.
+- [ ] Appoint a data-protection contact; publish takedown/complaint channel.
+
+---
+
 ## Quick go/no-go gate
 - [x] On `main`, code merged + pushed; backend test suite green (2026-06-29)
+- [x] App-layer cybersecurity hardened; Swagger off on all 9 (2026-07-01)
 - [ ] Confirmed edited migrations were never applied in any env (checksum safety) + secrets rotated + history scrubbed
 - [ ] Infra deployed (us-east-1 WAF); **first-deploy schema bootstrap done (step 3a)** then migrations applied on prod
 - [ ] Logs + metrics + alerts live
