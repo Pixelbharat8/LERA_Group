@@ -68,6 +68,7 @@ export function middleware(request: NextRequest) {
     "/pricing",
     "/enroll",
     "/portal",
+    "/scholarships",
   ];
 
   if (

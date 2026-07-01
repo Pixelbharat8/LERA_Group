@@ -52,6 +52,13 @@ const contentSections: ContentSection[] = [
     href: "/dashboard/chairman/website-content/centers"
   },
   {
+    id: "scholarships",
+    title: "Scholarships Page",
+    description: "The public /scholarships page — where the 'Scholarship this month' CTA lands",
+    icon: "🎓",
+    href: "/dashboard/chairman/website-content/scholarships"
+  },
+  {
     id: "corporate",
     title: "Corporate Page",
     description: "Hero, benefits & inquiry-form copy for the /corporate page",

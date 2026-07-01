@@ -22,7 +22,7 @@ export default function FloatingCTA() {
   const ctaText = language === 'VI' 
     ? (ctaTextVi || t("floatingCta")) 
     : (ctaTextEn || t("floatingCta"));
-  const ctaLink = getSetting('floating_cta_link', '#register');
+  const ctaLink = getSetting('floating_cta_link', '/scholarships');
   const ctaEnabled = getSetting('floating_cta_enabled', 'yes');
 
   useEffect(() => {
