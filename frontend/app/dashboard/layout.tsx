@@ -361,6 +361,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     // Homepage Facebook picker — marketing/manager team curates the public "From Our Facebook" carousel.
     ...(!isSuperAdmin && (checkPermission("socialMedia") || checkPermission("communication")) ? [{ name: `📌 ${language === "VI" ? "Bài Facebook trang chủ" : "Homepage Posts"}`, href: "/dashboard/marketing/featured-posts", icon: "📌", roles: [user?.role?.toUpperCase() || ""] }] : []),
 
+    // AI Video Studio — marketing/manager team auto-generates promo videos (provider set by Chairman).
+    ...(!isSuperAdmin && (checkPermission("socialMedia") || checkPermission("communication")) ? [{ name: `🎬 ${language === "VI" ? "Xưởng Video AI" : "Video Studio"}`, href: "/dashboard/marketing/video-studio", icon: "🎬", roles: [user?.role?.toUpperCase() || ""] }] : []),
+
     // Chairman Only - Full Control Panel (Highest Authority)
     ...(isChairman ? [
       {

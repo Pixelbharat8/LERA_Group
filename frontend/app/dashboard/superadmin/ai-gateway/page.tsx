@@ -35,11 +35,47 @@ export default function AIGatewayPage() {
   const [testOut, setTestOut] = useState<{ message: string; usingRealAI: boolean; tokensUsed: number; model: string } | null>(null);
   const [testing, setTesting] = useState(false);
 
+  // AI Video Generation provider config (mirrors the AI config above).
+  const [videoCfg, setVideoCfg] = useState<{ provider: string; baseUrl: string; model: string; costPerRender: number; configured: boolean; keyHint: string }>(
+    { provider: "", baseUrl: "", model: "", costPerRender: 0, configured: false, keyHint: "" }
+  );
+  const [videoForm, setVideoForm] = useState({ provider: "", baseUrl: "", model: "", apiKey: "", costPerRender: "" });
+  const [videoSaving, setVideoSaving] = useState(false);
+  const [videoMsg, setVideoMsg] = useState("");
+
   useEffect(() => {
     checkServiceStatus();
     fetchStats();
     loadConfig();
+    loadVideoConfig();
   }, []);
+
+  const loadVideoConfig = async () => {
+    try {
+      const c = await apiFetch("/api/ai/video/config").catch(() => null);
+      if (c) {
+        setVideoCfg(c);
+        setVideoForm({ provider: c.provider || "", baseUrl: c.baseUrl || "", model: c.model || "", apiKey: "", costPerRender: c.costPerRender ? String(c.costPerRender) : "" });
+      }
+    } catch {}
+  };
+
+  const saveVideoConfig = async () => {
+    setVideoSaving(true);
+    setVideoMsg("");
+    try {
+      const body: any = { provider: videoForm.provider, baseUrl: videoForm.baseUrl, model: videoForm.model, costPerRender: videoForm.costPerRender };
+      if (videoForm.apiKey.trim()) body.apiKey = videoForm.apiKey.trim();
+      const res = await apiFetch("/api/ai/video/config", { method: "PUT", body: JSON.stringify(body) });
+      setVideoMsg(res?.configured ? "✓ Saved — video provider is configured." : "✓ Saved — add a provider URL + API key to activate.");
+      setVideoForm((f) => ({ ...f, apiKey: "" }));
+      await loadVideoConfig();
+    } catch (e: any) {
+      setVideoMsg("Could not save: " + (e?.message || "error"));
+    } finally {
+      setVideoSaving(false);
+    }
+  };
 
   const loadConfig = async () => {
     try {
@@ -273,6 +309,57 @@ export default function AIGatewayPage() {
             <p className="text-xs text-gray-400 mt-3">
               Get a Claude key at console.anthropic.com → API Keys. The key is held server-side; switching providers/keys takes effect immediately (no redeploy).
             </p>
+          </div>
+
+          {/* AI Video Generation provider */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-semibold text-gray-900">🎬 Video Generation</h2>
+              <span className={`px-2.5 py-1 text-xs rounded-full ${videoCfg.configured ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
+                {videoCfg.configured ? "Configured" : "Not connected"}
+              </span>
+            </div>
+            <p className="text-sm text-gray-500 mb-5">
+              Powers the marketing team&apos;s <b>Video Studio</b>. There&apos;s no free/local renderer — connect an external AI video
+              provider (e.g. an image-to-video / template API). Enter its render endpoint + API key; set a per-render cost so
+              spend is visible. The key is stored securely and never shown again.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Provider name</label>
+                <input type="text" value={videoForm.provider} onChange={(e) => setVideoForm({ ...videoForm, provider: e.target.value })}
+                  placeholder="e.g. shotstack / creatomate / runway" className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Render endpoint URL</label>
+                <input type="text" value={videoForm.baseUrl} onChange={(e) => setVideoForm({ ...videoForm, baseUrl: e.target.value })}
+                  placeholder="https://api.provider.com/v1/render" className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Model / template (optional)</label>
+                <input type="text" value={videoForm.model} onChange={(e) => setVideoForm({ ...videoForm, model: e.target.value })}
+                  placeholder="provider-specific" className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cost per render (USD)</label>
+                <input type="number" step="0.01" min="0" value={videoForm.costPerRender} onChange={(e) => setVideoForm({ ...videoForm, costPerRender: e.target.value })}
+                  placeholder="0.00" className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  API Key {videoCfg.keyHint && <span className="text-gray-400 font-normal">(current: {videoCfg.keyHint})</span>}
+                </label>
+                <input type="password" value={videoForm.apiKey} onChange={(e) => setVideoForm({ ...videoForm, apiKey: e.target.value })}
+                  placeholder={videoCfg.configured ? "•••• (leave blank to keep)" : "provider API key"} autoComplete="off" className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-5">
+              <button onClick={saveVideoConfig} disabled={videoSaving}
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                {videoSaving ? "Saving…" : "Save video provider"}
+              </button>
+              {videoMsg && <span className="text-sm text-gray-600">{videoMsg}</span>}
+            </div>
           </div>
 
           {/* Test the AI */}
