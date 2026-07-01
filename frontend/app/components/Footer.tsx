@@ -79,7 +79,7 @@ export default function Footer() {
   const workingHours = getSetting('working_hours', '8:00 AM - 9:00 PM');
 
   return (
-    <footer className="bg-brand-navy text-white">
+    <footer className="bg-brand-navy text-[color:var(--brand-on-primary)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid md:grid-cols-4 gap-12">
           {/* Brand */}
@@ -94,13 +94,13 @@ export default function Footer() {
                     <span className="text-white font-bold text-xl">L</span>
                   </div>
                   <div className="flex items-baseline">
-                    <span className="text-2xl font-bold text-white">LERA</span>
-                    <span className="text-2xl font-light text-gray-400 ml-1">Academy</span>
+                    <span className="text-2xl font-bold text-[color:var(--brand-on-primary)]">LERA</span>
+                    <span className="text-2xl font-light text-[color:var(--brand-on-primary-soft)] ml-1">Academy</span>
                   </div>
                 </>
               )}
             </div>
-            <p className="text-gray-400 mb-6 max-w-md">
+            <p className="text-[color:var(--brand-on-primary-soft)] mb-6 max-w-md">
               {cfg?.description ? (vi ? cfg.description.vi : cfg.description.en) : t("footerDesc")}
             </p>
             <div className="flex space-x-4">
@@ -173,7 +173,7 @@ export default function Footer() {
                         href={lk.url || "#"}
                         target={lk.openInNewTab ? "_blank" : undefined}
                         rel={lk.openInNewTab ? "noopener noreferrer" : undefined}
-                        className="text-gray-400 hover:text-orange-400 transition-colors"
+                        className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors"
                       >
                         {vi ? lk.label.vi : lk.label.en}
                       </Link>
@@ -188,15 +188,15 @@ export default function Footer() {
               <div>
                 <h4 className="font-display font-bold text-lg mb-6">{t("pages")}</h4>
                 <ul className="space-y-3">
-                  <li><Link href="/" className="text-gray-400 hover:text-orange-400 transition-colors">{t("home")}</Link></li>
-                  <li><Link href="/courses" className="text-gray-400 hover:text-orange-400 transition-colors">{t("courses")}</Link></li>
-                  <li><Link href="/pricing" className="text-gray-400 hover:text-orange-400 transition-colors">{vi ? "Học phí" : "Pricing"}</Link></li>
-                  <li><Link href="/enroll" className="text-gray-400 hover:text-orange-400 transition-colors">{vi ? "Đăng ký nhập học" : "Enrol online"}</Link></li>
-                  <li><Link href="/portal" className="text-gray-400 hover:text-orange-400 transition-colors">{vi ? "Cổng phụ huynh" : "Parent portal"}</Link></li>
-                  <li><Link href="/teachers" className="text-gray-400 hover:text-orange-400 transition-colors">{vi ? "Giáo viên" : "Teachers"}</Link></li>
-                  <li><Link href="/corporate" className="text-gray-400 hover:text-orange-400 transition-colors">{vi ? "Đào tạo doanh nghiệp" : "Corporate training"}</Link></li>
-                  <li><Link href="/about" className="text-gray-400 hover:text-orange-400 transition-colors">{t("about")}</Link></li>
-                  <li><Link href="/contact" className="text-gray-400 hover:text-orange-400 transition-colors">{t("contact")}</Link></li>
+                  <li><Link href="/" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">{t("home")}</Link></li>
+                  <li><Link href="/courses" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">{t("courses")}</Link></li>
+                  <li><Link href="/pricing" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">{vi ? "Học phí" : "Pricing"}</Link></li>
+                  <li><Link href="/enroll" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">{vi ? "Đăng ký nhập học" : "Enrol online"}</Link></li>
+                  <li><Link href="/portal" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">{vi ? "Cổng phụ huynh" : "Parent portal"}</Link></li>
+                  <li><Link href="/teachers" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">{vi ? "Giáo viên" : "Teachers"}</Link></li>
+                  <li><Link href="/corporate" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">{vi ? "Đào tạo doanh nghiệp" : "Corporate training"}</Link></li>
+                  <li><Link href="/about" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">{t("about")}</Link></li>
+                  <li><Link href="/contact" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">{t("contact")}</Link></li>
                 </ul>
               </div>
 
@@ -209,17 +209,17 @@ export default function Footer() {
                     const name = vi && c.nameVi ? c.nameVi : c.name;
                     return (
                       <li key={c.id || slug}>
-                        <Link href={`/courses/${slug}`} className="text-gray-400 hover:text-orange-400 transition-colors">{name}</Link>
+                        <Link href={`/courses/${slug}`} className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">{name}</Link>
                       </li>
                     );
                   }) : (
                     <>
-                      <li><Link href="/courses/lera-starters" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Starters</Link></li>
-                      <li><Link href="/courses/lera-explorers" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Explorers</Link></li>
-                      <li><Link href="/courses/lera-primary" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Primary</Link></li>
-                      <li><Link href="/courses/lera-teens" className="text-gray-400 hover:text-orange-400 transition-colors">LERA Teens</Link></li>
-                      <li><Link href="/courses/ielts-sat" className="text-gray-400 hover:text-orange-400 transition-colors">IELTS & SAT</Link></li>
-                      <li><Link href="/courses/business-english" className="text-gray-400 hover:text-orange-400 transition-colors">Business English</Link></li>
+                      <li><Link href="/courses/lera-starters" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">LERA Starters</Link></li>
+                      <li><Link href="/courses/lera-explorers" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">LERA Explorers</Link></li>
+                      <li><Link href="/courses/lera-primary" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">LERA Primary</Link></li>
+                      <li><Link href="/courses/lera-teens" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">LERA Teens</Link></li>
+                      <li><Link href="/courses/ielts-sat" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">IELTS & SAT</Link></li>
+                      <li><Link href="/courses/business-english" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 transition-colors">Business English</Link></li>
                     </>
                   )}
                 </ul>
@@ -233,29 +233,29 @@ export default function Footer() {
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             <div className="flex items-start space-x-3">
               <span className="text-2xl">📍</span>
-              <p className="text-gray-400">{address}</p>
+              <p className="text-[color:var(--brand-on-primary-soft)]">{address}</p>
             </div>
             <div className="flex items-start space-x-3">
               <span className="text-2xl">📞</span>
               <div>
-                <a href={`tel:${phone.replace(/\./g, '')}`} className="text-gray-400 hover:text-orange-400">{phone}</a>
+                <a href={`tel:${phone.replace(/\./g, '')}`} className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400">{phone}</a>
               </div>
             </div>
             <div className="flex items-start space-x-3">
               <span className="text-2xl">🕐</span>
-              <p className="text-gray-400">{workingHours}</p>
+              <p className="text-[color:var(--brand-on-primary-soft)]">{workingHours}</p>
             </div>
           </div>
         </div>
 
         {/* Copyright */}
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-500 text-sm">
+          <p className="text-[color:var(--brand-on-primary-soft)] text-sm">
             {cfg?.copyright ? (vi ? cfg.copyright.vi : cfg.copyright.en) : <>© 2024 LERA Academy. {t("allRightsReserved")}</>}
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <Link href="/privacy" className="text-gray-500 hover:text-orange-400 text-sm">{t("privacy")}</Link>
-            <Link href="/terms" className="text-gray-500 hover:text-orange-400 text-sm">{t("termsFooter")}</Link>
+            <Link href="/privacy" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 text-sm">{t("privacy")}</Link>
+            <Link href="/terms" className="text-[color:var(--brand-on-primary-soft)] hover:text-orange-400 text-sm">{t("termsFooter")}</Link>
           </div>
         </div>
       </div>

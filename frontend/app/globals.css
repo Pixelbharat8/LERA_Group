@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Auto-contrast text for brand-primary surfaces (footer, etc.). Defaults suit the dark-navy
+     brand fallback; BrandTheme recomputes these from the Chairman's chosen brand colour. */
+  --brand-on-primary: #ffffff;
+  --brand-on-primary-soft: rgba(255, 255, 255, 0.75);
+}
+
 * {
   box-sizing: border-box;
 }
