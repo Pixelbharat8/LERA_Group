@@ -9,6 +9,28 @@
   --brand-on-primary-soft: rgba(255, 255, 255, 0.75);
 }
 
+/* Site-wide auto-contrast: any surface painted with the brand primary (bg-brand-navy) gets
+   text that stays readable for WHATEVER colour the Chairman picks in the branding panel.
+   Descendant selectors (specificity 0,2,0) beat Tailwind's .text-white (0,1,0) without
+   !important, so white/translucent-white text on these bands follows the computed contrast
+   colour (white on a dark brand, dark ink on a light brand). Text on nested white cards uses
+   text-gray-*, which these rules deliberately don't touch. */
+.bg-brand-navy {
+  color: var(--brand-on-primary);
+}
+.bg-brand-navy .text-white {
+  color: var(--brand-on-primary);
+}
+.bg-brand-navy .text-white\/95,
+.bg-brand-navy .text-white\/90,
+.bg-brand-navy .text-white\/80,
+.bg-brand-navy .text-white\/75,
+.bg-brand-navy .text-white\/70,
+.bg-brand-navy .text-white\/60,
+.bg-brand-navy .text-white\/50 {
+  color: var(--brand-on-primary-soft);
+}
+
 * {
   box-sizing: border-box;
 }
