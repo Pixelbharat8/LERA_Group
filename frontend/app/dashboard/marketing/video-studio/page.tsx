@@ -35,12 +35,31 @@ export default function VideoStudioPage() {
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<string>("");
+  const [requests, setRequests] = useState<any[]>([]);
+  const [acting, setActing] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch("/api/ai/video/status")
       .then((s: any) => setStatus(s))
       .catch(() => setStatus({ configured: false, provider: "", costPerRender: 0 }));
+    loadRequests();
   }, []);
+
+  const loadRequests = () =>
+    apiFetch("/api/ai/video/requests?status=PENDING")
+      .then((r: any) => setRequests(Array.isArray(r) ? r : []))
+      .catch(() => setRequests([]));
+
+  const decide = async (id: string, action: "approve" | "reject") => {
+    setActing(id + action);
+    try {
+      await apiFetch(`/api/ai/video/requests/${id}/${action}`, { method: "POST", body: JSON.stringify({}) });
+    } catch (e: any) {
+      setResult("⚠️ " + (e?.message || `${action} failed`));
+    }
+    setActing(null);
+    loadRequests();
+  };
 
   const setImage = (i: number, v: string) => setImages((p) => p.map((x, idx) => (idx === i ? v : x)));
   const addImage = () => setImages((p) => [...p, ""]);
@@ -146,6 +165,39 @@ export default function VideoStudioPage() {
       {result && (
         <pre className="mt-6 p-4 rounded-lg bg-gray-900 text-gray-100 text-xs overflow-auto whitespace-pre-wrap">{result}</pre>
       )}
+
+      {/* Pending requests from students/customers — approving here is what triggers the paid render. */}
+      <div className="mt-10">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">📥 Requests from students & customers</h2>
+        <p className="text-sm text-gray-500 mb-4">They can only request — a render (and its cost) happens only when you approve.</p>
+        {requests.length === 0 ? (
+          <div className="py-8 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">No pending requests.</div>
+        ) : (
+          <div className="space-y-3">
+            {requests.map((r) => (
+              <div key={r.id} className="p-4 border border-gray-200 rounded-xl bg-white">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-900 font-medium break-words">{r.prompt}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {r.requesterLabel || "Someone"} · {r.aspectRatio || "9:16"}
+                      {r.images ? ` · ${r.images.split("\n").filter(Boolean).length} image(s)` : ""}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={() => decide(r.id, "approve")} disabled={acting === r.id + "approve"}
+                      className="px-3 py-1.5 text-xs rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50">
+                      {acting === r.id + "approve" ? "Rendering…" : status?.configured ? "Approve & render" : "Approve"}
+                    </button>
+                    <button onClick={() => decide(r.id, "reject")} disabled={acting === r.id + "reject"}
+                      className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50">Reject</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

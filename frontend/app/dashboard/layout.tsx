@@ -893,6 +893,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         permission: "dashboard" as const,
       },
       {
+        name: `🎬 ${language === "VI" ? "Yêu cầu Video" : "Request a Video"}`,
+        icon: "🎬",
+        href: "/dashboard/student/video-request",
+        roles: ["STUDENT"],
+        permission: "dashboard" as const,
+      },
+      {
         name: `📅 ${t("mySchedule")}`,
         icon: "📅",
         href: "/dashboard/student/schedule",
