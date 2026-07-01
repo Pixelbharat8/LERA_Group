@@ -15,10 +15,16 @@
    !important, so white/translucent-white text on these bands follows the computed contrast
    colour (white on a dark brand, dark ink on a light brand). Text on nested white cards uses
    text-gray-*, which these rules deliberately don't touch. */
-.bg-brand-navy {
+/* Solid brand surfaces + gradient/scrim surfaces (bg-gradient … from-brand-navy). The hero
+   photo scrim is fully brand-derived, so its contrast flips correctly; gradients that mix in
+   hardcoded blues (to-blue-600 / navy600) theme only from the brand end — acceptable, and a
+   no-op for the current dark brand. */
+.bg-brand-navy,
+.from-brand-navy {
   color: var(--brand-on-primary);
 }
-.bg-brand-navy .text-white {
+.bg-brand-navy .text-white,
+.from-brand-navy .text-white {
   color: var(--brand-on-primary);
 }
 .bg-brand-navy .text-white\/95,
@@ -27,7 +33,14 @@
 .bg-brand-navy .text-white\/75,
 .bg-brand-navy .text-white\/70,
 .bg-brand-navy .text-white\/60,
-.bg-brand-navy .text-white\/50 {
+.bg-brand-navy .text-white\/50,
+.from-brand-navy .text-white\/95,
+.from-brand-navy .text-white\/90,
+.from-brand-navy .text-white\/80,
+.from-brand-navy .text-white\/75,
+.from-brand-navy .text-white\/70,
+.from-brand-navy .text-white\/60,
+.from-brand-navy .text-white\/50 {
   color: var(--brand-on-primary-soft);
 }
 
