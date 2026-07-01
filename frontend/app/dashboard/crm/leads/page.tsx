@@ -8,6 +8,8 @@ import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCente
 import { ConvertLeadStudentModal } from "../components/ConvertLeadStudentModal";
 import { formatConvertLeadMessage, type ConvertLeadApiResponse, type PlacementSyncPayload } from "../placementSyncAlert";
 import { ConvertLeadResultBanner } from "../components/ConvertLeadResultBanner";
+import LeadAlertRecipients from "../../../components/crm/LeadAlertRecipients";
+import AssignLeadControl from "../../../components/crm/AssignLeadControl";
 
 interface Lead {
   id: string;
@@ -291,6 +293,9 @@ export default function LeadsPage() {
           </button>
         </div>
       </div>
+
+      {/* Chairman/manager: who gets alerted on a new website enquiry */}
+      <LeadAlertRecipients />
 
       {/* Center Filter (for non-CENTER_MANAGER) */}
       {!shouldFilterByCenter && centers.length > 0 && (
@@ -585,6 +590,9 @@ export default function LeadsPage() {
                   </div>
                 )}
               </div>
+              {selectedLead.id && (
+                <AssignLeadControl leadId={selectedLead.id} />
+              )}
               {selectedLead.notes && (
                 <div>
                   <label className="text-sm text-gray-500">Notes</label>

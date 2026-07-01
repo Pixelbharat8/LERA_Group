@@ -38,6 +38,7 @@ public class PublicLeadController {
     private final LeadRepository leadRepository;
     private final NotificationService notificationService;
     private final com.lera.connect_service.service.LeadScoringService leadScoringService;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
     private final ConcurrentMap<String, Deque<Long>> submissionsByClient = new ConcurrentHashMap<>();
     /** Global backstop window: bounds total public leads even if per-IP keys are evaded. */
     private final Deque<Long> globalSubmissions = new ArrayDeque<>();
@@ -259,14 +260,37 @@ public class PublicLeadController {
         return p + "\n" + base;
     }
 
+    /**
+     * Who to alert on a new public lead. Chairman-configurable via the {@code lead_alert_user_ids}
+     * CMS setting (Dashboard → CRM → New-enquiry alerts) MERGED with the deploy-time
+     * {@code connect.public-lead.notify-user-ids} property. Bad UUIDs are skipped, not thrown.
+     */
     private List<UUID> parseNotifyIds() {
-        if (notifyUserIdsRaw == null || notifyUserIdsRaw.isBlank()) {
-            return List.of();
+        java.util.LinkedHashSet<UUID> ids = new java.util.LinkedHashSet<>();
+        for (String raw : new String[]{ readLeadAlertSetting(), notifyUserIdsRaw }) {
+            if (raw == null || raw.isBlank()) continue;
+            for (String part : raw.split(",")) {
+                String s = part.trim();
+                if (s.isEmpty()) continue;
+                try {
+                    ids.add(UUID.fromString(s));
+                } catch (IllegalArgumentException ignore) {
+                    log.warn("Skipping invalid lead-alert recipient id: {}", s);
+                }
+            }
         }
-        return Arrays.stream(notifyUserIdsRaw.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(UUID::fromString)
-                .collect(Collectors.toList());
+        return new java.util.ArrayList<>(ids);
+    }
+
+    /** Chairman-set recipient list from cms_settings; null/empty if unset or on any DB error. */
+    private String readLeadAlertSetting() {
+        try {
+            List<String> r = jdbc.queryForList(
+                    "SELECT setting_value FROM cms_settings WHERE setting_key = 'lead_alert_user_ids' LIMIT 1",
+                    String.class);
+            return r.isEmpty() ? null : r.get(0);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
