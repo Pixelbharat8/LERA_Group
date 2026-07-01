@@ -86,7 +86,9 @@ public class VideoController {
     @PostMapping("/generate")
     public ResponseEntity<?> generate(@RequestBody Map<String, Object> req,
                                       @AuthenticationPrincipal AuthUser authUser) {
-        // Authentication is guaranteed by the class-level @PreAuthorize("isAuthenticated()").
+        // Direct render (spends provider money) is STAFF-only. Students/customers must go through
+        // /requests → staff approval, so they can never trigger a paid render on their own.
+        AiGatewaySecurity.assertStaff(authUser);
         VideoConfigService.VideoSettings s = videoConfig.resolve();
         if (!s.configured()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
