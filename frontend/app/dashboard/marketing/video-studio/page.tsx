@@ -108,6 +108,26 @@ export default function VideoStudioPage() {
   const addImage = () => setImages((p) => [...p, ""]);
   const removeImage = (i: number) => setImages((p) => p.filter((_, idx) => idx !== i));
 
+  /** Pull a video/result URL out of an arbitrary provider response (any depth). */
+  const findVideoUrl = (obj: any): string => {
+    const KEYS = ["url", "videoUrl", "video_url", "output", "outputUrl", "downloadUrl", "resultUrl", "mp4", "src"];
+    const walk = (o: any): string => {
+      if (!o || typeof o !== "object") return "";
+      for (const k of KEYS) {
+        const v = o[k];
+        if (typeof v === "string" && /^https?:\/\//i.test(v)) return v;
+      }
+      for (const v of Object.values(o)) {
+        if (v && typeof v === "object") {
+          const found = walk(v);
+          if (found) return found;
+        }
+      }
+      return "";
+    };
+    return walk(obj);
+  };
+
   const generate = async () => {
     setGenerating(true);
     setResult("");
@@ -121,6 +141,12 @@ export default function VideoStudioPage() {
         }),
       });
       setResult(JSON.stringify(res, null, 2));
+      // Auto-fill the "Publish to social" URL from the render, so you don't paste it.
+      const url = findVideoUrl(res);
+      if (url) {
+        setPubUrl(url);
+        if (!pubCaption.trim()) setPubCaption(prompt.trim());
+      }
     } catch (e: any) {
       setResult("⚠️ " + (e?.message || "Generation failed"));
     }
