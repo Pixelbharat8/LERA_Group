@@ -510,19 +510,16 @@ export default function AdsCampaignsPage() {
                 <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
                   <div className="text-4xl font-bold text-blue-600">{totalLeads}</div>
                   <div className="text-gray-600 mt-1">Total Leads Generated</div>
-                  <div className="text-green-600 text-sm mt-2">↑ 23% vs last month</div>
                 </div>
                 <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
                   <div className="text-4xl font-bold text-green-600">{totalConversions}</div>
                   <div className="text-gray-600 mt-1">Conversions</div>
-                  <div className="text-green-600 text-sm mt-2">↑ 18% vs last month</div>
                 </div>
                 <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
                   <div className="text-4xl font-bold text-purple-600">
                     {formatCurrency(totalLeads > 0 ? totalSpent / totalLeads : 0)}
                   </div>
                   <div className="text-gray-600 mt-1">Cost per Lead</div>
-                  <div className="text-red-600 text-sm mt-2">↓ 8% vs last month</div>
                 </div>
               </div>
             </div>

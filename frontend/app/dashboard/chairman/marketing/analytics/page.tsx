@@ -325,28 +325,8 @@ export default function SocialAnalyticsPage() {
       </div>
 
       {/* Insights */}
-      <div className="max-w-7xl mx-auto px-6 pb-8">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white">
-          <h2 className="font-bold text-lg mb-4">💡 AI Insights</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/20 rounded-lg p-4">
-              <div className="font-medium mb-2">Best Performing Platform</div>
-              <div className="text-2xl">🎵 TikTok</div>
-              <div className="text-sm opacity-80 mt-1">12.4% engagement rate, +28.5% growth</div>
-            </div>
-            <div className="bg-white/20 rounded-lg p-4">
-              <div className="font-medium mb-2">Best Posting Time</div>
-              <div className="text-2xl">🕕 6:00 PM</div>
-              <div className="text-sm opacity-80 mt-1">Posts at this time get 34% more engagement</div>
-            </div>
-            <div className="bg-white/20 rounded-lg p-4">
-              <div className="font-medium mb-2">Recommended Action</div>
-              <div className="text-2xl">📸 More Reels</div>
-              <div className="text-sm opacity-80 mt-1">Video content gets 2.5x more reach than images</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* "AI Insights" removed — it was hardcoded/fabricated (fixed placeholder stats, not derived
+          from any data). Real per-platform insights need live provider analytics-sync first. */}
     </div>
   );
 }
