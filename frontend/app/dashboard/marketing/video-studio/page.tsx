@@ -37,6 +37,49 @@ export default function VideoStudioPage() {
   const [result, setResult] = useState<string>("");
   const [requests, setRequests] = useState<any[]>([]);
   const [acting, setActing] = useState<string | null>(null);
+  // Publish-to-social
+  const PLATFORMS = ["facebook", "instagram", "tiktok", "youtube", "zalo"];
+  const [pubUrl, setPubUrl] = useState("");
+  const [pubCaption, setPubCaption] = useState("");
+  const [pubPlatforms, setPubPlatforms] = useState<Set<string>>(new Set(["facebook", "instagram", "tiktok", "youtube"]));
+  const [publishing, setPublishing] = useState(false);
+  const [pubResult, setPubResult] = useState("");
+
+  const togglePlatform = (p: string) =>
+    setPubPlatforms((prev) => {
+      const next = new Set(prev);
+      next.has(p) ? next.delete(p) : next.add(p);
+      return next;
+    });
+
+  const publishToSocial = async () => {
+    if (!pubUrl.trim() || pubPlatforms.size === 0) return;
+    setPublishing(true);
+    setPubResult("");
+    try {
+      // 1) create the post (video), 2) publish it — fans out to each connected platform.
+      const created: any = await apiFetch("/api/social-media-posts", {
+        method: "POST",
+        body: JSON.stringify({
+          title: pubCaption.trim().slice(0, 80) || "LERA video",
+          content: pubCaption.trim(),
+          platforms: Array.from(pubPlatforms),
+          mediaUrls: [pubUrl.trim()],
+          contentType: "video",
+          status: "draft",
+        }),
+      });
+      const id = created?.id;
+      if (!id) throw new Error("Could not create the post");
+      const res: any = await apiFetch(`/api/social-media-posts/${id}/publish`, { method: "PUT" });
+      const perPlatform = res?.publishResults || res?.results || res;
+      setPubResult("✅ Published. " + (perPlatform ? JSON.stringify(perPlatform) : "Check the Content Calendar for status."));
+    } catch (e: any) {
+      // Surfaces e.g. "tiktok: skipped: not connected" — connect the platform, then retry.
+      setPubResult("⚠️ " + (e?.message || "Publish failed — connect the platform first."));
+    }
+    setPublishing(false);
+  };
 
   useEffect(() => {
     apiFetch("/api/ai/video/status")
@@ -165,6 +208,54 @@ export default function VideoStudioPage() {
       {result && (
         <pre className="mt-6 p-4 rounded-lg bg-gray-900 text-gray-100 text-xs overflow-auto whitespace-pre-wrap">{result}</pre>
       )}
+
+      {/* Publish a video straight to all connected social platforms */}
+      <div className="mt-10 rounded-xl border border-gray-200 p-5">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">📢 Publish to social</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Post a video to your platforms in one go. Paste the video URL (from a render above or anywhere),
+          pick platforms, and publish — it fans out to each <b>connected</b> network (others are skipped).
+        </p>
+        <div className="space-y-3">
+          <input
+            value={pubUrl}
+            onChange={(e) => setPubUrl(e.target.value)}
+            placeholder="Video URL (https://…)"
+            className="w-full border rounded-lg px-3 py-2 text-sm"
+          />
+          <textarea
+            value={pubCaption}
+            onChange={(e) => setPubCaption(e.target.value)}
+            rows={2}
+            placeholder="Caption (shown on the post)"
+            className="w-full border rounded-lg px-3 py-2 text-sm"
+          />
+          <div className="flex flex-wrap gap-2">
+            {PLATFORMS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => togglePlatform(p)}
+                className={`px-3 py-1.5 text-xs rounded-full border capitalize ${
+                  pubPlatforms.has(p) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={publishToSocial}
+            disabled={publishing || !pubUrl.trim() || pubPlatforms.size === 0}
+            className="px-5 py-2.5 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50"
+          >
+            {publishing ? "Publishing…" : `Publish to ${pubPlatforms.size} platform${pubPlatforms.size === 1 ? "" : "s"}`}
+          </button>
+          {pubResult && (
+            <pre className="mt-2 p-3 rounded-lg bg-gray-900 text-gray-100 text-xs overflow-auto whitespace-pre-wrap">{pubResult}</pre>
+          )}
+        </div>
+      </div>
 
       {/* Pending requests from students/customers — approving here is what triggers the paid render. */}
       <div className="mt-10">
