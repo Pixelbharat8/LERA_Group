@@ -24,6 +24,24 @@ public class CampaignService {
     private final AdCampaignRepository adCampaignRepository;
     private final SocialAnalyticsRepository analyticsRepository;
     private final LeadRepository leadRepository;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    /**
+     * Average revenue per converted lead (VND) used for ROI. Chairman-configurable via the
+     * {@code marketing_revenue_per_conversion} setting; defaults to a realistic enrolment value
+     * rather than the old hardcoded 1000 (which massively undervalued conversions).
+     */
+    private BigDecimal revenuePerConversion() {
+        try {
+            java.util.List<String> r = jdbc.queryForList(
+                    "SELECT setting_value FROM system_settings WHERE setting_key = 'marketing_revenue_per_conversion' LIMIT 1",
+                    String.class);
+            if (!r.isEmpty() && r.get(0) != null && !r.get(0).isBlank()) {
+                return new BigDecimal(r.get(0).trim());
+            }
+        } catch (Exception ignore) { /* fall through to default */ }
+        return new BigDecimal("3000000"); // ~a few months' tuition; set the real figure in settings
+    }
     
     // ===================== MARKETING CAMPAIGN CRUD =====================
     
@@ -176,12 +194,15 @@ public class CampaignService {
         performance.put("conversionRate", campaignLeads.size() > 0 ? 
                 (double) convertedLeads / campaignLeads.size() * 100 : 0);
         
-        // Calculate ROI if budget is set
+        // Calculate ROI if budget is set. Revenue = conversions × configurable avg enrolment value.
         if (campaign.getBudget() != null && campaign.getBudget().compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal estimatedRevenue = BigDecimal.valueOf(convertedLeads * 1000);
+            BigDecimal revPerConv = revenuePerConversion();
+            BigDecimal estimatedRevenue = revPerConv.multiply(BigDecimal.valueOf(convertedLeads));
             BigDecimal roi = estimatedRevenue.subtract(campaign.getBudget())
                     .divide(campaign.getBudget(), 2, java.math.RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100));
+            performance.put("estimatedRevenue", estimatedRevenue);
+            performance.put("revenuePerConversion", revPerConv);
             performance.put("estimatedROI", roi);
         }
         
