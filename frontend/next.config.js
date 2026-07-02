@@ -371,7 +371,7 @@ const withRewrites = {
       { source: "/api/deals", destination: `${connectUrl}/api/deals` },
       { source: "/api/deals/:path*", destination: `${connectUrl}/api/deals/:path*` },
       { source: "/api/marketing-campaigns", destination: `${socialMediaUrl}/api/marketing-campaigns` },
-      { source: "/api/marketing-campaigns/:path*", destination: `${connectUrl}/api/marketing-campaigns/:path*` },
+      { source: "/api/marketing-campaigns/:path*", destination: `${socialMediaUrl}/api/marketing-campaigns/:path*` },
       { source: "/api/marketing-config", destination: `${connectUrl}/api/marketing-config` },
       { source: "/api/marketing-config/:path*", destination: `${connectUrl}/api/marketing-config/:path*` },
       { source: "/api/social/posts", destination: `${socialMediaUrl}/api/social-media/posts` },

@@ -53,11 +53,12 @@ export default function LeadAlertRecipients() {
     setSaving(true);
     setMsg("");
     try {
+      // POST /api/cms-settings/batch expects a BARE array (not a {settings:[…]} wrapper).
       await apiFetch("/api/cms-settings/batch", {
         method: "POST",
-        body: JSON.stringify({
-          settings: [{ settingKey: "lead_alert_user_ids", settingValue: Array.from(selected).join(","), category: "crm" }],
-        }),
+        body: JSON.stringify([
+          { settingKey: "lead_alert_user_ids", settingValue: Array.from(selected).join(","), category: "crm" },
+        ]),
       });
       setMsg("✅ Saved — these people are alerted on every new enquiry.");
     } catch (e: any) {

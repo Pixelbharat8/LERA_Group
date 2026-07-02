@@ -104,14 +104,13 @@ export default function FeaturedPostsPage() {
           .filter((p) => isSafe(p.thumb))
           .map((p) => ({ ...p, thumb: p.thumb.trim(), link: isSafe(p.link) ? p.link.trim() : "" })),
       );
+      // POST /api/cms-settings/batch expects a BARE array (PUT takes the {settings:[…]} wrapper).
       await apiFetch("/api/cms-settings/batch", {
         method: "POST",
-        body: JSON.stringify({
-          settings: [
-            { settingKey: "facebook_featured_posts_en", settingValue: json, category: "homepage" },
-            { settingKey: "facebook_featured_posts_vi", settingValue: json, category: "homepage" },
-          ],
-        }),
+        body: JSON.stringify([
+          { settingKey: "facebook_featured_posts_en", settingValue: json, category: "homepage" },
+          { settingKey: "facebook_featured_posts_vi", settingValue: json, category: "homepage" },
+        ]),
       });
       setMessage("✅ Saved — the homepage carousel is updated.");
     } catch (e) {
