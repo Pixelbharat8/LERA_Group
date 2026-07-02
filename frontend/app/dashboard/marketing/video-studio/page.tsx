@@ -44,6 +44,7 @@ export default function VideoStudioPage() {
   const [pubPlatforms, setPubPlatforms] = useState<Set<string>>(new Set(["facebook", "instagram", "tiktok", "youtube"]));
   const [publishing, setPublishing] = useState(false);
   const [pubResult, setPubResult] = useState("");
+  const [connected, setConnected] = useState<Set<string>>(new Set());
 
   const togglePlatform = (p: string) =>
     setPubPlatforms((prev) => {
@@ -86,6 +87,13 @@ export default function VideoStudioPage() {
       .then((s: any) => setStatus(s))
       .catch(() => setStatus({ configured: false, provider: "", costPerRender: 0 }));
     loadRequests();
+    // Which platforms are actually connected (so the chips show what will really post).
+    apiFetch("/api/social-platforms")
+      .then((list: any) => setConnected(new Set(
+        (Array.isArray(list) ? list : [])
+          .filter((p: any) => p.isConnected)
+          .map((p: any) => String(p.platformName || "").toLowerCase()))))
+      .catch(() => {});
   }, []);
 
   const loadRequests = () =>
@@ -257,19 +265,25 @@ export default function VideoStudioPage() {
             className="w-full border rounded-lg px-3 py-2 text-sm"
           />
           <div className="flex flex-wrap gap-2">
-            {PLATFORMS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => togglePlatform(p)}
-                className={`px-3 py-1.5 text-xs rounded-full border capitalize ${
-                  pubPlatforms.has(p) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
+            {PLATFORMS.map((p) => {
+              const isConn = connected.has(p);
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => togglePlatform(p)}
+                  title={isConn ? "Connected — will post" : "Not connected — will be skipped (connect it in Social Media)"}
+                  className={`px-3 py-1.5 text-xs rounded-full border capitalize inline-flex items-center gap-1.5 ${
+                    pubPlatforms.has(p) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${isConn ? "bg-green-400" : "bg-gray-300"}`} />
+                  {p}
+                </button>
+              );
+            })}
           </div>
+          <p className="text-xs text-gray-400">🟢 = connected (will post) · ⚪ = not connected (skipped). Connect platforms in Marketing → Social Media.</p>
           <button
             onClick={publishToSocial}
             disabled={publishing || !pubUrl.trim() || pubPlatforms.size === 0}
