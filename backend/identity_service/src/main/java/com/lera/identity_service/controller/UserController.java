@@ -132,6 +132,15 @@ public class UserController {
             response.put("message", "Only organization-wide roles may move users between centers");
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
         }
+        // SECURITY: only org-wide roles may change a user's ROLE. Otherwise a centre-scoped manager
+        // could promote a same-centre user (even a throwaway they created) to SUPER_ADMIN and then
+        // log in as that account — full privilege escalation. Centre managers may edit profile/status,
+        // not roles.
+        if (request.getRoleName() != null && !SecurityUtils.isOrgWide(actor)) {
+            response.put("success", false);
+            response.put("message", "Only organization-wide roles may change a user's role");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        }
         return userService.updateUser(id, request)
                 .map(user -> {
                     response.put("success", true);

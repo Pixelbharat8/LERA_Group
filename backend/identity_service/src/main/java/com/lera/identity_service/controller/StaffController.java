@@ -2,9 +2,14 @@ package com.lera.identity_service.controller;
 
 import com.lera.identity_service.entity.User;
 import com.lera.identity_service.repository.UserRepository;
+import com.lera.identity_service.security.AccessGuard;
+import com.lera.identity_service.security.AuthUser;
+import com.lera.identity_service.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -23,7 +28,8 @@ import org.springframework.data.domain.Page;
 public class StaffController {
     
     private final UserRepository userRepository;
-    
+    private final AccessGuard accessGuard;
+
     @GetMapping
     public ResponseEntity<List<User>> getAllStaff(Pageable pageable) {
         List<User> staff = userRepository.findByCenterIdAndRoleName(null, "STAFF");
@@ -88,7 +94,15 @@ public class StaffController {
     // Creating/editing/deleting staff (= user records) is admin-only.
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @PostMapping
-    public ResponseEntity<User> createStaff(@Valid @RequestBody User staff) {
+    public ResponseEntity<User> createStaff(@Valid @RequestBody User staff,
+            @AuthenticationPrincipal AuthUser actor) {
+        // Centre-scoped creators may only create staff in a centre they control.
+        accessGuard.assertMayMutateUserByCenter(staff.getCenterId());
+        // SECURITY: block role injection — only org-wide roles may set a role on a created user,
+        // otherwise a centre manager could POST roleId=<SUPER_ADMIN> and mint a god account.
+        if (!SecurityUtils.isOrgWide(actor) && (staff.getRoleId() != null || staff.getRole() != null)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         staff.setStatus("ACTIVE");
         return ResponseEntity.ok(userRepository.save(staff));
     }
@@ -98,6 +112,8 @@ public class StaffController {
     public ResponseEntity<User> updateStaff(@PathVariable UUID id, @Valid @RequestBody User staffDetails) {
         return userRepository.findById(id)
             .map(staff -> {
+                // Centre-scoped managers may only edit staff in a centre they control.
+                accessGuard.assertMayMutateUserByCenter(staff.getCenterId());
                 if (staffDetails.getFullname() != null) staff.setFullname(staffDetails.getFullname());
                 if (staffDetails.getPhone() != null) staff.setPhone(staffDetails.getPhone());
                 if (staffDetails.getJobTitle() != null) staff.setJobTitle(staffDetails.getJobTitle());
@@ -113,10 +129,14 @@ public class StaffController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteStaff(@PathVariable UUID id) {
-        if (userRepository.existsById(id)) {
-            userRepository.deleteById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+        return userRepository.findById(id)
+            .map(staff -> {
+                // Centre-scoped managers may only delete staff in a centre they control — this
+                // blocks a centre manager from deleting users in other centres.
+                accessGuard.assertMayMutateUserByCenter(staff.getCenterId());
+                userRepository.deleteById(id);
+                return ResponseEntity.noContent().<Void>build();
+            })
+            .orElse(ResponseEntity.notFound().build());
     }
 }
