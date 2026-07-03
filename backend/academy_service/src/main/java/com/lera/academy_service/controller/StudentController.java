@@ -120,23 +120,35 @@ public class StudentController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER')")
     public ResponseEntity<Student> updateStudent(@PathVariable UUID id, @Valid @RequestBody Student studentDetails) {
+        Student existing = studentService.findById(id).orElse(null);
+        if (existing == null) return ResponseEntity.notFound().build();
+        // Centre-scoped managers may only touch students in their centre, and may not move a
+        // student out to a centre they don't control.
+        authz.assertCanAccessCenter(existing.getCenterId());
+        if (studentDetails.getCenterId() != null) authz.assertCanAccessCenter(studentDetails.getCenterId());
         return studentService.update(id, studentDetails)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-    
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER')")
     public ResponseEntity<Void> deleteStudent(@PathVariable UUID id) {
+        Student existing = studentService.findById(id).orElse(null);
+        if (existing == null) return ResponseEntity.notFound().build();
+        authz.assertCanAccessCenter(existing.getCenterId());
         if (studentService.delete(id)) {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
     }
-    
+
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER')")
     public ResponseEntity<Student> updateStudentStatus(@PathVariable UUID id, @RequestParam String status) {
+        Student existing = studentService.findById(id).orElse(null);
+        if (existing == null) return ResponseEntity.notFound().build();
+        authz.assertCanAccessCenter(existing.getCenterId());
         return studentService.updateStatus(id, status)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

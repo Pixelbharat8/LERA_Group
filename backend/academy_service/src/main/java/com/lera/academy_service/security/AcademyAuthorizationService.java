@@ -144,15 +144,32 @@ public class AcademyAuthorizationService {
      * View roster / enrolments for a class: staff, class teacher, or a parent/student
      * linked to any enrolment in that class.
      */
+    /** TEACHER-family roles are limited to classes they teach; manager/admin staff to their centre. */
+    private boolean isTeacherRole() {
+        String r = CurrentUser.role();
+        if (r == null) return false;
+        r = r.toUpperCase();
+        return r.equals("TEACHER") || r.equals("TEACHING_ASSISTANT") || r.equals("TA");
+    }
+
+    /** Throw unless the caller is org-wide, or centre-scoped staff whose centre matches. */
+    public void assertCanAccessCenter(UUID entityCenterId) {
+        if (!CurrentUser.isStaff() || !staffCanAccessCenter(entityCenterId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Outside your centre");
+        }
+    }
+
     public void assertCanViewClassRoster(UUID classId) {
         if (classId == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
-        if (CurrentUser.isStaff()) {
-            return;
-        }
         ClassEntity clazz = classRepository.findById(classId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        // Manager/admin staff: org-wide, or centre-scoped to THIS class's centre (no longer a
+        // blanket "any staff" no-op). Teachers fall through to the class-ownership check below.
+        if (CurrentUser.isStaff() && !isTeacherRole() && staffCanAccessCenter(clazz.getCenterId())) {
+            return;
+        }
         UUID uid = CurrentUser.id().orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
         if (isTeacherAssignedToClass(clazz, uid)) {
             return;

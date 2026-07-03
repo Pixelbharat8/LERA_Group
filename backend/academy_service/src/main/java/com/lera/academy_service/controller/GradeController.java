@@ -104,6 +104,8 @@ public class GradeController {
         authz.assertStaff();
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exam not found"));
+        // A TEACHER may only view/grade classes they teach; managers, only their centre.
+        authz.assertCanViewClassRoster(exam.getClassId());
         UUID classId = exam.getClassId();
         Set<UUID> studentIds = (classId == null ? List.<Enrollment>of() : enrollmentRepository.findByClassId(classId))
                 .stream().filter(e -> !"WITHDRAWN".equalsIgnoreCase(e.getStatus()) && !"DROPPED".equalsIgnoreCase(e.getStatus()))
@@ -147,6 +149,8 @@ public class GradeController {
         catch (IllegalArgumentException e) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid examId"); }
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exam not found"));
+        // A TEACHER may only grade a class they teach; managers, only their centre.
+        authz.assertCanViewClassRoster(exam.getClassId());
         BigDecimal maxScore = exam.getMaxScore() != null && exam.getMaxScore().signum() > 0 ? exam.getMaxScore() : new BigDecimal("100");
         BigDecimal passing = exam.getPassingScore();
         List<Map<String, Object>> grades = (List<Map<String, Object>>) body.getOrDefault("grades", List.of());

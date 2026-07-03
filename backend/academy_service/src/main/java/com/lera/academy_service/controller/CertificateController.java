@@ -79,11 +79,13 @@ public class CertificateController {
                 .orElse(ResponseEntity.ok(Map.of("valid", false, "message", "Certificate not found")));
     }
     
+    @org.springframework.security.access.prepost.PreAuthorize(AcademyRoles.MANAGERS)
     @PostMapping
     public ResponseEntity<Certificate> createCertificate(@Valid @RequestBody Certificate certificate) {
         return ResponseEntity.ok(certificateRepository.save(certificate));
     }
     
+    @org.springframework.security.access.prepost.PreAuthorize(AcademyRoles.MANAGERS)
     @PutMapping("/{id}")
     public ResponseEntity<Certificate> updateCertificate(@PathVariable UUID id, @Valid @RequestBody Certificate certDetails) {
         return certificateRepository.findById(id).map(cert -> {
@@ -97,6 +99,7 @@ public class CertificateController {
         }).orElse(ResponseEntity.notFound().build());
     }
     
+    @org.springframework.security.access.prepost.PreAuthorize(AcademyRoles.MANAGERS)
     @PatchMapping("/{id}/revoke")
     public ResponseEntity<Certificate> revokeCertificate(@PathVariable UUID id, @Valid @RequestBody Map<String, String> body) {
         return certificateRepository.findById(id).map(cert -> {
@@ -107,6 +110,7 @@ public class CertificateController {
         }).orElse(ResponseEntity.notFound().build());
     }
     
+    @org.springframework.security.access.prepost.PreAuthorize(AcademyRoles.MANAGERS)
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCertificate(@PathVariable UUID id) {
         if (certificateRepository.existsById(id)) {
