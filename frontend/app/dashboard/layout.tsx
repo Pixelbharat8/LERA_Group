@@ -640,7 +640,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     {
       name: `🙋 ${language === "VI" ? "Khu làm việc" : "My Workspace"}`,
       icon: "🙋",
-      roles: ["SUPERADMIN", "CHAIRMAN", "CEO", "DIRECTOR", "CENTER_ADMIN", "CENTER_MANAGER", "ACADEMIC_MANAGER", "TEACHER", "STAFF", "TA", "TEACHING_ASSISTANT"],
+      roles: ["SUPERADMIN", "SUPER_ADMIN", "CHAIRMAN", "CEO", "DIRECTOR", "CENTER_ADMIN", "CENTER_MANAGER", "ACADEMIC_MANAGER", "ACCOUNTANT", "TEACHER", "STAFF", "TA", "TEACHING_ASSISTANT", "ADMIN"],
       permission: "dashboard" as const,
       children: [
         { name: `🙋 ${language === "VI" ? "Trang cá nhân" : "My Workspace"}`, href: "/dashboard/self-service" },
@@ -648,6 +648,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         { name: `⭐ ${language === "VI" ? "Đánh giá" : "Performance"}`, href: "/dashboard/performance" },
         { name: `🧑‍💼 ${language === "VI" ? "Tuyển dụng" : "Recruitment"}`, href: "/dashboard/recruitment" },
       ],
+    },
+
+    // People Directory (search any employee or student) — manager tier only.
+    {
+      name: `👥 ${language === "VI" ? "Danh bạ nhân sự" : "People Directory"}`,
+      icon: "👥",
+      href: "/dashboard/people",
+      roles: ["SUPERADMIN", "SUPER_ADMIN", "CHAIRMAN", "CEO", "DIRECTOR", "CENTER_MANAGER", "CENTER_ADMIN", "ACADEMIC_MANAGER"],
+      permission: "dashboard" as const,
     },
 
     // Additional Services - Chairman/CEO/SuperAdmin
