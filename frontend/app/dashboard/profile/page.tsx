@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,6 +23,8 @@ export default function ProfilePage() {
   const [students, setStudents] = useState<any[]>([]); // for a PARENT user
   const [studentSelf, setStudentSelf] = useState<any>(null); // for a STUDENT user
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const role = (user?.roleName || user?.role || "").toUpperCase();
   const isStaff = STAFF_ROLES.includes(role);
@@ -71,6 +73,32 @@ export default function ProfilePage() {
       setMsg({ type: "err", text: "Failed to update profile." });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setMsg({ type: "err", text: "Please choose an image file." }); return; }
+    if (file.size > 10 * 1024 * 1024) { setMsg({ type: "err", text: "Image must be under 10 MB." }); return; }
+    setUploadingAvatar(true);
+    setMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const up: any = await apiFetch("/api/upload/image", { method: "POST", body: fd });
+      const url = up?.url;
+      if (!url) throw new Error("upload failed");
+      // Persist the new avatar on the user (self endpoint; avatarUrl is a permitted self field).
+      await apiFetch("/api/users/me/settings", { method: "PUT", body: JSON.stringify({ avatarUrl: url }) });
+      const updated = { ...user, avatarUrl: url };
+      setUser(updated);
+      Cookies.set("userData", JSON.stringify(updated));
+      setMsg({ type: "ok", text: "Photo updated." });
+    } catch (e) {
+      setMsg({ type: "err", text: "Failed to upload photo." });
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -140,12 +168,22 @@ export default function ProfilePage() {
       {/* Identity header */}
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <div className="flex items-center gap-4">
-          {user?.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.avatarUrl} alt={formData.fullname} className="w-20 h-20 rounded-full object-cover" />
-          ) : (
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">{initial}</div>
-          )}
+          <div className="relative group shrink-0">
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar}
+              className="block w-20 h-20 rounded-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500" title="Change photo">
+              {user?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.avatarUrl} alt={formData.fullname} className="w-20 h-20 rounded-full object-cover" />
+              ) : (
+                <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-3xl font-bold">{initial}</div>
+              )}
+              <span className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-lg transition">
+                {uploadingAvatar ? "…" : "📷"}
+              </span>
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f); }} />
+          </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900">{formData.fullname || "—"}</h2>
             <p className="text-gray-500">{user?.email}</p>
@@ -154,6 +192,10 @@ export default function ProfilePage() {
               {user?.centerName && <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">{user.centerName}</span>}
               {user?.status && <span className={`px-2 py-0.5 text-xs rounded-full ${String(user.status).toUpperCase() === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>{pretty(user.status)}</span>}
             </div>
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar}
+              className="mt-2 text-sm text-blue-600 hover:underline disabled:opacity-50">
+              {uploadingAvatar ? "Uploading…" : "📷 Change photo"}
+            </button>
           </div>
         </div>
       </div>

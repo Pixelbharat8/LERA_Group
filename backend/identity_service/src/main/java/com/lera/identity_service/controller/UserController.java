@@ -291,7 +291,10 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> updateMySettings(
             @AuthenticationPrincipal AuthUser authUser,
-            @Valid @RequestBody RegisterRequest request) {
+            @RequestBody RegisterRequest request) {
+        // NB: not @Valid — self-service sends partial bodies (name-only, avatar-only) without the
+        // password/email that RegisterRequest marks @NotBlank. updateUser() applies only non-null
+        // fields, and privileged fields are stripped below, so a partial body is safe.
         Map<String, Object> response = new HashMap<>();
         if (authUser == null) {
             response.put("success", false);

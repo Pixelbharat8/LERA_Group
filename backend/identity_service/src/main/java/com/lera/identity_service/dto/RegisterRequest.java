@@ -31,6 +31,7 @@ public class RegisterRequest {
     private String fullname;
 
     private String fullnameVi;
+    private String avatarUrl;
     private String dateOfBirth;
     private String gender;
     private String address;

@@ -203,6 +203,7 @@ public class UserService {
         return userRepository.findById(id).map(user -> {
             if (request.getFullname() != null) user.setFullname(request.getFullname());
             if (request.getFullnameVi() != null) user.setFullnameVi(request.getFullnameVi());
+            if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl());
             if (request.getPhone() != null) user.setPhone(request.getPhone());
             if (request.getCenterId() != null) user.setCenterId(request.getCenterId());
             if (request.getStatus() != null) user.setStatus(request.getStatus());
