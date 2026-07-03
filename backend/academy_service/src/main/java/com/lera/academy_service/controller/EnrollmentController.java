@@ -83,15 +83,18 @@ public class EnrollmentController {
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER')")
     public ResponseEntity<Enrollment> createEnrollment(@Valid @RequestBody Enrollment enrollment) {
+        // Only into a class the caller may manage (centre-scoped / class-owning).
+        authz.assertCanViewClassRoster(enrollment.getClassId());
         if (enrollmentRepository.existsByStudentIdAndClassId(enrollment.getStudentId(), enrollment.getClassId())) {
             return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.ok(enrollmentRepository.save(enrollment));
     }
-    
+
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER')")
     public ResponseEntity<List<Enrollment>> createEnrollmentsBulk(@Valid @RequestBody List<Enrollment> enrollments) {
+        enrollments.forEach(e -> authz.assertCanViewClassRoster(e.getClassId()));
         List<Enrollment> validEnrollments = enrollments.stream()
                 .filter(e -> !enrollmentRepository.existsByStudentIdAndClassId(e.getStudentId(), e.getClassId()))
                 .toList();
@@ -103,27 +106,29 @@ public class EnrollmentController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER')")
     public ResponseEntity<Enrollment> updateEnrollment(@PathVariable UUID id, @Valid @RequestBody Enrollment enrollmentDetails) {
         return enrollmentRepository.findById(id).map(enrollment -> {
+            authz.assertCanViewClassRoster(enrollment.getClassId());
             if (enrollmentDetails.getStatus() != null) enrollment.setStatus(enrollmentDetails.getStatus());
             if (enrollmentDetails.getEndDate() != null) enrollment.setEndDate(enrollmentDetails.getEndDate());
-            
+
             return ResponseEntity.ok(enrollmentRepository.save(enrollment));
         }).orElse(ResponseEntity.notFound().build());
     }
-    
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER')")
     public ResponseEntity<Void> deleteEnrollment(@PathVariable UUID id) {
-        if (enrollmentRepository.existsById(id)) {
+        return enrollmentRepository.findById(id).map(e -> {
+            authz.assertCanViewClassRoster(e.getClassId());
             enrollmentRepository.deleteById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+            return ResponseEntity.noContent().<Void>build();
+        }).orElse(ResponseEntity.notFound().build());
     }
     
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER')")
     public ResponseEntity<Enrollment> updateEnrollmentStatus(@PathVariable UUID id, @RequestParam String status) {
         return enrollmentRepository.findById(id).map(enrollment -> {
+            authz.assertCanViewClassRoster(enrollment.getClassId());
             enrollment.setStatus(status);
             return ResponseEntity.ok(enrollmentRepository.save(enrollment));
         }).orElse(ResponseEntity.notFound().build());

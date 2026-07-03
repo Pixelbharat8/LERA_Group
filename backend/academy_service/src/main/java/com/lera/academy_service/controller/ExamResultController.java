@@ -123,9 +123,19 @@ public class ExamResultController {
         return ResponseEntity.ok(response);
     }
 
+    /** Resolve an exam's class and enforce teacher-ownership / centre-scope for grading. */
+    private void assertCanGradeExam(UUID examId) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Exam not found"));
+        authz.assertCanViewClassRoster(exam.getClassId());
+    }
+
     @PostMapping
     @PreAuthorize(AcademyRoles.STAFF)
     public ResponseEntity<ExamResult> createResult(@Valid @RequestBody ExamResult result) {
+        // A teacher may only record results for a class they teach; managers only their centre.
+        assertCanGradeExam(result.getExamId());
         result.setCreatedAt(LocalDateTime.now());
         return ResponseEntity.ok(examResultRepository.save(result));
     }
@@ -134,6 +144,7 @@ public class ExamResultController {
     @PreAuthorize(AcademyRoles.STAFF)
     public ResponseEntity<ExamResult> updateResult(@PathVariable UUID id, @Valid @RequestBody ExamResult resultDetails) {
         return examResultRepository.findById(id).map(result -> {
+            assertCanGradeExam(result.getExamId());
             if (resultDetails.getScore() != null) result.setScore(resultDetails.getScore());
             if (resultDetails.getPercentage() != null) result.setPercentage(resultDetails.getPercentage());
             if (resultDetails.getGrade() != null) result.setGrade(resultDetails.getGrade());
@@ -150,11 +161,11 @@ public class ExamResultController {
     @DeleteMapping("/{id}")
     @PreAuthorize(AcademyRoles.STAFF)
     public ResponseEntity<Void> deleteResult(@PathVariable UUID id) {
-        if (examResultRepository.existsById(id)) {
+        return examResultRepository.findById(id).map(result -> {
+            assertCanGradeExam(result.getExamId());
             examResultRepository.deleteById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+            return ResponseEntity.noContent().<Void>build();
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     private List<ExamResult> resultsForClass(UUID classId) {

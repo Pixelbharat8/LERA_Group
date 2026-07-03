@@ -162,15 +162,40 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getStudentStats(studentId));
     }
     
+    /**
+     * Prevent centre-scoped staff from fabricating attendance for another centre. Org-wide roles
+     * may write any centre; everyone else has the record's centre DERIVED from their JWT (and a
+     * mismatched body centreId is rejected outright).
+     */
+    private UUID resolveWriteCenter(AuthUser authUser, UUID recordCenterId) {
+        if (authz.isOrgWide(authUser)) {
+            return recordCenterId;
+        }
+        UUID jwt = authUser != null ? authUser.getCenterId() : null;
+        if (jwt == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Your token has no centre");
+        }
+        if (recordCenterId != null && !recordCenterId.equals(jwt)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only mark attendance for your own centre");
+        }
+        return jwt;
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','TEACHER')")
-    public ResponseEntity<?> createAttendance(@Valid @RequestBody AttendanceRecord record) {
+    public ResponseEntity<?> createAttendance(@Valid @RequestBody AttendanceRecord record,
+            @AuthenticationPrincipal AuthUser authUser) {
+        record.setCenterId(resolveWriteCenter(authUser, record.getCenterId()));
         return ResponseEntity.ok(attendanceService.createAttendance(record));
     }
     
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','TEACHER')")
-    public ResponseEntity<List<AttendanceRecord>> createBulkAttendance(@Valid @RequestBody List<AttendanceRecord> records) {
+    public ResponseEntity<List<AttendanceRecord>> createBulkAttendance(@Valid @RequestBody List<AttendanceRecord> records,
+            @AuthenticationPrincipal AuthUser authUser) {
+        for (AttendanceRecord r : records) {
+            r.setCenterId(resolveWriteCenter(authUser, r.getCenterId()));
+        }
         return ResponseEntity.ok(attendanceService.createBulkAttendance(records));
     }
 
