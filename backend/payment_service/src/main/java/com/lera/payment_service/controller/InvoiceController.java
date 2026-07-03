@@ -56,7 +56,15 @@ public class InvoiceController {
 
         if (invoiceAccess.isPrivilegedStaff(authUser.getRoleName())) {
             if (studentId != null) {
-                return ResponseEntity.ok(invoiceService.getInvoicesByStudent(studentId));
+                List<Invoice> list = invoiceService.getInvoicesByStudent(studentId);
+                // Centre-scoped staff only see this student's invoices for THEIR centre.
+                if (!invoiceAccess.isOrgWide(authUser.getRoleName())) {
+                    UUID myCenter = authUser.getCenterId();
+                    list = list.stream()
+                            .filter(inv -> myCenter != null && myCenter.equals(inv.getCenterId()))
+                            .collect(java.util.stream.Collectors.toList());
+                }
+                return ResponseEntity.ok(list);
             }
             if (parentId != null) {
                 List<Invoice> invoices = invoiceService.getInvoicesForParent(parentId);

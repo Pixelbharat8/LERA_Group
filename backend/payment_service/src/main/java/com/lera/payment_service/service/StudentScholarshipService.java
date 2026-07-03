@@ -43,6 +43,17 @@ public class StudentScholarshipService {
 
     @Transactional
     public StudentScholarship create(StudentScholarship ss) {
+        if (ss.getStudentId() == null || ss.getScholarshipId() == null) {
+            throw new IllegalArgumentException("studentId and scholarshipId are required");
+        }
+        // Idempotency guard: don't award the same scholarship to the same student twice
+        // (a bare save let a double-submit stack duplicate awards). CANCELLED ones don't count.
+        boolean duplicate = studentScholarshipRepository.findByStudentId(ss.getStudentId()).stream()
+                .anyMatch(x -> ss.getScholarshipId().equals(x.getScholarshipId())
+                        && (x.getStatus() == null || !"CANCELLED".equalsIgnoreCase(x.getStatus())));
+        if (duplicate) {
+            throw new IllegalArgumentException("This student already has that scholarship.");
+        }
         log.info("Assigning scholarship {} to student {}", ss.getScholarshipId(), ss.getStudentId());
         return studentScholarshipRepository.save(ss);
     }

@@ -23,11 +23,19 @@ public class InvoiceAccessService {
     private static final Set<String> PRIVILEGED_STAFF_ROLES = Set.of(
             "SUPER_ADMIN", "CHAIRMAN", "CEO", "DIRECTOR", "CENTER_MANAGER", "ACCOUNTANT");
 
+    /** Org-wide roles see every centre; the rest (CENTER_MANAGER/ACCOUNTANT) are centre-scoped. */
+    private static final Set<String> ORG_WIDE_ROLES = Set.of(
+            "SUPER_ADMIN", "CHAIRMAN", "CEO", "DIRECTOR");
+
     public boolean isPrivilegedStaff(String roleName) {
         if (roleName == null) {
             return false;
         }
         return PRIVILEGED_STAFF_ROLES.contains(roleName.toUpperCase());
+    }
+
+    public boolean isOrgWide(String roleName) {
+        return roleName != null && ORG_WIDE_ROLES.contains(roleName.toUpperCase());
     }
 
     public boolean isParentOfStudent(UUID parentUserId, UUID studentId) {

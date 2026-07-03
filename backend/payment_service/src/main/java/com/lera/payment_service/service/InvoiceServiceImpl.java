@@ -79,8 +79,31 @@ public class InvoiceServiceImpl {
     @Transactional
     public Optional<Invoice> updateInvoice(UUID id, Invoice details) {
         return invoiceRepository.findById(id).map(existing -> {
-            details.setId(id);
-            return invoiceRepository.save(details);
+            // Field-merge: only overwrite fields the caller actually supplied (non-null). A raw
+            // save(details) on a PARTIAL body (e.g. the record-payment flow sending only status/
+            // paidAt) nulled the NOT-NULL invoice_number/subtotal/total_amount and threw, so the
+            // invoice was never updated after a payment was recorded.
+            if (details.getInvoiceNumber() != null) existing.setInvoiceNumber(details.getInvoiceNumber());
+            if (details.getStudentId() != null) existing.setStudentId(details.getStudentId());
+            if (details.getCenterId() != null) existing.setCenterId(details.getCenterId());
+            if (details.getSubtotal() != null) existing.setSubtotal(details.getSubtotal());
+            if (details.getDiscountId() != null) existing.setDiscountId(details.getDiscountId());
+            if (details.getDiscountAmount() != null) existing.setDiscountAmount(details.getDiscountAmount());
+            if (details.getTaxAmount() != null) existing.setTaxAmount(details.getTaxAmount());
+            if (details.getTotalAmount() != null) existing.setTotalAmount(details.getTotalAmount());
+            if (details.getCurrency() != null) existing.setCurrency(details.getCurrency());
+            if (details.getDueDate() != null) existing.setDueDate(details.getDueDate());
+            if (details.getNotes() != null) existing.setNotes(details.getNotes());
+            if (details.getPaidAt() != null) existing.setPaidAt(details.getPaidAt());
+            // Status change goes through the same PAID-transition guard as updateInvoiceStatus,
+            // so a PUT can't mark an invoice PAID without sufficient settled payments.
+            if (details.getStatus() != null && !details.getStatus().equalsIgnoreCase(existing.getStatus())) {
+                if ("PAID".equalsIgnoreCase(details.getStatus())) {
+                    assertSufficientPayments(existing);
+                }
+                existing.setStatus(details.getStatus());
+            }
+            return invoiceRepository.save(existing);
         });
     }
 

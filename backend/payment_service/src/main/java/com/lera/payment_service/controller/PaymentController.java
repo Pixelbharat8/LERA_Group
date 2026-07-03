@@ -40,7 +40,16 @@ public class PaymentController {
         if (paymentAccess.isPrivilegedStaff(authUser.getRoleName())) {
             UUID effCenter = paymentAccess.effectiveCenterId(authUser, centerId);
             if (studentId != null) {
-                return ResponseEntity.ok(paymentService.getByStudent(studentId));
+                java.util.List<com.lera.payment_service.entity.Payment> list = paymentService.getByStudent(studentId);
+                // Centre-scoped staff (CENTER_MANAGER/ACCOUNTANT) only see this student's records
+                // for THEIR centre — otherwise they could read another centre's student finances.
+                if (!paymentAccess.isOrgWide(authUser.getRoleName())) {
+                    UUID myCenter = authUser.getCenterId();
+                    list = list.stream()
+                            .filter(p -> myCenter != null && myCenter.equals(p.getCenterId()))
+                            .collect(java.util.stream.Collectors.toList());
+                }
+                return ResponseEntity.ok(list);
             }
             if (effCenter != null) {
                 return ResponseEntity.ok(paymentService.getByCenter(effCenter));

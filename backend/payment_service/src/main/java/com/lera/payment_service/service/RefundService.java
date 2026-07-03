@@ -53,15 +53,22 @@ public class RefundService {
         }
         Payment payment = paymentRepository.findById(refund.getPaymentId())
                 .orElseThrow(() -> new IllegalArgumentException("Payment not found: " + refund.getPaymentId()));
+        // (b) positive amount + (c) total refunds must not exceed the paid amount.
+        assertWithinRefundableBalance(payment, refund.getAmount(), null);
+        log.info("Creating refund of {} for payment: {}", refund.getAmount(), refund.getPaymentId());
+        return refundRepository.save(refund);
+    }
 
-        // (b) Amount must be strictly positive.
-        BigDecimal amount = refund.getAmount();
+    /**
+     * Enforce: amount > 0 AND (sum of active refunds for this payment, excluding {@code excludeRefundId})
+     * + amount ≤ the payment amount. Used by BOTH create and update so an inflated PUT can't over-refund.
+     */
+    private void assertWithinRefundableBalance(Payment payment, BigDecimal amount, UUID excludeRefundId) {
         if (amount == null || amount.signum() <= 0) {
             throw new IllegalArgumentException("Refund amount must be greater than zero");
         }
-
-        // (c) Total refunds for this payment must not exceed the original payment amount.
         BigDecimal alreadyRefunded = refundRepository.findByPaymentId(payment.getId()).stream()
+                .filter(r -> excludeRefundId == null || !excludeRefundId.equals(r.getId()))
                 .filter(r -> r.getStatus() == null || ACTIVE_REFUND_STATUSES.contains(r.getStatus().toUpperCase()))
                 .map(Refund::getAmount)
                 .filter(java.util.Objects::nonNull)
@@ -72,14 +79,17 @@ public class RefundService {
                     "Refund exceeds refundable balance. Paid: " + paymentAmount
                             + ", already refunded: " + alreadyRefunded + ", requested: " + amount);
         }
-
-        log.info("Creating refund of {} for payment: {}", amount, refund.getPaymentId());
-        return refundRepository.save(refund);
     }
 
     @Transactional
     public Optional<Refund> updateRefund(UUID id, Refund details) {
         return refundRepository.findById(id).map(existing -> {
+            // Re-validate the cap on edit — otherwise a valid small refund could be PUT-inflated
+            // past the paid amount. Payment is the existing one unless explicitly re-pointed.
+            UUID paymentId = details.getPaymentId() != null ? details.getPaymentId() : existing.getPaymentId();
+            Payment payment = paymentRepository.findById(paymentId)
+                    .orElseThrow(() -> new IllegalArgumentException("Payment not found: " + paymentId));
+            assertWithinRefundableBalance(payment, details.getAmount(), id);
             details.setId(id);
             return refundRepository.save(details);
         });
