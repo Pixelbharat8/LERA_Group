@@ -127,6 +127,21 @@ public class AttendanceService {
         summary.put("lateDays", lateDays);
         summary.put("attendanceRate", totalDays > 0 ? (presentDays * 100.0 / totalDays) : 0);
         summary.put("monthlyStats", monthlyStats);
+
+        // Per-day records so the frontend can render a weekly timesheet grid (check-in/out per day).
+        // Not year-filtered here so week navigation across a year boundary still has data; capped for size.
+        List<Map<String, Object>> dayRecords = records.stream().limit(200).map(r -> {
+            Map<String, Object> m = new HashMap<>();
+            LocalDate d = r.getCheckInTime() != null ? r.getCheckInTime().toLocalDate()
+                    : (r.getCreatedAt() != null ? r.getCreatedAt().toLocalDate() : null);
+            m.put("date", d != null ? d.toString() : null);
+            m.put("checkInTime", r.getCheckInTime() != null ? r.getCheckInTime().toString() : null);
+            m.put("checkOutTime", r.getCheckOutTime() != null ? r.getCheckOutTime().toString() : null);
+            m.put("status", r.getStatus());
+            m.put("notes", r.getNotes());
+            return m;
+        }).toList();
+        summary.put("records", dayRecords);
         return summary;
     }
 
@@ -153,23 +168,40 @@ public class AttendanceService {
     @Transactional
     public AttendanceRecord markSelfAttendance(
             Map<String, Object> request, UUID authUserId, UUID centerId) {
-        AttendanceRecord record = new AttendanceRecord();
-        record.setStudentId(authUserId);
-        record.setMarkedBy(authUserId);
-        record.setCenterId(centerId);
         String dateStr = (String) request.get("date");
         LocalDate date = dateStr != null ? LocalDate.parse(dateStr) : LocalDate.now();
         String checkIn = (String) request.get("checkInTime");
         String checkOut = (String) request.get("checkOutTime");
-        if (checkIn != null && !checkIn.isEmpty()) {
+
+        // Upsert by (self, day): a second punch (check-out) updates the same row created at check-in
+        // rather than inserting a duplicate — a real punch clock, not two disconnected rows.
+        AttendanceRecord record = attendanceRepository.findByStudentIdOrderByCreatedAtDesc(authUserId).stream()
+                .filter(r -> {
+                    LocalDate d = r.getCheckInTime() != null ? r.getCheckInTime().toLocalDate()
+                            : (r.getCreatedAt() != null ? r.getCreatedAt().toLocalDate() : null);
+                    return date.equals(d);
+                })
+                .findFirst()
+                .orElseGet(() -> {
+                    AttendanceRecord fresh = new AttendanceRecord();
+                    fresh.setStudentId(authUserId);
+                    fresh.setMarkedBy(authUserId);
+                    fresh.setCenterId(centerId);
+                    fresh.setCreatedAt(LocalDateTime.now());
+                    return fresh;
+                });
+        if (record.getCenterId() == null) record.setCenterId(centerId);
+
+        // Only set a time if provided and not already set — never overwrite an earlier check-in.
+        if (checkIn != null && !checkIn.isEmpty() && record.getCheckInTime() == null) {
             record.setCheckInTime(LocalDateTime.of(date, LocalTime.parse(checkIn)));
         }
         if (checkOut != null && !checkOut.isEmpty()) {
             record.setCheckOutTime(LocalDateTime.of(date, LocalTime.parse(checkOut)));
         }
-        record.setStatus((String) request.getOrDefault("status", "PRESENT"));
-        record.setNotes((String) request.get("notes"));
-        record.setCreatedAt(LocalDateTime.now());
+        if (request.get("status") != null) record.setStatus((String) request.get("status"));
+        else if (record.getStatus() == null) record.setStatus("PRESENT");
+        if (request.get("notes") != null) record.setNotes((String) request.get("notes"));
         return attendanceRepository.save(record);
     }
 

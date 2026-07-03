@@ -39,7 +39,7 @@ export default function SelfServicePortal() {
         apiFetch(`/api/payroll/user/${userId}`, {}, { silent: true }).catch(() => []),
         apiFetch(`/api/leave-requests/user/${userId}`, {}, { silent: true }).catch(() => []),
         apiFetch(`/api/leave-balance/${userId}`, {}, { silent: true }).catch(() => null),
-        apiFetch(`/api/attendance/user/${userId}/summary`, {}, { silent: true }).catch(() => null),
+        apiFetch(`/api/attendance/user/${userId}/summary?year=${new Date().getFullYear()}`, {}, { silent: true }).catch(() => null),
         apiFetch(`/api/broadcasts`, {}, { silent: true }).catch(() => []),
       ]);
       setPayslips(Array.isArray(pay) ? pay : []);
@@ -83,6 +83,59 @@ export default function SelfServicePortal() {
       setApplying(false);
     }
   }
+
+  // ---- Timesheet (punch clock + weekly grid) ----
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [punching, setPunching] = useState(false);
+
+  const localISO = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const hhmm = (t?: string | null) => (t ? String(t).slice(11, 16) : null); // "2026-07-03T07:54:55" → "07:54"
+  const workedHours = (r: any): number | null => {
+    if (!r?.checkInTime || !r?.checkOutTime) return null;
+    const a = new Date(r.checkInTime).getTime();
+    const b = new Date(r.checkOutTime).getTime();
+    return b > a ? (b - a) / 3_600_000 : null;
+  };
+
+  const records: any[] = Array.isArray(attendance?.records) ? attendance.records : [];
+  const recByDate: Record<string, any> = {};
+  records.forEach((r) => { if (r?.date) recByDate[r.date] = r; });
+
+  function weekDays(offset: number): Date[] {
+    const now = new Date();
+    const dow = now.getDay(); // 0 Sun … 6 Sat
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + (dow === 0 ? -6 : 1 - dow) + offset * 7);
+    monday.setHours(0, 0, 0, 0);
+    return Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
+  }
+
+  async function punch(kind: "in" | "out") {
+    setPunching(true); setError(null); setInfo(null);
+    try {
+      const now = new Date();
+      const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+      const body: any = { date: localISO(now) };
+      if (kind === "in") { body.checkInTime = time; body.status = "PRESENT"; } else { body.checkOutTime = time; }
+      await apiFetch("/api/attendance/mark", { method: "POST", body: JSON.stringify(body) });
+      setInfo(kind === "in" ? "Checked in ✓" : "Checked out ✓");
+      await loadAll();
+    } catch (e: any) {
+      setError(e?.message || "Punch failed");
+    } finally {
+      setPunching(false);
+    }
+  }
+
+  const dayStatusStyle = (s?: string) => {
+    const m: Record<string, string> = {
+      PRESENT: "bg-green-50 border-green-200", CHECKED_IN: "bg-green-50 border-green-200",
+      LATE: "bg-amber-50 border-amber-200", ABSENT: "bg-red-50 border-red-200",
+      LEAVE: "bg-blue-50 border-blue-200", OT: "bg-purple-50 border-purple-200",
+    };
+    return m[(s || "").toUpperCase()] || "bg-gray-50 border-gray-200";
+  };
 
   const money = (v: any, cur = "VND") => (v == null ? "—" : `${Number(v).toLocaleString()} ${cur}`);
 
@@ -134,7 +187,7 @@ export default function SelfServicePortal() {
   const TABS: { key: Tab; label: string; icon: string }[] = [
     { key: "payslips", label: "My Payslips", icon: "💵" },
     { key: "leave", label: "My Leave", icon: "🏖️" },
-    { key: "attendance", label: "My Attendance", icon: "🕒" },
+    { key: "attendance", label: "My Timesheet", icon: "🕒" },
     { key: "news", label: "Announcements", icon: "📰" },
   ];
 
@@ -252,20 +305,104 @@ export default function SelfServicePortal() {
             </div>
           )}
 
-          {tab === "attendance" && (
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              {attendance && typeof attendance === "object" && Object.keys(attendance).length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(attendance).map(([k, v]) => (
-                    <div key={k} className="border border-gray-100 rounded-lg p-4">
-                      <p className="text-2xl font-bold text-gray-900">{typeof v === "number" || typeof v === "string" ? String(v) : "—"}</p>
-                      <p className="text-sm text-gray-500">{prettyKey(k)}</p>
-                    </div>
-                  ))}
+          {tab === "attendance" && (() => {
+            const todayISO = localISO(new Date());
+            const todayRec = recByDate[todayISO];
+            const inT = hhmm(todayRec?.checkInTime);
+            const outT = hhmm(todayRec?.checkOutTime);
+            const days = weekDays(weekOffset);
+            const monLabel = days[0].toLocaleDateString(undefined, { day: "numeric", month: "short" });
+            const sunLabel = days[6].toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+            const dowNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+            const num = (v: any) => (typeof v === "number" ? v : Number(v) || 0);
+            return (
+              <div className="space-y-4">
+                {/* Punch clock */}
+                <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Today · {new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {inT ? <>Checked in at <span className="text-green-700">{inT}</span></> : "Not checked in yet"}
+                      {outT && <> · out at <span className="text-blue-700">{outT}</span></>}
+                      {workedHours(todayRec) != null && <span className="text-gray-500 font-normal"> · {workedHours(todayRec)!.toFixed(1)}h worked</span>}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {!inT ? (
+                      <button onClick={() => punch("in")} disabled={punching}
+                        className="px-5 py-2.5 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-60">
+                        🟢 {punching ? "…" : "Check In"}
+                      </button>
+                    ) : !outT ? (
+                      <button onClick={() => punch("out")} disabled={punching}
+                        className="px-5 py-2.5 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-60">
+                        🔴 {punching ? "…" : "Check Out"}
+                      </button>
+                    ) : (
+                      <span className="px-4 py-2.5 rounded-lg bg-gray-100 text-gray-600 font-medium">✅ Done for today</span>
+                    )}
+                  </div>
                 </div>
-              ) : <p className="text-gray-500">No attendance summary available yet.</p>}
-            </div>
-          )}
+
+                {/* Summary stats */}
+                {attendance && typeof attendance === "object" && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                      { label: "Present days", value: num(attendance.presentDays), color: "text-green-700" },
+                      { label: "Late days", value: num(attendance.lateDays), color: "text-amber-600" },
+                      { label: "Absent days", value: num(attendance.absentDays), color: "text-red-600" },
+                      { label: "Attendance rate", value: `${num(attendance.attendanceRate).toFixed(0)}%`, color: "text-blue-700" },
+                    ].map((s) => (
+                      <div key={s.label} className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
+                        <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                        <p className="text-sm text-gray-500">{s.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Weekly grid */}
+                <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-gray-900">Timesheet · {monLabel} – {sunLabel}</h3>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setWeekOffset((w) => w - 1)} className="px-3 py-1.5 rounded-md border border-gray-300 text-sm hover:bg-gray-50">← Prev</button>
+                      {weekOffset !== 0 && <button onClick={() => setWeekOffset(0)} className="px-3 py-1.5 rounded-md border border-gray-300 text-sm hover:bg-gray-50">This week</button>}
+                      <button onClick={() => setWeekOffset((w) => Math.min(0, w + 1))} disabled={weekOffset >= 0}
+                        className="px-3 py-1.5 rounded-md border border-gray-300 text-sm hover:bg-gray-50 disabled:opacity-40">Next →</button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                    {days.map((d, i) => {
+                      const iso = localISO(d);
+                      const r = recByDate[iso];
+                      const isToday = iso === todayISO;
+                      const wh = workedHours(r);
+                      return (
+                        <div key={iso} className={`rounded-lg border p-3 min-h-[112px] ${dayStatusStyle(r?.status)} ${isToday ? "ring-2 ring-blue-400" : ""}`}>
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-xs font-semibold text-gray-600">{dowNames[i]}</span>
+                            <span className="text-xs text-gray-400">{d.getDate()}/{d.getMonth() + 1}</span>
+                          </div>
+                          {r ? (
+                            <div className="mt-2 space-y-0.5 text-sm">
+                              <p className="text-gray-700">In <b>{hhmm(r.checkInTime) || "—"}</b></p>
+                              <p className="text-gray-700">Out <b>{hhmm(r.checkOutTime) || "—"}</b></p>
+                              {wh != null && <p className="text-xs text-gray-500">{wh.toFixed(1)}h</p>}
+                              <p className="text-[10px] uppercase tracking-wide text-gray-500">{(r.status || "").replace(/_/g, " ")}</p>
+                            </div>
+                          ) : (
+                            <p className="mt-4 text-xs text-gray-400">No record</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-4 text-xs text-gray-400">Times reflect your own check-in / check-out. Ask HR if a day needs correcting.</p>
+                </div>
+              </div>
+            );
+          })()}
 
           {tab === "news" && (
             <div className="space-y-3">
