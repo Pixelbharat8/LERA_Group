@@ -95,10 +95,31 @@ public class RefundService {
         });
     }
 
+    /** Allowed refund status transitions. Terminal states (COMPLETED/REJECTED) accept nothing. */
+    private static final java.util.Map<String, java.util.Set<String>> ALLOWED_TRANSITIONS = java.util.Map.of(
+            "PENDING", java.util.Set.of("APPROVED", "REJECTED"),
+            "APPROVED", java.util.Set.of("PROCESSING", "COMPLETED", "REJECTED"),
+            "PROCESSING", java.util.Set.of("COMPLETED", "REJECTED"),
+            "COMPLETED", java.util.Set.of(),
+            "REJECTED", java.util.Set.of());
+
     @Transactional
     public Optional<Refund> updateRefundStatus(UUID id, String status) {
+        if (status == null || status.isBlank()) {
+            throw new IllegalArgumentException("status is required");
+        }
+        String next = status.trim().toUpperCase();
         return refundRepository.findById(id).map(refund -> {
-            refund.setStatus(status);
+            String current = refund.getStatus() == null ? "PENDING" : refund.getStatus().toUpperCase();
+            if (current.equals(next)) {
+                return refund; // idempotent no-op
+            }
+            // State-machine guard — blocks re-approve, approve-after-reject, and COMPLETED↔PENDING,
+            // so an already-paid/rejected refund can't be flipped back and re-processed for money.
+            if (!ALLOWED_TRANSITIONS.getOrDefault(current, java.util.Set.of()).contains(next)) {
+                throw new IllegalArgumentException("Invalid refund transition: " + current + " → " + next);
+            }
+            refund.setStatus(next);
             return refundRepository.save(refund);
         });
     }

@@ -108,9 +108,15 @@ public class PayrollGenerationService {
                 }
             }
 
-            // 2. Salary config (per employee — keyed by staff id, works for ANY role), or defaults.
-            TeacherSalaryConfig config = salaryConfigRepository.findByTeacherId(staffId)
-                    .orElse(getDefaultSalaryConfig());
+            // 2. Salary config (per employee — keyed by staff id, works for ANY role).
+            // SKIP staff with no salary config rather than paying a fabricated default (previously
+            // a flat 5,000,000 VND) into a real payslip — configure their salary first.
+            TeacherSalaryConfig config = salaryConfigRepository.findByTeacherId(staffId).orElse(null);
+            if (config == null) {
+                log.warn("Skipping payroll for {} ({}) — no salary config. Set their salary before generating.",
+                        staffName, staffId);
+                continue;
+            }
             BigDecimal baseSalary = config.getBaseSalary() != null ? config.getBaseSalary() : BigDecimal.ZERO;
             BigDecimal hourlyRate = config.getHourlyRate() != null ? config.getHourlyRate() : BigDecimal.ZERO;
             String salaryType = config.getSalaryType() != null ? config.getSalaryType() : "HOURLY";
