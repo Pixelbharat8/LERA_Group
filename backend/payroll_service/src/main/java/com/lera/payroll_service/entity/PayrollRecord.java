@@ -59,7 +59,16 @@ public class PayrollRecord {
     @Column(name = "total_amount", precision = 12, scale = 2)
     @PositiveOrZero
     private BigDecimal totalAmount;
-    
+
+    // Itemized pay adjustments (Vingroup-style payslip). JSON arrays of
+    // {"label":"Housing subsidy","amount":1000000}. Nullable — simple payslips leave them empty.
+    // `bonus`/`deductions` above remain the un-itemized totals for backward compatibility.
+    @Column(columnDefinition = "TEXT")
+    private String earnings;
+
+    @Column(name = "deduction_items", columnDefinition = "TEXT")
+    private String deductionItems;
+
     @Column(name = "center_id")
     private UUID centerId;
     

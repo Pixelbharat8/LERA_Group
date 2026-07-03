@@ -139,10 +139,23 @@ export default function SelfServicePortal() {
 
   const money = (v: any, cur = "VND") => (v == null ? "—" : `${Number(v).toLocaleString()} ${cur}`);
 
+  // Itemized adjustments stored as JSON text on the payslip: [{label, amount}]. Tolerant of null/bad JSON.
+  const parseItems = (s: any): { label: string; amount: number }[] => {
+    if (!s) return [];
+    try {
+      const arr = typeof s === "string" ? JSON.parse(s) : s;
+      return Array.isArray(arr)
+        ? arr.filter((x) => x && x.label != null).map((x) => ({ label: String(x.label), amount: Number(x.amount) || 0 }))
+        : [];
+    } catch { return []; }
+  };
+  const sumItems = (items: { amount: number }[]) => items.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
   // Open a clean, printable payslip in a new window (browser print = save-as-PDF).
   function printPayslip(p: any) {
     const cur = p.currency || "VND";
     const fmt = (v: any) => (v == null ? "—" : `${Number(v).toLocaleString()} ${cur}`);
+    const esc = (s: any) => String(s).replace(/[&<>"]/g, (c) => (({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" } as any)[c]));
     // Part-time / hourly staff are paid hourlyRate × hours; this is the teachingAmount the
     // backend computes. Include it in the gross so the payslip reconciles to net pay.
     const hours = Number(p.teachingHours) || 0;
@@ -151,7 +164,16 @@ export default function SelfServicePortal() {
     const hourlyRow = (hours > 0 || teachingAmount > 0)
       ? `<tr><td>Hourly pay (${hours} hrs × ${fmt(rate)})</td><td class="r">${fmt(teachingAmount)}</td></tr>`
       : "";
-    const gross = (Number(p.baseSalary) || 0) + teachingAmount + (Number(p.bonus) || 0);
+    const bonusNum = Number(p.bonus) || 0;
+    const dedNum = Number(p.deductions) || 0;
+    const earn = parseItems(p.earnings);
+    const ded = parseItems(p.deductionItems);
+    const bonusRow = bonusNum > 0 ? `<tr><td>Bonus</td><td class="r">${fmt(bonusNum)}</td></tr>` : "";
+    const earnRows = earn.map((i) => `<tr><td>${esc(i.label)}</td><td class="r">${fmt(i.amount)}</td></tr>`).join("");
+    const dedLumpRow = dedNum > 0 ? `<tr><td>Deductions</td><td class="r">- ${fmt(dedNum)}</td></tr>` : "";
+    const dedRows = ded.map((i) => `<tr><td>${esc(i.label)}</td><td class="r">- ${fmt(i.amount)}</td></tr>`).join("");
+    const gross = (Number(p.baseSalary) || 0) + teachingAmount + bonusNum + sumItems(earn);
+    const net = gross - dedNum - sumItems(ded);
     const w = window.open("", "_blank", "width=720,height=900");
     if (!w) return;
     w.document.write(`<!doctype html><html><head><title>Payslip ${p.payPeriodStart || ""}</title>
@@ -165,10 +187,12 @@ export default function SelfServicePortal() {
       <table>
         <tr><td>Base salary</td><td class="r">${fmt(p.baseSalary)}</td></tr>
         ${hourlyRow}
-        <tr><td>Bonus</td><td class="r">${fmt(p.bonus)}</td></tr>
-        <tr><td>Gross</td><td class="r">${fmt(gross)}</td></tr>
-        <tr><td>Deductions</td><td class="r">- ${fmt(p.deductions)}</td></tr>
-        <tr class="net"><td>Net pay</td><td class="r">${fmt(p.totalAmount)}</td></tr>
+        ${bonusRow}
+        ${earnRows}
+        <tr><td><b>Gross</b></td><td class="r"><b>${fmt(gross)}</b></td></tr>
+        ${dedLumpRow}
+        ${dedRows}
+        <tr class="net"><td>Net pay</td><td class="r">${fmt(net)}</td></tr>
       </table>
       <p class="muted" style="margin-top:24px">Generated ${new Date().toLocaleString()}</p>
       <script>window.onload=function(){window.print();}</script></body></html>`);
@@ -435,23 +459,35 @@ export default function SelfServicePortal() {
                 <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${statusPill(viewPayslip.status)}`}>{viewPayslip.status}</span>
               </div>
               {(() => {
+                const cur = viewPayslip.currency;
                 const hours = Number(viewPayslip.teachingHours) || 0;
                 const rate = Number(viewPayslip.hourlyRate) || 0;
                 const teaching = Number(viewPayslip.teachingAmount) || hours * rate;
-                const gross = (Number(viewPayslip.baseSalary) || 0) + teaching + (Number(viewPayslip.bonus) || 0);
+                const bonusNum = Number(viewPayslip.bonus) || 0;
+                const dedNum = Number(viewPayslip.deductions) || 0;
+                const earn = parseItems(viewPayslip.earnings);
+                const ded = parseItems(viewPayslip.deductionItems);
+                const gross = (Number(viewPayslip.baseSalary) || 0) + teaching + bonusNum + sumItems(earn);
+                const net = gross - dedNum - sumItems(ded);
                 return (
                   <div className="divide-y">
-                    <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Base salary</span><span>{money(viewPayslip.baseSalary, viewPayslip.currency)}</span></div>
+                    <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Base salary</span><span>{money(viewPayslip.baseSalary, cur)}</span></div>
                     {(hours > 0 || teaching > 0) && (
                       <div className="flex justify-between py-2 text-sm">
-                        <span className="text-gray-500">Hourly pay <span className="text-gray-400">({hours} hrs × {money(rate, viewPayslip.currency)})</span></span>
-                        <span>{money(teaching, viewPayslip.currency)}</span>
+                        <span className="text-gray-500">Hourly pay <span className="text-gray-400">({hours} hrs × {money(rate, cur)})</span></span>
+                        <span>{money(teaching, cur)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Bonus</span><span>{money(viewPayslip.bonus, viewPayslip.currency)}</span></div>
-                    <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Gross</span><span>{money(gross, viewPayslip.currency)}</span></div>
-                    <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Deductions</span><span className="text-red-600">- {money(viewPayslip.deductions, viewPayslip.currency)}</span></div>
-                    <div className="flex justify-between py-3 text-base font-bold border-t-2 border-gray-900"><span>Net pay</span><span>{money(viewPayslip.totalAmount, viewPayslip.currency)}</span></div>
+                    {bonusNum > 0 && <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Bonus</span><span>{money(bonusNum, cur)}</span></div>}
+                    {earn.map((i, idx) => (
+                      <div key={`e${idx}`} className="flex justify-between py-2 text-sm"><span className="text-gray-500">{i.label}</span><span>{money(i.amount, cur)}</span></div>
+                    ))}
+                    <div className="flex justify-between py-2 text-sm font-semibold"><span className="text-gray-600">Gross</span><span>{money(gross, cur)}</span></div>
+                    {dedNum > 0 && <div className="flex justify-between py-2 text-sm"><span className="text-gray-500">Deductions</span><span className="text-red-600">- {money(dedNum, cur)}</span></div>}
+                    {ded.map((i, idx) => (
+                      <div key={`d${idx}`} className="flex justify-between py-2 text-sm"><span className="text-gray-500">{i.label}</span><span className="text-red-600">- {money(i.amount, cur)}</span></div>
+                    ))}
+                    <div className="flex justify-between py-3 text-base font-bold border-t-2 border-gray-900"><span>Net pay</span><span>{money(net, cur)}</span></div>
                   </div>
                 );
               })()}

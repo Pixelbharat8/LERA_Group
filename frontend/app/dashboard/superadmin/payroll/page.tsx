@@ -164,6 +164,51 @@ export default function PayrollPage() {
 
   const [viewingRecord, setViewingRecord] = useState<PayrollRecord | null>(null);
 
+  // Itemized adjustments editor (Vingroup-style payslip). Works off the raw backend fields
+  // (earnings / deductionItems JSON) carried on the record, not the display interface aliases.
+  const [editEarnings, setEditEarnings] = useState<{ label: string; amount: number }[]>([]);
+  const [editDeductions, setEditDeductions] = useState<{ label: string; amount: number }[]>([]);
+  const [savingAdj, setSavingAdj] = useState(false);
+
+  const parseAdjItems = (s: any): { label: string; amount: number }[] => {
+    if (!s) return [];
+    try {
+      const arr = typeof s === "string" ? JSON.parse(s) : s;
+      return Array.isArray(arr) ? arr.filter((x: any) => x && x.label != null).map((x: any) => ({ label: String(x.label), amount: Number(x.amount) || 0 })) : [];
+    } catch { return []; }
+  };
+
+  useEffect(() => {
+    const vr: any = viewingRecord;
+    setEditEarnings(parseAdjItems(vr?.earnings));
+    setEditDeductions(parseAdjItems(vr?.deductionItems));
+  }, [viewingRecord]);
+
+  const saveAdjustments = async () => {
+    const vr: any = viewingRecord;
+    if (!vr) return;
+    setSavingAdj(true);
+    try {
+      const hours = Number(vr.teachingHours) || 0;
+      const rate = Number(vr.hourlyRate) || 0;
+      const teaching = Number(vr.teachingAmount) || hours * rate;
+      const cleanE = editEarnings.filter((i) => i.label.trim()).map((i) => ({ label: i.label.trim(), amount: Number(i.amount) || 0 }));
+      const cleanD = editDeductions.filter((i) => i.label.trim()).map((i) => ({ label: i.label.trim(), amount: Number(i.amount) || 0 }));
+      const sumE = cleanE.reduce((s, i) => s + i.amount, 0);
+      const sumD = cleanD.reduce((s, i) => s + i.amount, 0);
+      const net = (Number(vr.baseSalary) || 0) + teaching + (Number(vr.bonus) || 0) + sumE - (Number(vr.deductions) || 0) - sumD;
+      // Spread the raw backend record (clean backend shape) + our itemized fields + reconciled total.
+      const payload = { ...vr, earnings: JSON.stringify(cleanE), deductionItems: JSON.stringify(cleanD), totalAmount: net };
+      const updated = await apiFetch(`/api/payroll/${vr.id}`, { method: "PUT", body: JSON.stringify(payload) });
+      setViewingRecord(updated);
+      await fetchPayrollData();
+    } catch (e) {
+      alert("Failed to save adjustments");
+    } finally {
+      setSavingAdj(false);
+    }
+  };
+
   const handleViewRecord = (record: PayrollRecord) => {
     setViewingRecord(record);
   };
@@ -550,34 +595,69 @@ export default function PayrollPage() {
                 <p><span className="text-gray-500">Employee Code:</span> {selectedUser?.employeeCode || 'N/A'}</p>
               </div>
 
-              <div className="border rounded-lg divide-y">
-                <div className="flex justify-between p-3">
-                  <span>Base Salary</span>
-                  <span className="font-medium">{formatCurrency(viewingRecord.baseSalary)}</span>
-                </div>
-                {viewingRecord.overtimePay ? (
-                  <div className="flex justify-between p-3">
-                    <span>Overtime Pay</span>
-                    <span className="font-medium">{formatCurrency(viewingRecord.overtimePay)}</span>
-                  </div>
-                ) : null}
-                {viewingRecord.bonus ? (
-                  <div className="flex justify-between p-3">
-                    <span>Bonus</span>
-                    <span className="font-medium text-green-600">+{formatCurrency(viewingRecord.bonus)}</span>
-                  </div>
-                ) : null}
-                {viewingRecord.deductions ? (
-                  <div className="flex justify-between p-3">
-                    <span>Deductions</span>
-                    <span className="font-medium text-red-600">-{formatCurrency(viewingRecord.deductions)}</span>
-                  </div>
-                ) : null}
-                <div className="flex justify-between p-3 bg-blue-50">
-                  <span className="font-bold">Net Salary</span>
-                  <span className="font-bold text-blue-600">{formatCurrency(viewingRecord.netSalary)}</span>
-                </div>
-              </div>
+              {(() => {
+                const vr: any = viewingRecord;
+                const hours = Number(vr.teachingHours) || 0;
+                const rate = Number(vr.hourlyRate) || 0;
+                const teaching = Number(vr.teachingAmount) || hours * rate;
+                const bonusNum = Number(vr.bonus) || 0;
+                const dedNum = Number(vr.deductions) || 0;
+                const sumE = editEarnings.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+                const sumD = editDeductions.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+                const gross = (Number(vr.baseSalary) || 0) + teaching + bonusNum + sumE;
+                const net = gross - dedNum - sumD;
+                const locked = ["PAID", "APPROVED"].includes(String(vr.status).toUpperCase());
+                return (
+                  <>
+                    <div className="border rounded-lg divide-y">
+                      <div className="flex justify-between p-3"><span>Base Salary</span><span className="font-medium">{formatCurrency(vr.baseSalary)}</span></div>
+                      {(hours > 0 || teaching > 0) && <div className="flex justify-between p-3"><span>Hourly pay <span className="text-gray-400 text-sm">({hours}h × {formatCurrency(rate)})</span></span><span className="font-medium">{formatCurrency(teaching)}</span></div>}
+                      {bonusNum > 0 && <div className="flex justify-between p-3"><span>Bonus</span><span className="font-medium text-green-600">+{formatCurrency(bonusNum)}</span></div>}
+                      {editEarnings.filter((i) => i.label.trim()).map((i, idx) => <div key={`e${idx}`} className="flex justify-between p-3"><span>{i.label}</span><span className="font-medium text-green-600">+{formatCurrency(i.amount)}</span></div>)}
+                      <div className="flex justify-between p-3 bg-gray-50"><span className="font-semibold">Gross</span><span className="font-semibold">{formatCurrency(gross)}</span></div>
+                      {dedNum > 0 && <div className="flex justify-between p-3"><span>Deductions</span><span className="font-medium text-red-600">-{formatCurrency(dedNum)}</span></div>}
+                      {editDeductions.filter((i) => i.label.trim()).map((i, idx) => <div key={`d${idx}`} className="flex justify-between p-3"><span>{i.label}</span><span className="font-medium text-red-600">-{formatCurrency(i.amount)}</span></div>)}
+                      <div className="flex justify-between p-3 bg-blue-50"><span className="font-bold">Net Salary</span><span className="font-bold text-blue-600">{formatCurrency(net)}</span></div>
+                    </div>
+
+                    {/* Itemized adjustments editor */}
+                    <div className="border rounded-lg p-3 space-y-3 mt-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-700">✏️ Adjustments</h3>
+                        {locked && <span className="text-xs text-amber-600">{vr.status} — editing will still overwrite</span>}
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 mb-1">Earnings (allowance, meal, housing…)</p>
+                        {editEarnings.map((i, idx) => (
+                          <div key={idx} className="flex gap-2 mb-1">
+                            <input value={i.label} onChange={(e) => setEditEarnings(editEarnings.map((x, j) => (j === idx ? { ...x, label: e.target.value } : x)))} placeholder="Label" className="flex-1 px-2 py-1 border rounded text-sm" />
+                            <input type="number" value={i.amount} onChange={(e) => setEditEarnings(editEarnings.map((x, j) => (j === idx ? { ...x, amount: Number(e.target.value) } : x)))} placeholder="0" className="w-32 px-2 py-1 border rounded text-sm" />
+                            <button onClick={() => setEditEarnings(editEarnings.filter((_, j) => j !== idx))} className="px-2 text-red-500 hover:text-red-700">✕</button>
+                          </div>
+                        ))}
+                        <button onClick={() => setEditEarnings([...editEarnings, { label: "", amount: 0 }])} className="text-sm text-blue-600 hover:underline">+ Add earning</button>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 mb-1">Deductions (tax, insurance…)</p>
+                        {editDeductions.map((i, idx) => (
+                          <div key={idx} className="flex gap-2 mb-1">
+                            <input value={i.label} onChange={(e) => setEditDeductions(editDeductions.map((x, j) => (j === idx ? { ...x, label: e.target.value } : x)))} placeholder="Label" className="flex-1 px-2 py-1 border rounded text-sm" />
+                            <input type="number" value={i.amount} onChange={(e) => setEditDeductions(editDeductions.map((x, j) => (j === idx ? { ...x, amount: Number(e.target.value) } : x)))} placeholder="0" className="w-32 px-2 py-1 border rounded text-sm" />
+                            <button onClick={() => setEditDeductions(editDeductions.filter((_, j) => j !== idx))} className="px-2 text-red-500 hover:text-red-700">✕</button>
+                          </div>
+                        ))}
+                        <button onClick={() => setEditDeductions([...editDeductions, { label: "", amount: 0 }])} className="text-sm text-blue-600 hover:underline">+ Add deduction</button>
+                      </div>
+
+                      <button onClick={saveAdjustments} disabled={savingAdj} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm">
+                        {savingAdj ? "Saving…" : "💾 Save adjustments"}
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
 
               <div className="flex items-center justify-between">
                 <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(viewingRecord.status)}`}>
