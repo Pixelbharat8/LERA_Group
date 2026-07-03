@@ -67,3 +67,6 @@ docker-data/
 # Local QA / agent scratch (not product code)
 frontend/_crawl*.js
 .claude/
+
+# prod schema-seed artifact
+lera_schema.sql
