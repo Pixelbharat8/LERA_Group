@@ -114,6 +114,9 @@ public class AttendanceController {
             @AuthenticationPrincipal AuthUser authUser) {
         return attendanceService.getAttendanceById(id)
                 .map(record -> {
+                    // A STUDENT/PARENT may only read a record for a student they own — the authz
+                    // helper alone allows null-centre student/parent through, so check ownership.
+                    assertStudentOwnership(authUser, record.getStudentId());
                     authz.assertAttendanceRecord(authUser, record);
                     return ResponseEntity.ok(record);
                 })
@@ -135,7 +138,17 @@ public class AttendanceController {
             @PathVariable UUID sessionId,
             @AuthenticationPrincipal AuthUser authUser) {
         List<AttendanceRecord> list = attendanceService.getAttendanceBySession(sessionId);
-        authz.assertAttendanceRecordsForCaller(authUser, list);
+        // A session roster is every student's attendance — a STUDENT/PARENT must not read the
+        // whole roster; restrict them to only rows for students they own.
+        String role = (authUser != null && authUser.getRoleName() != null) ? authUser.getRoleName().toUpperCase() : "";
+        if ("STUDENT".equals(role) || "PARENT".equals(role)) {
+            list = list.stream()
+                    .filter(r -> r.getStudentId() != null
+                            && studentAccessClient.canUserViewStudent(r.getStudentId(), authUser.getUserId()))
+                    .collect(java.util.stream.Collectors.toList());
+        } else {
+            authz.assertAttendanceRecordsForCaller(authUser, list);
+        }
         return ResponseEntity.ok(list);
     }
     

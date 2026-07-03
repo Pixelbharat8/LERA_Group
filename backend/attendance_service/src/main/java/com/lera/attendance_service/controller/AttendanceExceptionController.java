@@ -25,6 +25,17 @@ public class AttendanceExceptionController {
 
     private final AttendanceExceptionService attendanceExceptionService;
     private final AttendanceAuthorizationService authz;
+    private final com.lera.attendance_service.client.StudentAccessClient studentAccessClient;
+
+    /** A STUDENT/PARENT may only touch exceptions for a student they own (fail-closed via academy). */
+    private void assertStudentOwnership(AuthUser authUser, UUID studentId) {
+        String role = (authUser != null && authUser.getRoleName() != null) ? authUser.getRoleName().toUpperCase() : "";
+        if (("STUDENT".equals(role) || "PARENT".equals(role))
+                && (studentId == null || !studentAccessClient.canUserViewStudent(studentId, authUser.getUserId()))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You can only view your own student's attendance exceptions");
+        }
+    }
 
     @GetMapping
     @PreAuthorize(AttendanceAuthorizationService.PRE_CENTER_ATTENDANCE_EXCEPTION_READS)
@@ -53,6 +64,7 @@ public class AttendanceExceptionController {
             @AuthenticationPrincipal AuthUser authUser) {
         return attendanceExceptionService.getById(id)
                 .map(row -> {
+                    assertStudentOwnership(authUser, row.getStudentId());
                     authz.assertAttendanceException(authUser, row);
                     return ResponseEntity.ok(row);
                 })
@@ -63,6 +75,7 @@ public class AttendanceExceptionController {
     public ResponseEntity<List<AttendanceException>> getByStudent(
             @PathVariable UUID studentId,
             @AuthenticationPrincipal AuthUser authUser) {
+        assertStudentOwnership(authUser, studentId);
         List<AttendanceException> list = attendanceExceptionService.getByStudent(studentId);
         authz.assertAttendanceExceptionsForCaller(authUser, list);
         return ResponseEntity.ok(list);

@@ -73,9 +73,15 @@ public class AssignmentSubmissionController {
     @PostMapping
     @PreAuthorize(AcademyRoles.STAFF_OR_STUDENT)
     public ResponseEntity<AssignmentSubmission> createSubmission(@Valid @RequestBody AssignmentSubmission submission) {
-        // SECURITY: a submission is never created already-graded — clear all grade fields so a
-        // student can't self-award a score/status. Grading happens via the STAFF-only grade
-        // and update endpoints. (status is forced to SUBMITTED.)
+        // SECURITY: bind the submission to a student the caller is allowed to act for. A STUDENT
+        // passes assertCanViewStudent ONLY for their own record, so they can't submit as someone
+        // else (impersonation/repudiation); staff may submit on a student's behalf.
+        if (submission.getStudentId() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        authz.assertCanViewStudent(submission.getStudentId());
+        // A submission is never created already-graded — clear all grade fields so a student can't
+        // self-award a score/status. Grading happens via the STAFF-only grade/update endpoints.
         submission.setId(null);
         submission.setScore(null);
         submission.setGradedBy(null);
