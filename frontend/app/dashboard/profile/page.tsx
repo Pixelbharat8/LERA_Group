@@ -37,8 +37,9 @@ export default function ProfilePage() {
     const s = Cookies.get("userData");
     if (s) { try { cookieUser = JSON.parse(s); setUser(cookieUser); } catch { /* ignore */ } }
 
-    const full = await apiFetch("/api/users/me/settings", {}, { silent: true }).catch(() => null);
-    const u = full || cookieUser || {};
+    // GET /me/settings wraps the record as { success, data: user } — unwrap .data.
+    const resp = await apiFetch("/api/users/me/settings", {}, { silent: true }).catch(() => null);
+    const u = (resp && resp.data) ? resp.data : (cookieUser || {});
     setUser(u);
     setFormData({ fullname: u.fullname || "", phone: u.phone || "", email: u.email || "" });
 
