@@ -261,9 +261,24 @@ export default function ParentCommunicationPage() {
 
     setRequestingMeeting(true);
     try {
-      const teacher = teachers.find(t => t.id === meetingTeacherId);
-      
-      // Create notification for teacher
+      const parentUserId = await resolveMyParentUserId();
+
+      // Persist a REAL meeting request (same table the meetings list reads) — previously this
+      // only fired a notification and pushed a fabricated local row, so nothing was ever saved.
+      await apiFetch('/api/parent-teacher-meetings', {
+        method: 'POST',
+        body: JSON.stringify({
+          teacherId: meetingTeacherId,
+          parentId: parentUserId,
+          scheduledAt: `${meetingDate}T${meetingTime}:00`,
+          subject: "Meeting request",
+          agenda: meetingReason,
+          meetingType: "IN_PERSON",
+          status: "PENDING"
+        })
+      });
+
+      // Best-effort: also notify the teacher (don't fail the request if this errors).
       await apiFetch('/api/notifications', {
         method: 'POST',
         body: JSON.stringify({
@@ -275,19 +290,13 @@ export default function ParentCommunicationPage() {
           type: "MEETING_REQUEST",
           referenceType: "meeting"
         })
-      });
+      }).catch(() => {});
 
-      // Add to local state
-      setMeetingRequests(prev => [...prev, {
-        id: Date.now().toString(),
-        teacherId: meetingTeacherId,
-        teacherName: teacher?.fullname || "Teacher",
-        requestedDate: meetingDate,
-        requestedTime: meetingTime,
-        reason: meetingReason,
-        status: "PENDING",
-        createdAt: new Date().toISOString()
-      }]);
+      // Refresh from the server so the list reflects what was actually saved.
+      const meetingsData = parentUserId
+        ? await apiFetch(`/api/meetings?parentId=${parentUserId}`).catch(() => [])
+        : [];
+      setMeetingRequests(Array.isArray(meetingsData) ? meetingsData : []);
 
       alert("Meeting request sent successfully!");
       setShowMeetingModal(false);

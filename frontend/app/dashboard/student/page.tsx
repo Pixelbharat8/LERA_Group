@@ -46,9 +46,11 @@ export default function StudentDashboard() {
         ? assignments.filter((a: any) => a.status === 'pending' || !a.submittedAt).length
         : 0;
 
-      // Get upcoming classes (next 7 days)
+      // Classes this week. The schedule endpoint returns weekly recurring slots (day/startTime,
+      // no `date`), so the old `new Date(s.date) > now` was always Invalid Date → 0. Count a slot
+      // as upcoming when it has no concrete date (recurring) or its date is in the future.
       const upcoming = Array.isArray(schedules)
-        ? schedules.filter((s: any) => new Date(s.date) > new Date()).length
+        ? schedules.filter((s: any) => !s.date || new Date(s.date) > new Date()).length
         : 0;
 
       const attendanceRate = await computeAttendanceRate(String(studentId));
