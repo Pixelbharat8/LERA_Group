@@ -16,7 +16,9 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/teacher-overtime")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
+// Finance/exec only — CENTER_MANAGER removed: overtime records have no centerId scoping, so a
+// centre manager could fabricate/edit overtime for any teacher org-wide (inflating their pay).
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
 public class TeacherOvertimeController {
 
     private final TeacherOvertimeService teacherOvertimeService;

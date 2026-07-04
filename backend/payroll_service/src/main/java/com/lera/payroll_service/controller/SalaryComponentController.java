@@ -14,7 +14,9 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/salary-components")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
+// Finance/exec only — CENTER_MANAGER removed: salary components are org-wide config (no centerId)
+// defining every payslip's structure; a centre manager must not create/toggle them.
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
 public class SalaryComponentController {
 
     private final SalaryComponentService salaryComponentService;

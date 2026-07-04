@@ -14,7 +14,9 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/tax-settings")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
+// Finance/exec only — CENTER_MANAGER removed: tax settings are org-wide config (no centerId) that
+// drive every payslip's deductions; a centre manager must not alter them.
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
 public class TaxSettingsController {
 
     private final TaxSettingsService taxSettingsService;

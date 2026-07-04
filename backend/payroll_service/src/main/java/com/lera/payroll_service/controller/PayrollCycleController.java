@@ -18,7 +18,9 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/payroll-cycles")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACCOUNTANT')")
+// Finance/exec only — CENTER_MANAGER removed: payroll cycles are org-wide config (no centerId),
+// so a centre manager could create/edit/delete cycles affecting every centre's payroll.
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','ACCOUNTANT')")
 public class PayrollCycleController {
 
     private final PayrollCycleService payrollCycleService;
