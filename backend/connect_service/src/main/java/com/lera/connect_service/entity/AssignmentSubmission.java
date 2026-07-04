@@ -8,9 +8,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "assignment_submissions", indexes = {
-    @Index(name = "idx_submission_assignment", columnList = "assignment_id"),
-    @Index(name = "idx_submission_student", columnList = "student_id")
+// Submissions to connect's chat-shared assignments (shared_assignments, UUID id). Kept in a
+// SEPARATE table from academy's Long-keyed `assignment_submissions` — mapping both to the same
+// table name made connect's assignment_id (UUID) collide with academy's (bigint), so on a fresh
+// prod deploy academy's FK migration flips the column to bigint and breaks connect at runtime.
+@Table(name = "shared_assignment_submissions", indexes = {
+    @Index(name = "idx_shared_submission_assignment", columnList = "assignment_id"),
+    @Index(name = "idx_shared_submission_student", columnList = "student_id")
 })
 @Getter
 @Setter
