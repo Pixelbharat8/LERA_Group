@@ -28,7 +28,7 @@ export const translations = {
     heroDesc: "Personalized English learning with AI tutors, native teachers, real-time feedback, and gamified progress tracking.",
     registerCta: "Register for Free Consultation →",
     callNow: "Call Now",
-    students: "10,000+ students",
+    students: "Students",
     teachers: "50+ native teachers",
     satisfaction: "98% satisfaction",
     
@@ -780,7 +780,7 @@ export const translations = {
     heroDesc: "Học tiếng Anh cá nhân hóa với AI tutor, giáo viên bản ngữ, phản hồi real-time và gamified learning.",
     registerCta: "Đăng ký tư vấn miễn phí →",
     callNow: "Gọi ngay",
-    students: "10,000+ học viên",
+    students: "Học viên",
     teachers: "50+ giáo viên bản ngữ",
     satisfaction: "98% hài lòng",
     
