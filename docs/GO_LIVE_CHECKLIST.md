@@ -80,9 +80,14 @@ aws cloudformation deploy --template-file aws/cloudformation-template.yaml \
                         DBInstanceClass=db.t3.small --region us-east-1
 ```
 - Build & push images (CI `docker-build` job does this on `main`, or manually).
-- **Prod runs Flyway with `ddl-auto=validate`** — the new migrations
-  (`V20260606*`, `V20260607*` in academy + connect) must apply cleanly. Run a staging
-  migration dry-run first.
+- **Prod runs Flyway with `ddl-auto=update`** — this is the actual config in every service's
+  `application.properties`; there is NO `validate` override. Flyway applies the overlay migrations,
+  then Hibernate reconciles. The new migrations (`V20260606*`, `V20260607*` in academy + connect)
+  must apply cleanly. Run a staging migration dry-run first.
+  - **NOTE (verified 2026-07-04):** switching prod to the safer `ddl-auto=validate` is NOT yet
+    viable — academy fails `validate` with entity/schema mismatches (e.g. `assignment_submissions`)
+    that `update` silently auto-fixes. Keep `update` for launch; `validate` is post-launch hardening.
+    Under `update` all 9 services boot clean on the prod path (see 3a) with 0 schema-cast errors.
 
 #### ⚠️ 3a. First-deploy schema bootstrap (do NOT skip on an empty DB)
 The Flyway migrations in every service are **incremental overlays** — indexes, constraints,
@@ -91,31 +96,35 @@ Each `V1__baseline.sql` says so verbatim: *"All existing tables are already crea
 Hibernate ddl-auto=update."* No migration anywhere creates `users`, `payments`, `students`,
 `leads`, `payrolls`, `attendance_records`, etc. — those come from `ddl-auto`.
 
-Prod's steady-state config is `ddl-auto=validate` + Flyway, which **validates** an existing
-schema; it never creates the base tables. So on a **truly empty prod DB, the first boot
-fails** ("relation `users` does not exist") — Flyway runs first and its overlays reference
-tables that don't exist yet, and `validate` won't build them. (Confirmed via per-service
-migration dry-run on a fresh schema: only `rule_engine` applies clean in isolation.)
+Prod's config is `ddl-auto=update` + Flyway. **Flyway runs FIRST (before Hibernate) regardless of
+the ddl-auto mode**, so on a **truly empty prod DB the first boot still fails** ("relation `users`
+does not exist") — Flyway's overlays reference base tables that ddl-auto hasn't built yet.
+(Confirmed 2026-07-04 by booting each service on a fresh empty DB under the docker profile: only
+`payment` applies clean in isolation — its migrations are self-contained — every other service's
+`V1__baseline` fails referencing not-yet-created tables.)
 
 All 9 services share **one** database, and migrations reach **across** service boundaries
 (e.g. identity's `V20260115__gap_fix_complete.sql` reads/writes `students`, which is
 academy_service's table). So the bootstrap CANNOT be done one service at a time — the
-**complete** shared schema must exist before **any** service runs `validate`+Flyway.
+**complete** shared schema must exist before **any** service runs `update`+Flyway.
 
 **Required first-deploy sequence (one-time, on the empty prod DB) — two phases, all 9 together:**
 1. **Phase 1 — build the full schema.** Boot **all 9** services with
    `SPRING_JPA_HIBERNATE_DDL_AUTO=update` **and** `SPRING_FLYWAY_ENABLED=false`. Each service's
    Hibernate creates its tables; together they form the complete shared schema. Wait until all
    report healthy, then stop them all.
-2. **Phase 2 — migrate + validate.** Restart **all 9** with the prod defaults
-   (`ddl-auto=validate`, `spring.flyway.enabled=true`). Flyway sees `baseline-on-migrate=true` /
-   `baseline-version=0`, baselines the populated schema, applies V1+ overlays, and cross-service
-   references resolve because Phase 1 built every table. `validate` then confirms entities match.
-3. All **subsequent** deploys just run validate+Flyway (incremental migrations apply normally).
+2. **Phase 2 — migrate.** Restart **all 9** with the prod defaults (`ddl-auto=update`,
+   `spring.flyway.enabled=true`). Flyway sees `baseline-on-migrate=true`, baselines the populated
+   schema, applies V1+ overlays, and cross-service references resolve because Phase 1 built every
+   table. Hibernate then reconciles. **Verified 2026-07-04** against a `pg_dump --schema-only` base:
+   all 9 boot with 0 schema-cast errors (after fixing payment V192 `created_by` and the connect
+   `assignment_submissions` table collision — see git log).
+3. All **subsequent** deploys just run update+Flyway (incremental migrations apply normally).
 
 Equivalent alternative: load a known-good `pg_dump --schema-only` of the dev schema into prod
-first, then let validate+Flyway adopt it. Either way the **full** schema must exist before the
-first validate boot.
+first, then let update+Flyway adopt it. Either way the **full** schema must exist before the
+first Flyway boot. (This `pg_dump --schema-only` base + docker-profile boot is exactly how the
+2026-07-04 verification was run — all 9 services clean.)
 
 **This must be dry-run on an empty staging DB before prod** — verified 2026-06-28 with a
 single-service fresh-DB test, which already surfaced real baseline bugs (now fixed):
@@ -158,8 +167,12 @@ per "entities are source of truth":
   `uuid_generate_v4()`), never run, useless on an empty prod DB, and undesirable (fake data) if it did.
 
 **Result: a fresh `pg_dump` of the entity schema + all 9 services' migrations in order = 0 failures.**
-Remaining gate is the live two-phase boot (Phase 1 ddl-auto, Phase 2 validate+Flyway) on real staging
-infra — the SQL is now proven; that step confirms the runtime ordering/Flyway-history mechanics.
+Update 2026-07-04: the live boot was run locally — `pg_dump --schema-only` base → each of the 9
+services booted under the docker profile (`ddl-auto=update` + Flyway) → all 9 apply Flyway + reach
+health with 0 schema-cast errors (2 real blockers fixed along the way: payment V192 `created_by`
+UUID, connect `assignment_submissions` table collision). Remaining gate is the same two-phase boot
+(Phase 1 update+flyway-off, Phase 2 update+Flyway) on real staging infra to confirm ordering/Flyway
+history on the target Postgres.
 
 **Verify:** `aws cloudformation describe-stacks`; no app-service port open to `0.0.0.0/0`;
 RDS shows Multi-AZ + encrypted.
