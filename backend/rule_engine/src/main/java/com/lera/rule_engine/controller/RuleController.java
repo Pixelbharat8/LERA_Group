@@ -14,7 +14,11 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/rules")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER')")
+// Exec only — CENTER_MANAGER removed: business rules are org-wide automation config with financial
+// actions (FEE_DISCOUNT, SCHOLARSHIP, PROMOTION) and academy/tenant scope, but no per-record centre
+// ownership check. A centre manager could create/execute a rule affecting fees/approvals org-wide.
+// The only rules UI is the Super Admin page, so this removes nothing in practice.
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR')")
 public class RuleController {
     
     private final BusinessRuleRepository ruleRepository;
