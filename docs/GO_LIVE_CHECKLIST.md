@@ -84,10 +84,16 @@ aws cloudformation deploy --template-file aws/cloudformation-template.yaml \
   `application.properties`; there is NO `validate` override. Flyway applies the overlay migrations,
   then Hibernate reconciles. The new migrations (`V20260606*`, `V20260607*` in academy + connect)
   must apply cleanly. Run a staging migration dry-run first.
-  - **NOTE (verified 2026-07-04):** switching prod to the safer `ddl-auto=validate` is NOT yet
-    viable — academy fails `validate` with entity/schema mismatches (e.g. `assignment_submissions`)
-    that `update` silently auto-fixes. Keep `update` for launch; `validate` is post-launch hardening.
-    Under `update` all 9 services boot clean on the prod path (see 3a) with 0 schema-cast errors.
+  - **NOTE (verified 2026-07-04): `update` is REQUIRED, not just preferred — `validate` is
+    architecturally incompatible.** Migration `V20260701__fix_library_transport_id_drift.sql` (and
+    the same pattern elsewhere) deliberately `DROP`s empty type-drifted tables (e.g.
+    `assignment_submissions`, library/transport tables) so that `ddl-auto=update` **recreates** them
+    with the correct uuid/bigint types — Postgres can't auto-cast the old varchar/int columns. Under
+    `validate` Hibernate never creates tables, so those dropped tables stay missing and the service
+    fails at boot ("Schema-validation: missing table [assignment_submissions]" — reproduced on
+    academy). So keep `ddl-auto=update` for prod. Under `update` all 9 services boot clean on the
+    prod path (see 3a) with 0 schema-cast errors. Moving to `validate` later would first require
+    removing the drop-and-recreate drift migrations and reconciling every entity to its migration.
 
 #### ⚠️ 3a. First-deploy schema bootstrap (do NOT skip on an empty DB)
 The Flyway migrations in every service are **incremental overlays** — indexes, constraints,
