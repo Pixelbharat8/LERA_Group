@@ -31,14 +31,18 @@ public class StaffController {
     private final AccessGuard accessGuard;
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllStaff(Pageable pageable) {
-        List<User> staff = userRepository.findByCenterIdAndRoleName(null, "STAFF");
-        // If center-based query returns empty, try getting all users with STAFF role
-        if (staff.isEmpty()) {
-            staff = userRepository.findAll(pageable).getContent().stream()
-                .filter(u -> u.getRole() != null && "STAFF".equalsIgnoreCase(u.getRole().getName()))
-                .toList();
+    public ResponseEntity<List<User>> getAllStaff(Pageable pageable,
+            @AuthenticationPrincipal AuthUser actor) {
+        // Centre-scoped roles (incl. TEACHER/STAFF) see only their own centre's staff — no
+        // org-wide PII enumeration. Org-wide roles get everyone.
+        if (actor != null && !SecurityUtils.isOrgWide(actor)) {
+            UUID centerId = actor.getCenterId();
+            if (centerId == null) return ResponseEntity.ok(List.of());
+            return ResponseEntity.ok(userRepository.findByCenterIdAndRoleName(centerId, "STAFF"));
         }
+        List<User> staff = userRepository.findAll(pageable).getContent().stream()
+            .filter(u -> u.getRole() != null && "STAFF".equalsIgnoreCase(u.getRole().getName()))
+            .toList();
         return ResponseEntity.ok(staff);
     }
     
@@ -46,6 +50,7 @@ public class StaffController {
     public ResponseEntity<Map<String, Object>> getStaffById(@PathVariable UUID id) {
         return userRepository.findById(id)
             .map(user -> {
+                accessGuard.assertMayMutateUserByCenter(user.getCenterId());
                 Map<String, Object> profile = new HashMap<>();
                 profile.put("id", user.getId());
                 profile.put("userId", user.getId());
@@ -70,6 +75,7 @@ public class StaffController {
     
     @GetMapping("/center/{centerId}")
     public ResponseEntity<List<User>> getStaffByCenter(@PathVariable UUID centerId) {
+        accessGuard.assertCenterAccess(centerId);
         List<User> staff = userRepository.findByCenterIdAndRoleName(centerId, "STAFF");
         return ResponseEntity.ok(staff);
     }
@@ -78,6 +84,7 @@ public class StaffController {
     public ResponseEntity<Map<String, Object>> getStaffProfile(@PathVariable UUID id) {
         return userRepository.findById(id)
             .map(user -> {
+                accessGuard.assertMayMutateUserByCenter(user.getCenterId());
                 Map<String, Object> profile = new HashMap<>();
                 profile.put("user", user);
                 profile.put("staffCode", "STF-" + user.getId().toString().substring(0, 8).toUpperCase());

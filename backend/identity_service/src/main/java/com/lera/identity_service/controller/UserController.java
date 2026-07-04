@@ -359,14 +359,18 @@ public class UserController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        // Require current password verification when provided.
-        if (currentPassword != null && !currentPassword.isEmpty()) {
-            boolean ok = userService.verifyPassword(authUser.getUserId(), currentPassword);
-            if (!ok) {
-                response.put("success", false);
-                response.put("message", "Current password is incorrect");
-                return ResponseEntity.status(403).body(response);
-            }
+        // Current password is MANDATORY — verifying it stops a hijacked/borrowed session from
+        // silently changing the password and locking the real user out. (Forgotten-password uses
+        // the separate token-based /api/auth/reset-password flow, not this endpoint.)
+        if (currentPassword == null || currentPassword.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Current password is required");
+            return ResponseEntity.badRequest().body(response);
+        }
+        if (!userService.verifyPassword(authUser.getUserId(), currentPassword)) {
+            response.put("success", false);
+            response.put("message", "Current password is incorrect");
+            return ResponseEntity.status(403).body(response);
         }
 
         return userService.updatePassword(authUser.getUserId(), newPassword)
