@@ -358,15 +358,28 @@ public class AiController {
 
     // AI Tutoring endpoint
     @PostMapping("/tutor")
-    public ResponseEntity<?> tutor(@Valid @RequestBody Map<String, Object> request) {
+    public ResponseEntity<?> tutor(@Valid @RequestBody Map<String, Object> request,
+                                   @AuthenticationPrincipal AuthUser authUser) {
         try {
             String question = (String) request.get("question");
             String subject = (String) request.getOrDefault("subject", "English");
             String level = (String) request.getOrDefault("level", "intermediate");
-            
+
+            // Quota gate: /tutor spends real tokens (paid AI), so meter it like /chat — otherwise any
+            // authenticated user (incl. students) could burn the token budget unmetered.
+            java.util.UUID me = uid(authUser);
+            if (!aiUsage.canUse(me)) {
+                return ResponseEntity.ok(Map.of(
+                    "response", "You've reached your monthly AI quota. Ask your administrator to increase your token budget.",
+                    "quotaExceeded", true,
+                    "usage", aiUsage.status(me)
+                ));
+            }
+
             // Use OpenAI for tutoring
             Map<String, Object> result = openAIService.generateEducationalContent(question, subject, level);
-            
+            if (Boolean.TRUE.equals(result.get("success"))) aiUsage.record(me, tokensOf(result));
+
             return ResponseEntity.ok(Map.of(
                 "response", result.get("message"),
                 "subject", subject,
