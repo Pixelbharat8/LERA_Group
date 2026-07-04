@@ -124,6 +124,38 @@ public class UploadController {
         return uploadFile(file);
     }
 
+    /**
+     * Self-service profile photo upload — ANY authenticated user (incl. PARENT) may upload their own
+     * avatar. Deliberately separate from the STAFF_OR_STUDENT general upload, which also exposes
+     * file delete / bulk upload that parents must not have. Image-only; storeMultipart() enforces
+     * the same type/size/extension guards. Calls the private helper (not uploadFile) so no STAFF gate applies.
+     */
+    @PostMapping("/avatar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Only image files are allowed"));
+        }
+        try {
+            StoredObject stored = storeMultipart(file);
+            if (stored == null) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Upload rejected"));
+            }
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("url", stored.publicUrl());
+            response.put("filename", stored.filename());
+            response.put("size", stored.size());
+            response.put("contentType", stored.contentType());
+            response.put("uploadedAt", LocalDateTime.now());
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            log.error("Avatar upload failed: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("success", false, "error", "Failed to upload file"));
+        }
+    }
+
     @DeleteMapping
     public ResponseEntity<Map<String, Object>> deleteFile(@RequestParam("url") String fileUrl) {
         try {

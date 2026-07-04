@@ -85,7 +85,8 @@ export default function ProfilePage() {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const up: any = await apiFetch("/api/upload/image", { method: "POST", body: fd });
+      // Self-service avatar endpoint — any authenticated user incl. PARENT (unlike /api/upload/image).
+      const up: any = await apiFetch("/api/upload/avatar", { method: "POST", body: fd });
       const url = up?.url;
       if (!url) throw new Error("upload failed");
       // Persist the new avatar on the user (self endpoint; avatarUrl is a permitted self field).
