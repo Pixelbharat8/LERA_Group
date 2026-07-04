@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(255)
+    created_by UUID  -- matches Invoice.createdBy (UUID); VARCHAR here breaks ddl-auto on fresh prod DB
 );
 
 CREATE INDEX IF NOT EXISTS idx_invoices_number ON invoices(invoice_number);
@@ -389,7 +389,7 @@ CREATE TABLE IF NOT EXISTS fee_receipts (
     voided_at TIMESTAMP,
     voided_by VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(255)
+    created_by UUID  -- matches FeeReceipt.createdBy (UUID); VARCHAR here breaks ddl-auto on fresh prod DB
 );
 
 CREATE INDEX IF NOT EXISTS idx_fee_receipts_number ON fee_receipts(receipt_number);
