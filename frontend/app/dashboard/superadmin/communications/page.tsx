@@ -155,12 +155,12 @@ export default function CommunicationsManagement() {
           <div className="p-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
-                { name: "Welcome Email", type: "Email", uses: 245 },
-                { name: "Payment Reminder", type: "SMS", uses: 189 },
-                { name: "Class Cancelled", type: "Push", uses: 56 },
-                { name: "Fee Due Notice", type: "Email", uses: 432 },
-                { name: "Exam Schedule", type: "Email", uses: 123 },
-                { name: "Holiday Notice", type: "Push", uses: 78 },
+                { name: "Welcome Email", type: "Email" },
+                { name: "Payment Reminder", type: "SMS" },
+                { name: "Class Cancelled", type: "Push" },
+                { name: "Fee Due Notice", type: "Email" },
+                { name: "Exam Schedule", type: "Email" },
+                { name: "Holiday Notice", type: "Push" },
               ].map((template, i) => (
                 <div key={i} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-2">
@@ -169,7 +169,7 @@ export default function CommunicationsManagement() {
                       {template.type}
                     </span>
                   </div>
-                  <p className="text-gray-500 text-sm">{template.uses} uses</p>
+                  <p className="text-gray-500 text-sm">Reusable {template.type.toLowerCase()} template</p>
                   <button onClick={() => handleEditTemplate(template)} className="mt-3 text-blue-600 text-sm hover:underline">Edit Template</button>
                 </div>
               ))}
@@ -180,24 +180,21 @@ export default function CommunicationsManagement() {
         {activeTab === "announcements" && (
           <div className="p-8">
             <div className="space-y-4">
-              {[
-                { title: "System Maintenance", date: "2024-01-15", status: "Scheduled" },
-                { title: "New Course Launch", date: "2024-01-10", status: "Published" },
-                { title: "Holiday Notice", date: "2024-01-05", status: "Published" },
-              ].map((announcement, i) => (
-                <div key={i} className="border rounded-lg p-4 flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">{announcement.title}</h4>
-                    <p className="text-gray-500 text-sm">{announcement.date}</p>
+              {(() => {
+                const announcements = notifications.filter((n) => (n.referenceType || "").toLowerCase() === "announcement");
+                if (announcements.length === 0) {
+                  return <p className="text-gray-500 text-sm">No announcements yet. Use “Send Notification” to broadcast one to all users.</p>;
+                }
+                return announcements.map((a) => (
+                  <div key={a.id} className="border rounded-lg p-4 flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">{a.title}</h4>
+                      <p className="text-gray-500 text-sm">{a.createdAt ? new Date(a.createdAt).toLocaleDateString() : ""}</p>
+                    </div>
+                    <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Sent</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-2 py-1 rounded-full text-xs ${announcement.status === "Published" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
-                      {announcement.status}
-                    </span>
-                    <button onClick={() => handleEditAnnouncement(announcement)} className="text-blue-600 text-sm hover:underline">Edit</button>
-                  </div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
         )}

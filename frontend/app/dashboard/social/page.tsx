@@ -290,18 +290,15 @@ export default function SocialPage() {
                             <span>{post.isLiked ? "❤️" : "🤍"}</span>
                             <span>{post.likes}</span>
                           </button>
-                          <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-500 transition-colors">
+                          <span className="flex items-center gap-1 text-sm text-gray-500" title="Comments">
                             <span>💬</span>
                             <span>{post.comments}</span>
-                          </button>
-                          <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-green-500 transition-colors">
+                          </span>
+                          <span className="flex items-center gap-1 text-sm text-gray-500" title="Shares">
                             <span>🔄</span>
                             <span>{post.shares}</span>
-                          </button>
+                          </span>
                         </div>
-                        <button className="text-gray-500 hover:text-gray-700">
-                          📤
-                        </button>
                       </div>
                     </div>
                   </div>

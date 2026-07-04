@@ -440,9 +440,6 @@ export default function AdsCampaignsPage() {
                           Resume
                         </button>
                       )}
-                      <button className="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
-                        View
-                      </button>
                     </div>
                   </div>
                 </div>

@@ -199,7 +199,6 @@ export default function AssignmentManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button onClick={() => openEdit(assignment)} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                      <button className="text-green-600 hover:text-green-900 mr-3">View Submissions</button>
                       <button onClick={() => handleDelete(assignment.id)} className="text-red-600 hover:text-red-900">Delete</button>
                     </td>
                   </tr>

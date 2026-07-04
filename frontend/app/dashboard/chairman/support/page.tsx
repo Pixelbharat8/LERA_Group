@@ -231,9 +231,6 @@ export default function ChairmanSupportPage() {
                         </div>
                         <div className="flex items-center gap-4">
                           <span>Created: {new Date(ticket.createdAt).toLocaleDateString()}</span>
-                          <button className="text-blue-600 hover:text-blue-700 font-medium">
-                            View Details →
-                          </button>
                         </div>
                       </div>
                     </div>
@@ -303,8 +300,7 @@ export default function ChairmanSupportPage() {
                       <div className="text-2xl">💬</div>
                       <div>
                         <div className="font-medium">Live Chat</div>
-                        <button className="text-purple-600 hover:underline">Start Chat Session</button>
-                        <p className="text-sm text-gray-500 mt-1">Available 24/7</p>
+                        <p className="text-sm text-gray-500 mt-1">Available 24/7 — use the in-app Messages to reach the team.</p>
                       </div>
                     </div>
 

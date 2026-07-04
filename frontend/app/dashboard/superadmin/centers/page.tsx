@@ -265,13 +265,7 @@ export default function CentersManagement() {
                       >
                         ✏️
                       </Link>
-                      <button 
-                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg"
-                        title="Impersonate Admin"
-                      >
-                        🎭
-                      </button>
-                      <button 
+                      <button
                         onClick={() => handleDelete(center.id)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                         title="Delete"

@@ -10,9 +10,7 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     avgCompletion: 0,
-    avgScore: 0,
-    improvement: 0,
-    goalAchievement: 0,
+    completed: 0,
     totalStudents: 0,
     totalEnrollments: 0,
   });
@@ -48,9 +46,7 @@ export default function ProgressPage() {
 
       setStats({
         avgCompletion: avgCompletion || 0,
-        avgScore: 0,
-        improvement: 0,
-        goalAchievement: 0,
+        completed: completedEnrollments,
         totalStudents: studentCount,
         totalEnrollments: enrollmentCount,
       });
@@ -111,19 +107,19 @@ export default function ProgressPage() {
               <p className="text-sm text-gray-500">Avg. Completion</p>
             </div>
             <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-              <div className="text-2xl mb-2">⭐</div>
-              <p className="text-2xl font-bold">{stats.avgScore}/5</p>
-              <p className="text-sm text-gray-500">Avg. Score</p>
+              <div className="text-2xl mb-2">👥</div>
+              <p className="text-2xl font-bold">{stats.totalStudents}</p>
+              <p className="text-sm text-gray-500">Total Students</p>
             </div>
             <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-              <div className="text-2xl mb-2">📈</div>
-              <p className="text-2xl font-bold text-green-600">+{stats.improvement}%</p>
-              <p className="text-sm text-gray-500">Improvement</p>
+              <div className="text-2xl mb-2">📚</div>
+              <p className="text-2xl font-bold">{stats.totalEnrollments}</p>
+              <p className="text-sm text-gray-500">Total Enrollments</p>
             </div>
             <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-              <div className="text-2xl mb-2">🎯</div>
-              <p className="text-2xl font-bold">{stats.goalAchievement}%</p>
-              <p className="text-sm text-gray-500">Goal Achievement</p>
+              <div className="text-2xl mb-2">✅</div>
+              <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+              <p className="text-sm text-gray-500">Completed</p>
             </div>
           </div>
 

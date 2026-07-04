@@ -506,12 +506,7 @@ export default function AttendancePage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.notes || "-"}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="flex gap-2">
-                          <button className="text-blue-600 hover:text-blue-800">✏️</button>
-                          <button className="text-gray-600 hover:text-gray-800">💬</button>
-                        </div>
-                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">—</td>
                     </tr>
                   ))}
                 </tbody>
