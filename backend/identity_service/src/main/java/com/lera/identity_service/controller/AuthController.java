@@ -110,6 +110,66 @@ public class AuthController {
         return auth.getAuthorities().stream().map(Object::toString).anyMatch(orgWide::contains);
     }
 
+    /**
+     * Idempotent internal provisioning — create-or-get a login account by email with a role + a
+     * default password. Used by the bulk importer (academy) to auto-create profiles for imported
+     * parents/teachers. Same trust model as /register: caller must present the internal key OR be an
+     * org-wide admin. Returns the (existing or new) userId so the caller can link its record to it.
+     */
+    @PostMapping("/provision-user")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<Map<String, Object>> provisionUser(
+            @RequestBody Map<String, String> body,
+            @RequestHeader(value = "X-Internal-Key", required = false) String internalKey) {
+        boolean keyConfigured = internalApiKey != null && !internalApiKey.isBlank()
+                && !InternalApiKeyValidator.LEGACY_WEAK_KEY.equals(internalApiKey);
+        boolean isInternal = keyConfigured && internalApiKey.equals(internalKey);
+        Map<String, Object> res = new HashMap<>();
+        if (!isInternal && !isAuthenticatedOrgWideAdmin()) {
+            res.put("success", false);
+            res.put("error", "forbidden");
+            return ResponseEntity.status(403).body(res);
+        }
+        String email = body.getOrDefault("email", "").trim();
+        if (email.isEmpty()) {
+            res.put("success", false);
+            res.put("error", "email required");
+            return ResponseEntity.ok(res);
+        }
+        // Create-or-get so re-imports and parents shared across several children stay idempotent.
+        var existing = userRepository.findByEmail(email);
+        if (existing.isPresent()) {
+            res.put("success", true);
+            res.put("userId", existing.get().getId());
+            res.put("created", false);
+            return ResponseEntity.ok(res);
+        }
+        String password = body.getOrDefault("password", "").trim();
+        if (password.length() < 6) {
+            res.put("success", false);
+            res.put("error", "password must be at least 6 characters");
+            return ResponseEntity.ok(res);
+        }
+        RegisterRequest req = new RegisterRequest();
+        req.setEmail(email);
+        String fullname = body.getOrDefault("fullname", "").trim();
+        req.setFullname(fullname.isEmpty() ? email : fullname);
+        req.setPassword(password);
+        req.setRoleName(body.getOrDefault("roleName", "STUDENT").trim());
+        req.setStatus("ACTIVE");
+        req.setPhone(body.get("phone"));
+        AuthResponse r = userService.register(req, true); // privileged internal creation
+        if (r.isSuccess() && r.getUser() != null) {
+            res.put("success", true);
+            res.put("userId", r.getUser().getId());
+            res.put("created", true);
+        } else {
+            res.put("success", false);
+            res.put("error", r.getMessage() != null ? r.getMessage() : "provisioning failed");
+        }
+        return ResponseEntity.ok(res);
+    }
+
     @PostMapping("/login")
     @PreAuthorize("permitAll()")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request,

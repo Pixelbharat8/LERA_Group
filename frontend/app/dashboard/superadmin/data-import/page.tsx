@@ -24,8 +24,8 @@ const CSV_TEMPLATES: Record<ImportType, { headers: string[]; sample: string[] }>
     sample: ["Nguyen Van A", "Nguyễn Văn A", "student@email.com", "0901234567", "2015-05-10", "MALE", "ABC Primary School", "5", "ACTIVE", "Nguyen Thi B", "0912345678", "parent@email.com", "Nguyen Van C", "0923456789"]
   },
   teachers: {
-    headers: ["specialization", "qualification", "yearsOfExperience", "nationality", "bio", "hourlyRate", "contractType", "status"],
-    sample: ["English", "BA Education", "5", "Vietnamese", "Experienced English teacher", "200000", "FULL_TIME", "ACTIVE"]
+    headers: ["displayName", "email", "specialization", "qualification", "yearsOfExperience", "nationality", "bio", "hourlyRate", "contractType", "status"],
+    sample: ["Nguyen Van Teacher", "teacher@email.com", "English", "BA Education", "5", "Vietnamese", "Experienced English teacher", "200000", "FULL_TIME", "ACTIVE"]
   },
   classes: {
     headers: ["name", "description", "level", "maxStudents", "schedule", "startDate", "endDate", "status"],
@@ -313,8 +313,16 @@ export default function BulkImportPage() {
             <span className="text-gray-900">Bulk Import</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">📥 Bulk Data Import</h1>
-          <p className="text-gray-500">Import students, teachers, classes, and more from CSV files</p>
+          <p className="text-gray-500">Import students, teachers, classes, and more from CSV files or Google Sheets</p>
         </div>
+      </div>
+
+      {/* Auto-provisioning note */}
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        🔐 <b>Login profiles are created automatically.</b> Importing <b>students</b> creates a{" "}
+        <b>Parent</b> account (from the <code>parentEmail</code> column); importing <b>teachers</b> creates a{" "}
+        <b>Teacher</b> account (from the <code>email</code> column). New accounts get the default password{" "}
+        <b>Lera@123</b> — ask users to change it after first login.
       </div>
 
       {/* Step 1: Select Type and Center */}

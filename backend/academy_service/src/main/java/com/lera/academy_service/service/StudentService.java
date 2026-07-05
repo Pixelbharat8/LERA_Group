@@ -1,5 +1,6 @@
 package com.lera.academy_service.service;
 
+import com.lera.academy_service.client.IdentityClient;
 import com.lera.academy_service.entity.Student;
 import com.lera.academy_service.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import java.util.*;
 public class StudentService {
 
     private final StudentRepository studentRepository;
+    private final IdentityClient identityClient;
 
     @Cacheable(value = "students", key = "'all'")
     public List<Student> findAll() {
@@ -93,7 +95,28 @@ public class StudentService {
             s.setCreatedAt(LocalDateTime.now());
         });
         log.info("Bulk creating {} students", students.size());
-        return studentRepository.saveAll(students);
+        List<Student> saved = studentRepository.saveAll(students);
+
+        // Auto-provision a PARENT login per unique parentEmail and link it, so imported students
+        // immediately have an accessible profile (the parent logs in on the child's behalf).
+        // Idempotent + best-effort: a provisioning failure just skips that link, never fails the batch.
+        Map<String, UUID> parentByEmail = new HashMap<>();
+        boolean linked = false;
+        for (Student s : saved) {
+            String email = s.getParentEmail();
+            if (email == null || email.isBlank() || s.getParentId() != null) continue;
+            String key = email.trim().toLowerCase();
+            UUID parentId = parentByEmail.get(key);
+            if (parentId == null) {
+                parentId = identityClient.provisionUser(email.trim(), s.getParentName(), "PARENT").orElse(null);
+                if (parentId != null) parentByEmail.put(key, parentId);
+            }
+            if (parentId != null) {
+                s.setParentId(parentId);
+                linked = true;
+            }
+        }
+        return linked ? studentRepository.saveAll(saved) : saved;
     }
 
     @Transactional

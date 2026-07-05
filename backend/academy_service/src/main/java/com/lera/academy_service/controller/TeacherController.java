@@ -5,6 +5,7 @@ import com.lera.academy_service.entity.ClassEntity;
 import com.lera.academy_service.entity.Enrollment;
 import com.lera.academy_service.entity.Student;
 import com.lera.academy_service.service.TeacherService;
+import com.lera.academy_service.client.IdentityClient;
 import com.lera.academy_service.security.AcademyAuthorizationService;
 import com.lera.academy_service.security.CurrentUser;
 import com.lera.academy_service.repository.ClassRepository;
@@ -31,7 +32,8 @@ public class TeacherController {
     private final EnrollmentRepository enrollmentRepository;
     private final StudentRepository studentRepository;
     private final AcademyAuthorizationService authz;
-    
+    private final IdentityClient identityClient;
+
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('TEACHER','TEACHING_ASSISTANT','TA','SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER','STAFF')")
     public ResponseEntity<Teacher> getCurrentTeacher() {
@@ -158,9 +160,15 @@ public class TeacherController {
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER')")
     public ResponseEntity<List<Teacher>> createTeachersBulk(@Valid @RequestBody List<Teacher> teachers) {
-        // Bulk via service
         List<Teacher> saved = new ArrayList<>();
-        teachers.forEach(t -> saved.add(teacherService.create(t)));
+        teachers.forEach(t -> {
+            // Auto-provision a TEACHER login from the import's email + name, and link it via userId,
+            // so imported teachers immediately have an accessible profile. Best-effort per row.
+            if (t.getUserId() == null && t.getEmail() != null && !t.getEmail().isBlank()) {
+                identityClient.provisionUser(t.getEmail(), t.getDisplayName(), "TEACHER").ifPresent(t::setUserId);
+            }
+            saved.add(teacherService.create(t));
+        });
         return ResponseEntity.ok(saved);
     }
     
