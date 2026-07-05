@@ -202,7 +202,7 @@ export default function StaffProfilePage() {
       }
 
       // Fetch pending leave requests count
-      const leaveRequests = await apiFetch(`/api/teacher-staff-leave?userId=${userId}&status=PENDING`).catch(() => []);
+      const leaveRequests = await apiFetch(`/api/leaves?userId=${userId}&status=PENDING`).catch(() => []);
       const pendingLeaves = Array.isArray(leaveRequests) ? leaveRequests.length : 0;
 
       // Fetch tasks
