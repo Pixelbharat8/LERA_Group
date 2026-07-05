@@ -53,6 +53,8 @@ export default function BulkImportPage() {
   const [previewMode, setPreviewMode] = useState(false);
   const [loadingCenters, setLoadingCenters] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [googleSheetUrl, setGoogleSheetUrl] = useState("");
+  const [fetchingSheet, setFetchingSheet] = useState(false);
 
   // Fetch centers on mount
   useState(() => {
@@ -111,6 +113,38 @@ export default function BulkImportPage() {
       }
     };
     reader.readAsText(uploadedFile);
+  };
+
+  // Pull a Google Sheet (shared "Anyone with the link can view") as CSV via the backend proxy,
+  // then feed it into the exact same preview/import pipeline as an uploaded file.
+  const loadFromGoogleSheet = async () => {
+    if (!googleSheetUrl.trim()) return;
+    setFetchingSheet(true);
+    setResult(null);
+    setPreviewMode(false);
+    try {
+      const resp: any = await apiFetch("/api/import/google-sheet", {
+        method: "POST",
+        body: JSON.stringify({ url: googleSheetUrl.trim() }),
+      });
+      if (!resp?.success || !resp?.csv) {
+        alert(resp?.error || "Could not load the Google Sheet.");
+        return;
+      }
+      const parsed = parseCSV(resp.csv);
+      if (parsed.length < 2) {
+        alert("The sheet looks empty (needs a header row + at least one data row).");
+        return;
+      }
+      setFile(null);
+      setHeaders(parsed[0]);
+      setCsvData(parsed.slice(1));
+      setPreviewMode(true);
+    } catch (e: any) {
+      alert(e?.message || "Failed to load the Google Sheet.");
+    } finally {
+      setFetchingSheet(false);
+    }
   };
 
   const downloadTemplate = () => {
@@ -392,6 +426,30 @@ export default function BulkImportPage() {
                   <p className="text-sm text-gray-400">CSV files only</p>
                 </div>
               )}
+            </div>
+
+            {/* …or import straight from Google Sheets */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-sm font-medium text-gray-700 mb-1">📊 …or import from Google Sheets</p>
+              <p className="text-xs text-gray-500 mb-2">
+                In Google Sheets: <b>Share → General access → “Anyone with the link” → Viewer</b>, then paste the link. First row must be the column headers (matching the template).
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={googleSheetUrl}
+                  onChange={(e) => setGoogleSheetUrl(e.target.value)}
+                  placeholder="https://docs.google.com/spreadsheets/d/…"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+                <button
+                  onClick={loadFromGoogleSheet}
+                  disabled={fetchingSheet || !googleSheetUrl.trim()}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50 whitespace-nowrap"
+                >
+                  {fetchingSheet ? "Loading…" : "Load Sheet"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
