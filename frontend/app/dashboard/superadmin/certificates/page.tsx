@@ -2,6 +2,12 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../../../../lib/api";
 
+// Escape user/DB-authored values before interpolating into the print-window HTML
+// (prevents stored XSS via certificate fields in the client-side print fallback).
+const esc = (v: unknown) =>
+  String(v ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+
 interface Certificate {
   id: string;
   certificateNumber: string;
@@ -91,18 +97,18 @@ export default function CertificateManagement() {
         if (printWindow) {
           printWindow.document.write(`
             <html>
-              <head><title>Certificate - ${cert.certificateNumber}</title></head>
+              <head><title>Certificate - ${esc(cert.certificateNumber)}</title></head>
               <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
                 <h1 style="color: #1e40af;">LERA Academy</h1>
                 <h2>Certificate of Completion</h2>
                 <hr style="width: 50%; margin: 30px auto;"/>
                 <p style="font-size: 24px;">This is to certify that</p>
-                <p style="font-size: 32px; font-weight: bold; color: #1e40af;">${cert.studentName}</p>
+                <p style="font-size: 32px; font-weight: bold; color: #1e40af;">${esc(cert.studentName)}</p>
                 <p style="font-size: 24px;">has successfully completed</p>
-                <p style="font-size: 28px; font-weight: bold;">${cert.courseName}</p>
-                ${cert.grade ? `<p style="font-size: 20px;">Grade: ${cert.grade} ${cert.score ? `(${cert.score}%)` : ''}</p>` : ''}
-                <p style="margin-top: 30px;">Issue Date: ${new Date(cert.issueDate).toLocaleDateString()}</p>
-                <p>Certificate Number: ${cert.certificateNumber}</p>
+                <p style="font-size: 28px; font-weight: bold;">${esc(cert.courseName)}</p>
+                ${cert.grade ? `<p style="font-size: 20px;">Grade: ${esc(cert.grade)} ${cert.score ? `(${esc(cert.score)}%)` : ''}</p>` : ''}
+                <p style="margin-top: 30px;">Issue Date: ${esc(new Date(cert.issueDate).toLocaleDateString())}</p>
+                <p>Certificate Number: ${esc(cert.certificateNumber)}</p>
               </body>
             </html>
           `);

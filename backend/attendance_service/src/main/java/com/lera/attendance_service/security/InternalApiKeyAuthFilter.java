@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,7 +53,7 @@ public class InternalApiKeyAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (!internalApiKey.equals(request.getHeader("X-Internal-Key"))) {
+        if (!constantTimeEquals(internalApiKey, request.getHeader("X-Internal-Key"))) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"success\":false,\"message\":\"Invalid internal API key\"}");
@@ -63,5 +65,13 @@ public class InternalApiKeyAuthFilter extends OncePerRequestFilter {
         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(auth);
         filterChain.doFilter(request, response);
+    }
+
+    /** Constant-time compare so response latency can't leak the key byte-by-byte. */
+    private static boolean constantTimeEquals(String expected, String actual) {
+        if (actual == null) return false;
+        return MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.UTF_8),
+                actual.getBytes(StandardCharsets.UTF_8));
     }
 }

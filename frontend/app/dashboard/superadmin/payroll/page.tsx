@@ -3,6 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+
+// Escape user/DB-authored values before interpolating into the print-window HTML
+// (prevents stored XSS via employee name/department/code in the payslip printer).
+const esc = (v: unknown) =>
+  String(v ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 import { apiFetch } from "../../../../lib/api";
 
 interface User {
@@ -245,19 +251,19 @@ export default function PayrollPage() {
             <div class="info-grid">
               <div class="info-item">
                 <div class="label">Employee</div>
-                <div class="value">${selectedUser?.fullname || 'N/A'}</div>
+                <div class="value">${esc(selectedUser?.fullname || 'N/A')}</div>
               </div>
               <div class="info-item">
                 <div class="label">Department</div>
-                <div class="value">${selectedUser?.departmentName || 'N/A'}</div>
+                <div class="value">${esc(selectedUser?.departmentName || 'N/A')}</div>
               </div>
               <div class="info-item">
                 <div class="label">Employee Code</div>
-                <div class="value">${selectedUser?.employeeCode || 'N/A'}</div>
+                <div class="value">${esc(selectedUser?.employeeCode || 'N/A')}</div>
               </div>
               <div class="info-item">
                 <div class="label">Status</div>
-                <div class="value">${record.status}</div>
+                <div class="value">${esc(record.status)}</div>
               </div>
             </div>
 

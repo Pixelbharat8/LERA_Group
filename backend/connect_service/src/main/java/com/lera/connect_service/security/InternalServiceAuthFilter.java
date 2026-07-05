@@ -16,6 +16,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 
 /**
@@ -57,7 +59,7 @@ public class InternalServiceAuthFilter extends OncePerRequestFilter {
         String header = request.getHeader("X-Internal-Key");
         if (header != null
                 && !header.isEmpty()
-                && !internalApiKey.equals(header)) {
+                && !constantTimeEquals(internalApiKey, header)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setCharacterEncoding("UTF-8");
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -65,7 +67,7 @@ public class InternalServiceAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (internalApiKey.equals(header)) {
+        if (constantTimeEquals(internalApiKey, header)) {
             var auth = new UsernamePasswordAuthenticationToken(
                     "internal-service",
                     null,
@@ -75,5 +77,13 @@ public class InternalServiceAuthFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /** Constant-time compare so response latency can't leak the key byte-by-byte. */
+    private static boolean constantTimeEquals(String expected, String actual) {
+        if (actual == null) return false;
+        return MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.UTF_8),
+                actual.getBytes(StandardCharsets.UTF_8));
     }
 }

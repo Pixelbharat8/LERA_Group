@@ -560,6 +560,11 @@ module.exports = {
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          // HSTS: force HTTPS for 2y incl. subdomains (no-op on plain-HTTP localhost;
+          // only takes effect once served over TLS). A tuned Content-Security-Policy
+          // is deferred — a wrong CSP breaks Next.js inline runtime, so it needs its
+          // own report-only rollout rather than a blind default here.
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
         ],
       },
     ];

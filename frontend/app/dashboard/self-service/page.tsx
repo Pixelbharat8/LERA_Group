@@ -176,14 +176,14 @@ export default function SelfServicePortal() {
     const net = gross - dedNum - sumItems(ded);
     const w = window.open("", "_blank", "width=720,height=900");
     if (!w) return;
-    w.document.write(`<!doctype html><html><head><title>Payslip ${p.payPeriodStart || ""}</title>
+    w.document.write(`<!doctype html><html><head><title>Payslip ${esc(p.payPeriodStart || "")}</title>
       <style>body{font-family:system-ui,Arial,sans-serif;color:#111;padding:32px;max-width:640px;margin:auto}
       h1{font-size:20px;margin:0 0 4px} .muted{color:#666;font-size:13px}
       table{width:100%;border-collapse:collapse;margin-top:20px} td{padding:8px 0;border-bottom:1px solid #eee}
       td.r{text-align:right} .net{font-weight:700;font-size:18px} .net td{border-top:2px solid #111;border-bottom:none;padding-top:12px}
       .badge{display:inline-block;padding:2px 8px;border-radius:9999px;background:#eef;font-size:12px}</style></head><body>
       <h1>LERA Academy — Payslip</h1>
-      <div class="muted">Pay period: ${p.payPeriodStart || "—"} → ${p.payPeriodEnd || "—"} · Status: <span class="badge">${p.status || "—"}</span></div>
+      <div class="muted">Pay period: ${esc(p.payPeriodStart || "—")} → ${esc(p.payPeriodEnd || "—")} · Status: <span class="badge">${esc(p.status || "—")}</span></div>
       <table>
         <tr><td>Base salary</td><td class="r">${fmt(p.baseSalary)}</td></tr>
         ${hourlyRow}
