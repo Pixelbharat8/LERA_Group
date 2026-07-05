@@ -428,8 +428,6 @@ const withRewrites = {
       { source: "/api/lead-tags/:path*", destination: `${connectUrl}/api/lead-tags/:path*` },
       { source: "/api/lead-status", destination: `${connectUrl}/api/lead-status` },
       { source: "/api/lead-status/:path*", destination: `${connectUrl}/api/lead-status/:path*` },
-      { source: "/api/ai-tutor", destination: `${connectUrl}/api/ai-tutor` },
-      { source: "/api/ai-tutor/:path*", destination: `${connectUrl}/api/ai-tutor/:path*` },
       { source: "/api/content-moderation", destination: `${connectUrl}/api/content-moderation` },
       { source: "/api/content-moderation/:path*", destination: `${connectUrl}/api/content-moderation/:path*` },
       { source: "/api/parent-teacher-meetings", destination: `${connectUrl}/api/parent-teacher-meetings` },
