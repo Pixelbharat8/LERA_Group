@@ -18,7 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -121,7 +124,89 @@ public class UserService {
                 .user(mapToDTO(savedUser))
                 .build();
     }
-    
+
+    /**
+     * Bulk-import staff accounts (any role) with a default password + forced first-login change.
+     * Idempotent: an existing email is left alone (returned as {@code created:false}). Reuses
+     * register() so role/HR fields (jobTitle, centerId, phone) are applied. Returns a summary +
+     * the accounts (for the credentials handout / messaging).
+     */
+    @Transactional
+    public Map<String, Object> importStaff(List<Map<String, Object>> rows) {
+        int created = 0, existing = 0, failed = 0;
+        List<Map<String, Object>> accounts = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            String email = str(row.get("email"));
+            if (email.isBlank()) { failed++; errors.add("Row missing email"); continue; }
+            var ex = userRepository.findByEmailWithRoleIgnoreCase(email);
+            if (ex.isPresent()) {
+                existing++;
+                accounts.add(staffAccount(ex.get().getFullname(), email, str(row.get("phone")),
+                        ex.get().getRole() != null ? ex.get().getRole().getName() : null, false));
+                continue;
+            }
+            try {
+                RegisterRequest req = new RegisterRequest();
+                req.setEmail(email);
+                req.setFullname(orElse(str(row.get("fullname")), email));
+                req.setPhone(str(row.get("phone")));
+                req.setPassword("Lera@123");
+                String role = str(row.get("roleName"));
+                if (role.isBlank()) role = str(row.get("role"));
+                role = role.isBlank() ? "STAFF" : role.toUpperCase();
+                // Reject unknown roles instead of silently falling back to STUDENT (register's default).
+                if (roleRepository.findByName(role).isEmpty()) {
+                    failed++;
+                    errors.add(email + ": unknown role '" + role + "'");
+                    continue;
+                }
+                req.setRoleName(role);
+                req.setStatus("ACTIVE");
+                req.setJobTitle(str(row.get("jobTitle")));
+                String center = str(row.get("centerId"));
+                if (!center.isBlank()) {
+                    try { req.setCenterId(UUID.fromString(center)); } catch (Exception ignore) { /* skip bad id */ }
+                }
+                AuthResponse r = register(req, true);
+                if (r.isSuccess() && r.getUser() != null) {
+                    userRepository.findById(r.getUser().getId()).ifPresent(u -> {
+                        u.setPasswordChangeRequired(true);
+                        userRepository.save(u);
+                    });
+                    created++;
+                    accounts.add(staffAccount(req.getFullname(), email, req.getPhone(), req.getRoleName(), true));
+                } else {
+                    failed++;
+                    errors.add(email + ": " + (r.getMessage() != null ? r.getMessage() : "failed"));
+                }
+            } catch (Exception e) {
+                failed++;
+                errors.add(email + ": " + e.getMessage());
+            }
+        }
+        Map<String, Object> res = new HashMap<>();
+        res.put("success", true);
+        res.put("created", created);
+        res.put("existing", existing);
+        res.put("failed", failed);
+        res.put("accounts", accounts);
+        res.put("errors", errors);
+        return res;
+    }
+
+    private static String str(Object o) { return o == null ? "" : o.toString().trim(); }
+    private static String orElse(String v, String fallback) { return (v == null || v.isBlank()) ? fallback : v; }
+    private static Map<String, Object> staffAccount(String name, String email, String phone, String role, boolean created) {
+        Map<String, Object> a = new HashMap<>();
+        a.put("name", name);
+        a.put("email", email);
+        a.put("phone", phone);
+        a.put("role", role);
+        a.put("created", created);
+        return a;
+    }
+
     public AuthResponse login(LoginRequest request) {
         String emailInput = request.getEmail() != null ? request.getEmail().trim() : "";
         Optional<User> userOpt = userRepository.findByEmailWithRoleIgnoreCase(emailInput);

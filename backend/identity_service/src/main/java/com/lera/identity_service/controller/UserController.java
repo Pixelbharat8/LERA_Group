@@ -183,7 +183,18 @@ public class UserController {
         response.put("errors", errors);
         return ResponseEntity.ok(response);
     }
-    
+
+    /**
+     * Bulk-import staff accounts (any role) with a default password + forced first-login change.
+     * Org-wide admins only — creating staff with elevated roles is privileged. Returns a summary +
+     * the created accounts so the importer can hand out credentials / message set-password links.
+     */
+    @PostMapping("/import-staff")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR')")
+    public ResponseEntity<Map<String, Object>> importStaff(@RequestBody List<Map<String, Object>> rows) {
+        return ResponseEntity.ok(userService.importStaff(rows));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR')")
     public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable UUID id) {

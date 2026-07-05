@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 
-type ImportType = "students" | "teachers" | "classes" | "payments" | "leads";
+type ImportType = "students" | "teachers" | "staff" | "classes" | "payments" | "leads";
 
 interface ImportResult {
   success: number;
@@ -26,6 +26,11 @@ const CSV_TEMPLATES: Record<ImportType, { headers: string[]; sample: string[] }>
   teachers: {
     headers: ["displayName", "email", "phone", "specialization", "qualification", "yearsOfExperience", "nationality", "bio", "hourlyRate", "contractType", "status"],
     sample: ["Nguyen Van Teacher", "teacher@email.com", "0901234567", "English", "BA Education", "5", "Vietnamese", "Experienced English teacher", "200000", "FULL_TIME", "ACTIVE"]
+  },
+  staff: {
+    // role must be one of: STAFF, CENTER_MANAGER, CENTER_ADMIN, ACADEMIC_MANAGER, DIRECTOR, ADMIN, CEO, CHAIRMAN, SUPER_ADMIN
+    headers: ["fullname", "email", "phone", "role", "jobTitle"],
+    sample: ["Nguyen Van Staff", "staff@email.com", "0901234567", "STAFF", "Accountant"]
   },
   classes: {
     headers: ["name", "description", "level", "maxStudents", "schedule", "startDate", "endDate", "status"],
@@ -180,7 +185,7 @@ export default function BulkImportPage() {
     });
 
     // Add centerId for entities that require it
-    if (selectedCenter && ["students", "teachers", "classes", "payments", "leads"].includes(type)) {
+    if (selectedCenter && ["students", "teachers", "staff", "classes", "payments", "leads"].includes(type)) {
       entity.centerId = selectedCenter;
     }
 
@@ -208,6 +213,7 @@ export default function BulkImportPage() {
     const endpoints: Record<ImportType, string> = {
       students: "/api/students/bulk",
       teachers: "/api/teachers/bulk",
+      staff: "/api/users/import-staff",
       classes: "/api/classes/bulk",
       payments: "/api/payments/bulk",
       leads: "/api/leads/bulk"
@@ -260,6 +266,11 @@ export default function BulkImportPage() {
         
         if (Array.isArray(response)) {
           results.success = response.length;
+        } else if (typeof response?.created === "number") {
+          // Staff import summary { created, existing, failed, accounts, errors }
+          results.success = response.created + (response.existing || 0);
+          if (response.failed) results.failed += response.failed;
+          if (Array.isArray(response.errors)) results.errors = [...results.errors, ...response.errors];
         } else if (response.data && Array.isArray(response.data)) {
           results.success = response.data.length;
           if (response.errors && Array.isArray(response.errors)) {
@@ -290,19 +301,17 @@ export default function BulkImportPage() {
     }
 
     // Build the login-credentials handout for auto-provisioned accounts (students→parents, teachers).
-    if (results.success > 0 && (selectedType === "students" || selectedType === "teachers")) {
+    if (results.success > 0 && (selectedType === "students" || selectedType === "teachers" || selectedType === "staff")) {
       const seen = new Set<string>();
       const creds: { name: string; email: string; role: string; phone: string }[] = [];
       for (const e of entities) {
         const email = String((selectedType === "students" ? e.parentEmail : e.email) || "").trim();
         if (!email || seen.has(email.toLowerCase())) continue;
         seen.add(email.toLowerCase());
-        creds.push({
-          name: String((selectedType === "students" ? e.parentName : e.displayName) || "").trim(),
-          email,
-          role: selectedType === "students" ? "PARENT" : "TEACHER",
-          phone: String((selectedType === "students" ? e.parentPhone : e.phone) || "").trim(),
-        });
+        const name = selectedType === "students" ? e.parentName : selectedType === "teachers" ? e.displayName : e.fullname;
+        const role = selectedType === "students" ? "PARENT" : selectedType === "teachers" ? "TEACHER" : String(e.role || "STAFF").toUpperCase();
+        const phone = selectedType === "students" ? e.parentPhone : e.phone;
+        creds.push({ name: String(name || "").trim(), email, role, phone: String(phone || "").trim() });
       }
       setCredentials(creds);
       setSendResult(null);
@@ -393,6 +402,7 @@ export default function BulkImportPage() {
     switch (type) {
       case "students": return "👨‍🎓";
       case "teachers": return "👩‍🏫";
+      case "staff": return "🧑‍💼";
       case "classes": return "📚";
       case "payments": return "💰";
       case "leads": return "📞";
@@ -403,6 +413,7 @@ export default function BulkImportPage() {
     switch (type) {
       case "students": return "Students";
       case "teachers": return "Teachers";
+      case "staff": return "Staff";
       case "classes": return "Classes";
       case "payments": return "Payments";
       case "leads": return "Leads";
@@ -427,9 +438,9 @@ export default function BulkImportPage() {
       {/* Auto-provisioning note */}
       <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
         🔐 <b>Login profiles are created automatically.</b> Importing <b>students</b> creates a{" "}
-        <b>Parent</b> account (from the <code>parentEmail</code> column); importing <b>teachers</b> creates a{" "}
-        <b>Teacher</b> account (from the <code>email</code> column). New accounts get the default password{" "}
-        <b>Lera@123</b> — ask users to change it after first login.
+        <b>Parent</b> account (from <code>parentEmail</code>); <b>teachers</b> and <b>staff</b> get their own login (from{" "}
+        <code>email</code>, with the role you set for staff). New accounts get the default password{" "}
+        <b>Lera@123</b> and must change it on first login — then hand out credentials or a set-password link below.
       </div>
 
       {/* Step 1: Select Type and Center */}
@@ -441,7 +452,7 @@ export default function BulkImportPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">What do you want to import?</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {(["students", "teachers", "classes", "payments", "leads"] as ImportType[]).map(type => (
+              {(["students", "teachers", "staff", "classes", "payments", "leads"] as ImportType[]).map(type => (
                 <button
                   key={type}
                   onClick={() => { setSelectedType(type); setFile(null); setCsvData([]); setResult(null); setPreviewMode(false); }}
@@ -675,6 +686,7 @@ export default function BulkImportPage() {
                 href={({
                   students: "/dashboard/superadmin/students",
                   teachers: "/dashboard/superadmin/teachers",
+                  staff: "/dashboard/superadmin/users",
                   classes: "/dashboard/superadmin/classes",
                   payments: "/dashboard/payments",
                   leads: "/dashboard/crm/leads",
