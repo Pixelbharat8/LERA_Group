@@ -514,6 +514,8 @@ const withRewrites = {
       // AI Gateway
       { source: "/api/ai", destination: `${aiGatewayUrl}/api/ai` },
       { source: "/api/ai/:path*", destination: `${aiGatewayUrl}/api/ai/:path*` },
+      { source: "/api/ai-learning-progress", destination: `${aiGatewayUrl}/api/ai-learning-progress` },
+      { source: "/api/ai-learning-progress/:path*", destination: `${aiGatewayUrl}/api/ai-learning-progress/:path*` },
       { source: "/api/tutor", destination: `${aiGatewayUrl}/api/tutor` },
       { source: "/api/tutor/:path*", destination: `${aiGatewayUrl}/api/tutor/:path*` },
 
