@@ -9,6 +9,8 @@ import com.lera.identity_service.repository.CenterRepository;
 import com.lera.identity_service.repository.DepartmentRepository;
 import com.lera.identity_service.repository.RoleRepository;
 import com.lera.identity_service.repository.UserRepository;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -24,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,7 +40,17 @@ public class UserService {
     private final CenterRepository centerRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    
+
+    // Failed-login counter per account (email), 15-minute sliding window. A final field with an
+    // initializer is not part of the @RequiredArgsConstructor. Generous threshold so a normal
+    // user fumbling their password isn't locked out, but automated guessing against one account
+    // is stopped regardless of source IP.
+    private static final int MAX_FAILED_PER_ACCOUNT = 15;
+    private final Cache<String, AtomicInteger> failedLogins = Caffeine.newBuilder()
+            .expireAfterWrite(15, TimeUnit.MINUTES)
+            .maximumSize(100_000)
+            .build();
+
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         return register(request, false);
@@ -209,31 +223,49 @@ public class UserService {
 
     public AuthResponse login(LoginRequest request) {
         String emailInput = request.getEmail() != null ? request.getEmail().trim() : "";
+        String throttleKey = emailInput.toLowerCase();
+
+        // Per-account brute-force throttle: too many failed logins for one email inside the
+        // window blocks further attempts even across many IPs — this catches distributed
+        // credential-stuffing that the per-IP AuthRateLimitFilter cannot. Cleared on success.
+        AtomicInteger fails = failedLogins.getIfPresent(throttleKey);
+        if (fails != null && fails.get() >= MAX_FAILED_PER_ACCOUNT) {
+            return AuthResponse.builder()
+                    .success(false)
+                    .message("Too many failed attempts. Please try again in a few minutes.")
+                    .build();
+        }
+
         Optional<User> userOpt = userRepository.findByEmailWithRoleIgnoreCase(emailInput);
-        
+
         if (userOpt.isEmpty()) {
+            recordFailedLogin(throttleKey);
             return AuthResponse.builder()
                     .success(false)
                     .message("Invalid email or password")
                     .build();
         }
-        
+
         User user = userOpt.get();
-        
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            recordFailedLogin(throttleKey);
             return AuthResponse.builder()
                     .success(false)
                     .message("Invalid email or password")
                     .build();
         }
-        
+
         if (!"ACTIVE".equals(user.getStatus())) {
             return AuthResponse.builder()
                     .success(false)
                     .message("Account is not active")
                     .build();
         }
-        
+
+        // Correct credentials — clear the failed-attempt counter for this account.
+        failedLogins.invalidate(throttleKey);
+
         // Update last login
         user.setLastLogin(LocalDateTime.now());
         userRepository.save(user);
@@ -342,6 +374,10 @@ public class UserService {
             bumpTokenVersion(user); // invalidate outstanding refresh tokens
             return mapToDTO(userRepository.save(user));
         });
+    }
+
+    private void recordFailedLogin(String key) {
+        failedLogins.get(key, k -> new AtomicInteger(0)).incrementAndGet();
     }
 
     /** Increment the token version so previously-issued refresh tokens stop working. */

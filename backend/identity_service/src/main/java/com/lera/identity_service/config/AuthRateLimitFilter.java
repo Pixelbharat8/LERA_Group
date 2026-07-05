@@ -6,6 +6,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AuthRateLimitFilter implements Filter {
 
     private static final int MAX_AUTH_REQUESTS_PER_MINUTE = 10;
+
+    // Only honour X-Forwarded-For / X-Real-IP when we're actually behind a trusted reverse
+    // proxy/CDN that sets them — otherwise a client can spoof the header and get a fresh
+    // rate-limit bucket per request, nullifying this filter. Default OFF (use the real socket
+    // address). Set lera.security.trusted-proxy=true in the deployed profile (behind Nginx/CDN),
+    // and ensure that proxy OVERWRITES (not appends) X-Forwarded-For with the true client IP.
+    @Value("${lera.security.trusted-proxy:false}")
+    private boolean trustedProxy;
 
     private static final Set<String> AUTH_PATHS = Set.of(
         "/api/auth/login",
@@ -66,13 +75,16 @@ public class AuthRateLimitFilter implements Filter {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
+        // Client-controlled headers are only trustworthy behind a trusted proxy that sets them.
+        if (trustedProxy) {
+            String xForwardedFor = request.getHeader("X-Forwarded-For");
+            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+                return xForwardedFor.split(",")[0].trim();
+            }
+            String xRealIp = request.getHeader("X-Real-IP");
+            if (xRealIp != null && !xRealIp.isEmpty()) {
+                return xRealIp;
+            }
         }
         return request.getRemoteAddr();
     }
