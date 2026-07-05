@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Authentication API. Forgot-password emails are sent only when {@code spring.mail.*} and
@@ -45,6 +44,7 @@ public class AuthController {
     private final JwtService jwtService;
     private final AuthCookies authCookies;
     private final PasswordResetMailService passwordResetMailService;
+    private final com.lera.identity_service.repository.PasswordResetTokenRepository passwordResetTokenRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     
     /** Internal service-to-service API key — MUST be set via environment variable */
@@ -55,30 +55,32 @@ public class AuthController {
     @Value("${lera.password-reset.frontend-base-url:http://localhost:3000}")
     private String passwordResetFrontendBaseUrl;
     
-    // Thread-safe token store with expiry: token -> { email, expiryMillis }
-    private static final Map<String, Map<String, Object>> resetTokens = new ConcurrentHashMap<>();
     /** Reset tokens expire after 15 minutes */
     private static final long RESET_TOKEN_EXPIRY_MS = 15 * 60 * 1000;
     /** Onboarding set-password links (sent via WhatsApp/Zalo/SMS) live longer — people act on them later. */
     private static final long ONBOARDING_TOKEN_EXPIRY_MS = 7L * 24 * 60 * 60 * 1000;
 
     /**
-     * Evict expired password-reset tokens so the in-memory store cannot grow unbounded
-     * from links that are issued but never used. Tokens are still validated on use; this
-     * just reclaims memory. Runs every 10 minutes.
+     * Evict expired password-reset tokens so the store can't grow unbounded from links that are
+     * issued but never used. Tokens are still validated on use; this just reclaims rows. Runs
+     * every 10 minutes. (Persistent store — survives restarts and works across instances.)
      */
     @Scheduled(fixedDelay = 10 * 60 * 1000)
     public void purgeExpiredResetTokens() {
-        long now = System.currentTimeMillis();
-        int before = resetTokens.size();
-        resetTokens.values().removeIf(data -> {
-            Object expiry = data.get("expiry");
-            return !(expiry instanceof Long) || (Long) expiry < now;
-        });
-        int removed = before - resetTokens.size();
+        int removed = passwordResetTokenRepository.deleteExpired(System.currentTimeMillis());
         if (removed > 0) {
             log.debug("Purged {} expired password-reset token(s)", removed);
         }
+    }
+
+    /** Persist a single-use reset/onboarding token that expires {@code expiryMs} from now. */
+    private void saveResetToken(String token, String email, long expiryMs) {
+        passwordResetTokenRepository.save(com.lera.identity_service.entity.PasswordResetToken.builder()
+                .token(token)
+                .email(email)
+                .expiresAt(System.currentTimeMillis() + expiryMs)
+                .createdAt(java.time.LocalDateTime.now())
+                .build());
     }
 
     @PostMapping("/register")
@@ -205,10 +207,7 @@ public class AuthController {
             return ResponseEntity.ok(res);
         }
         String token = UUID.randomUUID().toString();
-        Map<String, Object> tokenData = new HashMap<>();
-        tokenData.put("email", email);
-        tokenData.put("expiry", System.currentTimeMillis() + ONBOARDING_TOKEN_EXPIRY_MS);
-        resetTokens.put(token, tokenData);
+        saveResetToken(token, email, ONBOARDING_TOKEN_EXPIRY_MS);
         String base = passwordResetFrontendBaseUrl.replaceAll("/$", "");
         res.put("success", true);
         res.put("link", base + "/auth/reset-password?token=" + token);
@@ -241,10 +240,7 @@ public class AuthController {
             return ResponseEntity.ok(res);
         }
         String token = UUID.randomUUID().toString();
-        Map<String, Object> tokenData = new HashMap<>();
-        tokenData.put("email", email);
-        tokenData.put("expiry", System.currentTimeMillis() + ONBOARDING_TOKEN_EXPIRY_MS);
-        resetTokens.put(token, tokenData);
+        saveResetToken(token, email, ONBOARDING_TOKEN_EXPIRY_MS);
         String link = passwordResetFrontendBaseUrl.replaceAll("/$", "") + "/auth/reset-password?token=" + token;
         boolean sent = passwordResetMailService.sendPasswordReset(email, link);
         res.put("success", true);
@@ -297,10 +293,7 @@ public class AuthController {
         if (userOpt.isPresent()) {
             // Generate reset token with expiry
             String token = UUID.randomUUID().toString();
-            Map<String, Object> tokenData = new HashMap<>();
-            tokenData.put("email", email);
-            tokenData.put("expiry", System.currentTimeMillis() + RESET_TOKEN_EXPIRY_MS);
-            resetTokens.put(token, tokenData);
+            saveResetToken(token, email, RESET_TOKEN_EXPIRY_MS);
 
             String base = passwordResetFrontendBaseUrl.replaceAll("/$", "");
             String resetUrl = base + "/auth/reset-password?token=" + token;
@@ -339,24 +332,24 @@ public class AuthController {
         }
 
         // Validate token
-        Map<String, Object> tokenData = resetTokens.get(token);
-        if (tokenData == null) {
+        var prtOpt = passwordResetTokenRepository.findById(token);
+        if (prtOpt.isEmpty()) {
             response.put("success", false);
             response.put("message", "Invalid or expired reset token");
             return ResponseEntity.badRequest().body(response);
         }
-        
+        var prt = prtOpt.get();
+
         // Check token expiry
-        long expiry = (Long) tokenData.get("expiry");
-        if (System.currentTimeMillis() > expiry) {
-            resetTokens.remove(token);
+        if (System.currentTimeMillis() > prt.getExpiresAt()) {
+            passwordResetTokenRepository.deleteById(token);
             response.put("success", false);
             response.put("message", "Reset token has expired. Please request a new one.");
             return ResponseEntity.badRequest().body(response);
         }
-        
-        String email = (String) tokenData.get("email");
-        
+
+        String email = prt.getEmail();
+
         // Find user and update password
         var userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
@@ -367,7 +360,7 @@ public class AuthController {
             userRepository.save(user);
 
             // Remove used token
-            resetTokens.remove(token);
+            passwordResetTokenRepository.deleteById(token);
             
             response.put("success", true);
             response.put("message", "Password has been reset successfully");
