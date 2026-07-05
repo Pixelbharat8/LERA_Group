@@ -215,6 +215,43 @@ public class AuthController {
         return ResponseEntity.ok(res);
     }
 
+    /**
+     * Email a one-time set-password link to an account (onboarding after import). Same trust model and
+     * token as {@link #setPasswordLink}, but delivered by the mail service. {@code sent=false} means
+     * SMTP isn't configured (see PasswordResetMailService) — the caller can fall back to WhatsApp/Zalo/SMS.
+     */
+    @PostMapping("/send-set-password-email")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<Map<String, Object>> sendSetPasswordEmail(
+            @RequestBody Map<String, String> body,
+            @RequestHeader(value = "X-Internal-Key", required = false) String internalKey) {
+        boolean keyConfigured = internalApiKey != null && !internalApiKey.isBlank()
+                && !InternalApiKeyValidator.LEGACY_WEAK_KEY.equals(internalApiKey);
+        boolean isInternal = keyConfigured && internalApiKey.equals(internalKey);
+        Map<String, Object> res = new HashMap<>();
+        if (!isInternal && !isAuthenticatedOrgWideAdmin()) {
+            res.put("success", false);
+            res.put("error", "forbidden");
+            return ResponseEntity.status(403).body(res);
+        }
+        String email = body.getOrDefault("email", "").trim();
+        if (email.isEmpty() || userRepository.findByEmail(email).isEmpty()) {
+            res.put("success", false);
+            res.put("error", "no account for that email");
+            return ResponseEntity.ok(res);
+        }
+        String token = UUID.randomUUID().toString();
+        Map<String, Object> tokenData = new HashMap<>();
+        tokenData.put("email", email);
+        tokenData.put("expiry", System.currentTimeMillis() + ONBOARDING_TOKEN_EXPIRY_MS);
+        resetTokens.put(token, tokenData);
+        String link = passwordResetFrontendBaseUrl.replaceAll("/$", "") + "/auth/reset-password?token=" + token;
+        boolean sent = passwordResetMailService.sendPasswordReset(email, link);
+        res.put("success", true);
+        res.put("sent", sent); // false when SMTP not configured
+        return ResponseEntity.ok(res);
+    }
+
     @PostMapping("/login")
     @PreAuthorize("permitAll()")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request,

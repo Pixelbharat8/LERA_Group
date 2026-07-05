@@ -63,6 +63,8 @@ export default function BulkImportPage() {
   const [sendChannel, setSendChannel] = useState<string>("");
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<{ sent: number; skipped: number; failed: number; noPhone: number } | null>(null);
+  const [emailing, setEmailing] = useState(false);
+  const [emailResult, setEmailResult] = useState<{ emailed: number; notConfigured: number; failed: number } | null>(null);
 
   // Fetch centers on mount
   useState(() => {
@@ -363,6 +365,28 @@ export default function BulkImportPage() {
     }
     setSendResult(tally);
     setSending(false);
+  };
+
+  // Email each new account a one-time set-password link (uses the account email — no phone needed).
+  const sendEmailLinks = async () => {
+    if (credentials.length === 0) return;
+    setEmailing(true);
+    setEmailResult(null);
+    const tally = { emailed: 0, notConfigured: 0, failed: 0 };
+    for (const c of credentials) {
+      try {
+        const r: any = await apiFetch("/api/auth/send-set-password-email", {
+          method: "POST", body: JSON.stringify({ email: c.email }),
+        }, { silent: true }).catch(() => null);
+        if (r?.success && r?.sent) tally.emailed++;
+        else if (r?.success && r?.sent === false) tally.notConfigured++;
+        else tally.failed++;
+      } catch {
+        tally.failed++;
+      }
+    }
+    setEmailResult(tally);
+    setEmailing(false);
   };
 
   const getTypeIcon = (type: ImportType) => {
@@ -677,12 +701,27 @@ export default function BulkImportPage() {
                 New accounts use the temporary password <b>{IMPORT_DEFAULT_PASSWORD}</b> — users must change it on first
                 login. Anyone who already had an account keeps their existing password (ignore those rows).
               </p>
-              <button
-                onClick={downloadCredentials}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-              >
-                ⬇️ Download login credentials (CSV)
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={downloadCredentials}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                >
+                  ⬇️ Download credentials (CSV)
+                </button>
+                <button
+                  onClick={sendEmailLinks} disabled={emailing}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm disabled:opacity-50"
+                >
+                  {emailing ? "Emailing…" : "✉️ Email set-password links"}
+                </button>
+                {emailResult && (
+                  <span className="text-xs text-gray-700">
+                    ✅ Emailed {emailResult.emailed}
+                    {emailResult.notConfigured > 0 ? ` · ✉️ SMTP not configured (${emailResult.notConfigured})` : ""}
+                    {emailResult.failed > 0 ? ` · ❌ ${emailResult.failed}` : ""}
+                  </span>
+                )}
+              </div>
 
               {/* Send a one-time set-password link over WhatsApp/Zalo/SMS */}
               <div className="mt-4 pt-4 border-t border-green-200">
