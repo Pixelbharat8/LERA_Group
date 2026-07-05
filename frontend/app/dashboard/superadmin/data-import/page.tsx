@@ -55,6 +55,9 @@ export default function BulkImportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [googleSheetUrl, setGoogleSheetUrl] = useState("");
   const [fetchingSheet, setFetchingSheet] = useState(false);
+  // Login accounts auto-created by the last import (for the "download credentials" handout).
+  const [credentials, setCredentials] = useState<{ name: string; email: string; role: string }[]>([]);
+  const IMPORT_DEFAULT_PASSWORD = "Lera@123";
 
   // Fetch centers on mount
   useState(() => {
@@ -190,6 +193,7 @@ export default function BulkImportPage() {
 
     setImporting(true);
     setResult(null);
+    setCredentials([]);
 
     const results: ImportResult = { success: 0, failed: 0, errors: [] };
 
@@ -278,8 +282,42 @@ export default function BulkImportPage() {
       }
     }
 
+    // Build the login-credentials handout for auto-provisioned accounts (students→parents, teachers).
+    if (results.success > 0 && (selectedType === "students" || selectedType === "teachers")) {
+      const seen = new Set<string>();
+      const creds: { name: string; email: string; role: string }[] = [];
+      for (const e of entities) {
+        const email = String((selectedType === "students" ? e.parentEmail : e.email) || "").trim();
+        if (!email || seen.has(email.toLowerCase())) continue;
+        seen.add(email.toLowerCase());
+        creds.push({
+          name: String((selectedType === "students" ? e.parentName : e.displayName) || "").trim(),
+          email,
+          role: selectedType === "students" ? "PARENT" : "TEACHER",
+        });
+      }
+      setCredentials(creds);
+    }
+
     setResult(results);
     setImporting(false);
+  };
+
+  // Download a CSV of the login accounts created by this import so the admin can hand them out.
+  const downloadCredentials = () => {
+    if (credentials.length === 0) return;
+    const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+    const rows = [
+      ["name", "email", "role", "temporaryPassword"].join(","),
+      ...credentials.map((c) => [c.name, c.email, c.role, IMPORT_DEFAULT_PASSWORD].map(esc).join(",")),
+    ].join("\n");
+    const blob = new Blob([rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${selectedType}_login_credentials.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const getTypeIcon = (type: ImportType) => {
@@ -581,6 +619,24 @@ export default function BulkImportPage() {
                 className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Import More
+              </button>
+            </div>
+          )}
+
+          {credentials.length > 0 && (
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4">
+              <p className="text-sm font-medium text-green-900">
+                🔑 {credentials.length} login {credentials.length === 1 ? "account" : "accounts"} to hand out
+              </p>
+              <p className="text-xs text-green-700 mt-1 mb-3">
+                New accounts use the temporary password <b>{IMPORT_DEFAULT_PASSWORD}</b> — users must change it on first
+                login. Anyone who already had an account keeps their existing password (ignore those rows).
+              </p>
+              <button
+                onClick={downloadCredentials}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+              >
+                ⬇️ Download login credentials (CSV)
               </button>
             </div>
           )}
