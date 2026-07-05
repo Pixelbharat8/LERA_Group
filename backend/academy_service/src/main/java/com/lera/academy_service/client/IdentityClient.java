@@ -42,12 +42,13 @@ public class IdentityClient {
      * Returns the (existing or new) userId, or empty on failure — a failure must not abort the
      * whole import batch, so callers just skip linking that one record.
      */
-    public Optional<UUID> provisionUser(String email, String fullname, String roleName) {
+    public Optional<UUID> provisionUser(String email, String fullname, String phone, String roleName) {
         if (email == null || email.isBlank()) return Optional.empty();
         try {
             Map<String, String> body = new HashMap<>();
             body.put("email", email.trim());
             body.put("fullname", fullname == null ? "" : fullname.trim());
+            if (phone != null && !phone.isBlank()) body.put("phone", phone.trim());
             body.put("roleName", roleName);
             body.put("password", DEFAULT_IMPORT_PASSWORD);
 

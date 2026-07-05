@@ -165,7 +165,7 @@ public class TeacherController {
             // Auto-provision a TEACHER login from the import's email + name, and link it via userId,
             // so imported teachers immediately have an accessible profile. Best-effort per row.
             if (t.getUserId() == null && t.getEmail() != null && !t.getEmail().isBlank()) {
-                identityClient.provisionUser(t.getEmail(), t.getDisplayName(), "TEACHER").ifPresent(t::setUserId);
+                identityClient.provisionUser(t.getEmail(), t.getDisplayName(), t.getPhone(), "TEACHER").ifPresent(t::setUserId);
             }
             saved.add(teacherService.create(t));
         });

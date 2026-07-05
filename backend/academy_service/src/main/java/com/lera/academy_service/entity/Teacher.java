@@ -23,10 +23,13 @@ public class Teacher {
     @Column(name = "user_id", unique = true)
     private UUID userId;
 
-    // Import-only: the teacher's login email. Not a DB column — used by bulk import to auto-create
-    // the TEACHER login account (which owns name/email); the account is linked back via userId.
+    // Import-only: the teacher's login email + phone. Not DB columns — used by bulk import to
+    // auto-create the TEACHER login account (which owns name/email/phone) and to message credentials.
     @Transient
     private String email;
+
+    @Transient
+    private String phone;
 
     @Column(name = "center_id")
     private UUID centerId;

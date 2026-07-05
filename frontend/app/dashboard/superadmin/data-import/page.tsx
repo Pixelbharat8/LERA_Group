@@ -24,8 +24,8 @@ const CSV_TEMPLATES: Record<ImportType, { headers: string[]; sample: string[] }>
     sample: ["Nguyen Van A", "Nguyễn Văn A", "student@email.com", "0901234567", "2015-05-10", "MALE", "ABC Primary School", "5", "ACTIVE", "Nguyen Thi B", "0912345678", "parent@email.com", "Nguyen Van C", "0923456789"]
   },
   teachers: {
-    headers: ["displayName", "email", "specialization", "qualification", "yearsOfExperience", "nationality", "bio", "hourlyRate", "contractType", "status"],
-    sample: ["Nguyen Van Teacher", "teacher@email.com", "English", "BA Education", "5", "Vietnamese", "Experienced English teacher", "200000", "FULL_TIME", "ACTIVE"]
+    headers: ["displayName", "email", "phone", "specialization", "qualification", "yearsOfExperience", "nationality", "bio", "hourlyRate", "contractType", "status"],
+    sample: ["Nguyen Van Teacher", "teacher@email.com", "0901234567", "English", "BA Education", "5", "Vietnamese", "Experienced English teacher", "200000", "FULL_TIME", "ACTIVE"]
   },
   classes: {
     headers: ["name", "description", "level", "maxStudents", "schedule", "startDate", "endDate", "status"],
@@ -56,8 +56,13 @@ export default function BulkImportPage() {
   const [googleSheetUrl, setGoogleSheetUrl] = useState("");
   const [fetchingSheet, setFetchingSheet] = useState(false);
   // Login accounts auto-created by the last import (for the "download credentials" handout).
-  const [credentials, setCredentials] = useState<{ name: string; email: string; role: string }[]>([]);
+  const [credentials, setCredentials] = useState<{ name: string; email: string; role: string; phone: string }[]>([]);
   const IMPORT_DEFAULT_PASSWORD = "Lera@123";
+  // Sending login links over WhatsApp/Zalo/SMS
+  const [channelStatus, setChannelStatus] = useState<Record<string, boolean>>({});
+  const [sendChannel, setSendChannel] = useState<string>("");
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState<{ sent: number; skipped: number; failed: number; noPhone: number } | null>(null);
 
   // Fetch centers on mount
   useState(() => {
@@ -285,7 +290,7 @@ export default function BulkImportPage() {
     // Build the login-credentials handout for auto-provisioned accounts (students→parents, teachers).
     if (results.success > 0 && (selectedType === "students" || selectedType === "teachers")) {
       const seen = new Set<string>();
-      const creds: { name: string; email: string; role: string }[] = [];
+      const creds: { name: string; email: string; role: string; phone: string }[] = [];
       for (const e of entities) {
         const email = String((selectedType === "students" ? e.parentEmail : e.email) || "").trim();
         if (!email || seen.has(email.toLowerCase())) continue;
@@ -294,9 +299,20 @@ export default function BulkImportPage() {
           name: String((selectedType === "students" ? e.parentName : e.displayName) || "").trim(),
           email,
           role: selectedType === "students" ? "PARENT" : "TEACHER",
+          phone: String((selectedType === "students" ? e.parentPhone : e.phone) || "").trim(),
         });
       }
       setCredentials(creds);
+      setSendResult(null);
+      // Load which messaging channels are live (Zalo/WhatsApp/SMS configured).
+      apiFetch("/api/messaging/status", {}, { silent: true })
+        .then((s: any) => {
+          const st = s && typeof s === "object" ? s : {};
+          setChannelStatus(st);
+          const firstLive = Object.keys(st).find((k) => st[k]);
+          if (firstLive) setSendChannel(firstLive);
+        })
+        .catch(() => setChannelStatus({}));
     }
 
     setResult(results);
@@ -318,6 +334,35 @@ export default function BulkImportPage() {
     a.download = `${selectedType}_login_credentials.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  // Send each new account a one-time set-password link over the chosen channel (WhatsApp/Zalo/SMS).
+  const sendLoginLinks = async () => {
+    if (!sendChannel || credentials.length === 0) return;
+    setSending(true);
+    setSendResult(null);
+    const tally = { sent: 0, skipped: 0, failed: 0, noPhone: 0 };
+    for (const c of credentials) {
+      if (!c.phone) { tally.noPhone++; continue; }
+      try {
+        const linkResp: any = await apiFetch("/api/auth/set-password-link", {
+          method: "POST", body: JSON.stringify({ email: c.email }),
+        }, { silent: true }).catch(() => null);
+        if (!linkResp?.success || !linkResp?.link) { tally.failed++; continue; }
+        const msg = `Xin chào ${c.name || ""}, tài khoản LERA của bạn đã sẵn sàng. Vui lòng đặt mật khẩu: ${linkResp.link}`;
+        const sendResp: any = await apiFetch("/api/messaging/send", {
+          method: "POST", body: JSON.stringify({ toPhone: c.phone, channel: sendChannel, message: msg }),
+        }, { silent: true }).catch(() => null);
+        const status = String(sendResp?.status || "").toUpperCase();
+        if (status === "SENT") tally.sent++;
+        else if (status === "SKIPPED") tally.skipped++;
+        else tally.failed++;
+      } catch {
+        tally.failed++;
+      }
+    }
+    setSendResult(tally);
+    setSending(false);
   };
 
   const getTypeIcon = (type: ImportType) => {
@@ -638,6 +683,48 @@ export default function BulkImportPage() {
               >
                 ⬇️ Download login credentials (CSV)
               </button>
+
+              {/* Send a one-time set-password link over WhatsApp/Zalo/SMS */}
+              <div className="mt-4 pt-4 border-t border-green-200">
+                <p className="text-sm font-medium text-green-900 mb-1">📤 Or send a one-time set-password link</p>
+                {(() => {
+                  const channels = Object.keys(channelStatus);
+                  const live = channels.filter((c) => channelStatus[c]);
+                  const withPhone = credentials.filter((c) => c.phone).length;
+                  if (channels.length === 0) {
+                    return <p className="text-xs text-gray-500">Messaging status unavailable.</p>;
+                  }
+                  if (live.length === 0) {
+                    return (
+                      <p className="text-xs text-amber-700">
+                        No channel is configured yet ({channels.join(", ")}). Set provider credentials
+                        (<code>messaging.zalo.*</code> / <code>messaging.whatsapp.*</code> / <code>messaging.sms.*</code>) to enable sending.
+                      </p>
+                    );
+                  }
+                  return (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select value={sendChannel} onChange={(e) => setSendChannel(e.target.value)}
+                        className="h-9 rounded-md border border-gray-300 px-2 text-sm">
+                        {live.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <button onClick={sendLoginLinks} disabled={sending || !sendChannel || withPhone === 0}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm disabled:opacity-50">
+                        {sending ? "Sending…" : `Send to ${withPhone} recipient${withPhone === 1 ? "" : "s"}`}
+                      </button>
+                      {withPhone < credentials.length && (
+                        <span className="text-xs text-gray-500">{credentials.length - withPhone} have no phone</span>
+                      )}
+                    </div>
+                  );
+                })()}
+                {sendResult && (
+                  <p className="text-xs text-gray-700 mt-2">
+                    ✅ Sent {sendResult.sent} · ⏭️ Skipped {sendResult.skipped} · ❌ Failed {sendResult.failed}
+                    {sendResult.noPhone > 0 ? ` · 📵 No phone ${sendResult.noPhone}` : ""}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>

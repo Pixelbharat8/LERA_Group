@@ -59,6 +59,8 @@ public class AuthController {
     private static final Map<String, Map<String, Object>> resetTokens = new ConcurrentHashMap<>();
     /** Reset tokens expire after 15 minutes */
     private static final long RESET_TOKEN_EXPIRY_MS = 15 * 60 * 1000;
+    /** Onboarding set-password links (sent via WhatsApp/Zalo/SMS) live longer — people act on them later. */
+    private static final long ONBOARDING_TOKEN_EXPIRY_MS = 7L * 24 * 60 * 60 * 1000;
 
     /**
      * Evict expired password-reset tokens so the in-memory store cannot grow unbounded
@@ -172,6 +174,44 @@ public class AuthController {
             res.put("success", false);
             res.put("error", r.getMessage() != null ? r.getMessage() : "provisioning failed");
         }
+        return ResponseEntity.ok(res);
+    }
+
+    /**
+     * Generate a one-time set-password link for an existing account, WITHOUT emailing it — returned to
+     * the caller so it can be delivered over WhatsApp/Zalo/SMS (onboarding after a bulk import).
+     * Reuses the reset-token store + {@code /reset-password} consumer, but with a 7-day expiry.
+     * Same trust model as /register: internal key OR org-wide admin.
+     */
+    @PostMapping("/set-password-link")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<Map<String, Object>> setPasswordLink(
+            @RequestBody Map<String, String> body,
+            @RequestHeader(value = "X-Internal-Key", required = false) String internalKey) {
+        boolean keyConfigured = internalApiKey != null && !internalApiKey.isBlank()
+                && !InternalApiKeyValidator.LEGACY_WEAK_KEY.equals(internalApiKey);
+        boolean isInternal = keyConfigured && internalApiKey.equals(internalKey);
+        Map<String, Object> res = new HashMap<>();
+        if (!isInternal && !isAuthenticatedOrgWideAdmin()) {
+            res.put("success", false);
+            res.put("error", "forbidden");
+            return ResponseEntity.status(403).body(res);
+        }
+        String email = body.getOrDefault("email", "").trim();
+        if (email.isEmpty() || userRepository.findByEmail(email).isEmpty()) {
+            // Don't reveal which emails exist; just say no link.
+            res.put("success", false);
+            res.put("error", "no account for that email");
+            return ResponseEntity.ok(res);
+        }
+        String token = UUID.randomUUID().toString();
+        Map<String, Object> tokenData = new HashMap<>();
+        tokenData.put("email", email);
+        tokenData.put("expiry", System.currentTimeMillis() + ONBOARDING_TOKEN_EXPIRY_MS);
+        resetTokens.put(token, tokenData);
+        String base = passwordResetFrontendBaseUrl.replaceAll("/$", "");
+        res.put("success", true);
+        res.put("link", base + "/auth/reset-password?token=" + token);
         return ResponseEntity.ok(res);
     }
 

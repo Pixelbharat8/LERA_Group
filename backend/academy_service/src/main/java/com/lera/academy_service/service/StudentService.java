@@ -108,7 +108,7 @@ public class StudentService {
             String key = email.trim().toLowerCase();
             UUID parentId = parentByEmail.get(key);
             if (parentId == null) {
-                parentId = identityClient.provisionUser(email.trim(), s.getParentName(), "PARENT").orElse(null);
+                parentId = identityClient.provisionUser(email.trim(), s.getParentName(), s.getParentPhone(), "PARENT").orElse(null);
                 if (parentId != null) parentByEmail.put(key, parentId);
             }
             if (parentId != null) {
