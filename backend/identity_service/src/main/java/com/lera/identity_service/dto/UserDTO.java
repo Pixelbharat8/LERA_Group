@@ -34,6 +34,7 @@ public class UserDTO {
     /** Convenience flag (= status is ACTIVE) for UIs that filter/badge on active state. */
     private Boolean isActive;
     private Boolean emailVerified;
+    private Boolean passwordChangeRequired;
     private String lastLogin;
     private String createdAt;
 }

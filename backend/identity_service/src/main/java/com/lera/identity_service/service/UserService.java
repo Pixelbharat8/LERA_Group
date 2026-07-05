@@ -253,6 +253,7 @@ public class UserService {
     public Optional<UserDTO> updatePassword(UUID id, String newPassword) {
         return userRepository.findById(id).map(user -> {
             user.setPasswordHash(passwordEncoder.encode(newPassword));
+            user.setPasswordChangeRequired(false); // they've now set their own password
             return mapToDTO(userRepository.save(user));
         });
     }
@@ -355,6 +356,7 @@ public class UserService {
                 .status(user.getStatus())
                 .isActive("ACTIVE".equalsIgnoreCase(user.getStatus()))
                 .emailVerified(user.getEmailVerified())
+                .passwordChangeRequired(user.getPasswordChangeRequired())
                 .lastLogin(user.getLastLogin() != null ? user.getLastLogin().format(formatter) : null)
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().format(formatter) : null)
                 .departmentId(user.getDepartmentId())

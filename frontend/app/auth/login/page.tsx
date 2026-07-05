@@ -60,6 +60,13 @@ export default function LoginPage() {
       // does not contain the JWT — only display fields.
       Cookies.set("userData", JSON.stringify(res.data.user));
 
+      // Auto-provisioned accounts (imported students' parents / teachers) ship with a shared
+      // default password — force them to set a new one before entering the app.
+      if (res.data.user.passwordChangeRequired) {
+        window.location.href = "/auth/change-password";
+        return;
+      }
+
       // Map role to dashboard path
       // Chairman is GOD and gets their own special dashboard
       // High-privilege roles (CEO, DIRECTOR) use superadmin dashboard

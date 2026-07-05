@@ -64,6 +64,12 @@ public class User {
     @Column(name = "email_verified")
     @Builder.Default
     private Boolean emailVerified = false;
+
+    // True for auto-provisioned import accounts (default password) — the user must set a new
+    // password on first login. Cleared the moment they change it.
+    @Column(name = "password_change_required")
+    @Builder.Default
+    private Boolean passwordChangeRequired = false;
     
     @Column(name = "last_login")
     private LocalDateTime lastLogin;

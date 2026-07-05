@@ -63,6 +63,11 @@ const useAuth = () => {
       if (userDataStr) {
         try {
           const userData = JSON.parse(userDataStr);
+          // Provisioned import accounts must set a real password before using the app.
+          if (userData.passwordChangeRequired) {
+            window.location.href = "/auth/change-password";
+            return;
+          }
           setUser({
             id: userData.id,
             name: userData.fullname || userData.name || "User",

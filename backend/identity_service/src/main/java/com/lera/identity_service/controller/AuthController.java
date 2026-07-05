@@ -160,6 +160,11 @@ public class AuthController {
         req.setPhone(body.get("phone"));
         AuthResponse r = userService.register(req, true); // privileged internal creation
         if (r.isSuccess() && r.getUser() != null) {
+            // Force a password change on first login — the account ships with a shared default.
+            userRepository.findById(r.getUser().getId()).ifPresent(u -> {
+                u.setPasswordChangeRequired(true);
+                userRepository.save(u);
+            });
             res.put("success", true);
             res.put("userId", r.getUser().getId());
             res.put("created", true);
