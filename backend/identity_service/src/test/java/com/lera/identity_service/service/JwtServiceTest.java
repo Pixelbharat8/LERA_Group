@@ -94,4 +94,54 @@ class JwtServiceTest {
         String email = jwtService.extractUsername(refreshToken);
         assertEquals("admin@lera.com", email);
     }
+
+    // --- token-type separation (#2: refresh tokens must not be usable as access credentials) ---
+
+    @Test
+    void generateToken_shouldMarkTokenTypeAccess() {
+        assertEquals("access", jwtService.extractTokenType(jwtService.generateToken(testUser)));
+    }
+
+    @Test
+    void generateRefreshToken_shouldMarkTokenTypeRefresh() {
+        assertEquals("refresh", jwtService.extractTokenType(jwtService.generateRefreshToken(testUser)));
+    }
+
+    @Test
+    void accessAndRefreshTokens_shouldHaveDistinctTokenType() {
+        assertNotEquals(
+                jwtService.extractTokenType(jwtService.generateToken(testUser)),
+                jwtService.extractTokenType(jwtService.generateRefreshToken(testUser)));
+    }
+
+    @Test
+    void extractTokenType_shouldReturnNullForInvalidToken() {
+        // Filters treat null as "not a refresh token"; a malformed token must not throw.
+        assertNull(jwtService.extractTokenType("not.a.jwt"));
+    }
+
+    // --- token version stamping (#3: password change/reset invalidates old tokens) ---
+
+    @Test
+    void generateToken_shouldStampCurrentTokenVersion() {
+        testUser.setTokenVersion(7);
+        assertEquals(7, jwtService.extractTokenVersion(jwtService.generateToken(testUser)));
+    }
+
+    @Test
+    void generateRefreshToken_shouldStampCurrentTokenVersion() {
+        testUser.setTokenVersion(4);
+        assertEquals(4, jwtService.extractTokenVersion(jwtService.generateRefreshToken(testUser)));
+    }
+
+    @Test
+    void tokenVersion_shouldDefaultToZeroWhenUserHasNone() {
+        testUser.setTokenVersion(null);
+        assertEquals(0, jwtService.extractTokenVersion(jwtService.generateToken(testUser)));
+    }
+
+    @Test
+    void extractTokenVersion_shouldReturnZeroForInvalidToken() {
+        assertEquals(0, jwtService.extractTokenVersion("not.a.jwt"));
+    }
 }

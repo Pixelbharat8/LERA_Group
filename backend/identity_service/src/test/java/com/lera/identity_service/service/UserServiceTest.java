@@ -153,6 +153,41 @@ class UserServiceTest {
     }
 
     @Test
+    void login_shouldThrottle_afterTooManyFailedAttempts() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("test@lera.com");
+        request.setPassword("wrong_password");
+
+        when(userRepository.findByEmailWithRoleIgnoreCase("test@lera.com")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("wrong_password", "encoded_password")).thenReturn(false);
+
+        // 15 failed attempts are allowed (generic invalid-credentials message each time)...
+        for (int i = 0; i < 15; i++) {
+            assertEquals("Invalid email or password", userService.login(request).getMessage());
+        }
+        // ...the 16th for the same account is throttled with a distinct message.
+        AuthResponse locked = userService.login(request);
+        assertFalse(locked.isSuccess());
+        assertTrue(locked.getMessage().toLowerCase().contains("too many"),
+                "expected throttle message, got: " + locked.getMessage());
+    }
+
+    @Test
+    void updatePassword_shouldBumpTokenVersion_andClearForcedChange() {
+        testUser.setTokenVersion(2);
+        testUser.setPasswordChangeRequired(true);
+
+        when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.encode("newStrongPass")).thenReturn("enc");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        userService.updatePassword(testUser.getId(), "newStrongPass");
+
+        assertEquals(3, testUser.getTokenVersion());       // old refresh tokens now invalid at /refresh
+        assertFalse(testUser.getPasswordChangeRequired());  // forced-change flag cleared
+    }
+
+    @Test
     void getAllUsers_shouldReturnMappedDTOs() {
         when(userRepository.findAllWithRelations()).thenReturn(List.of(testUser));
 
