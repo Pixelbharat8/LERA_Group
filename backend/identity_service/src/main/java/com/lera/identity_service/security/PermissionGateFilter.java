@@ -45,6 +45,12 @@ public class PermissionGateFilter extends OncePerRequestFilter {
 
     /** Module governing this path ("users" / "settings"), or null if unmapped. */
     private String baseModule(String path) {
+        // Self-service on one's OWN record (/api/users/me/**: view/edit own profile, change own
+        // password) is authorised by authentication alone (+ current-password check for the
+        // password change) — it must NOT require the admin users.create/users.view permission,
+        // otherwise low-privilege imported accounts can't complete the forced first-login
+        // password change or see their own profile.
+        if (matches(path, "/api/users/me")) return null;
         if (matches(path, "/api/users") || matches(path, "/api/staff")
                 || matches(path, "/api/user-roles") || matches(path, "/api/user-permissions")) {
             return "users";

@@ -362,8 +362,10 @@ public class AuthController {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             user.setPasswordHash(passwordEncoder.encode(newPassword));
+            // Invalidate outstanding refresh tokens — a reset often follows a compromise.
+            user.setTokenVersion((user.getTokenVersion() == null ? 0 : user.getTokenVersion()) + 1);
             userRepository.save(user);
-            
+
             // Remove used token
             resetTokens.remove(token);
             
@@ -446,11 +448,23 @@ public class AuthController {
         }
 
         final String rt = refreshToken;
+        // Only a genuine refresh token may be exchanged here — reject access tokens
+        // presented at /refresh (token-type confusion).
+        if (!"refresh".equals(jwtService.extractTokenType(rt))) {
+            return ResponseEntity.status(401).body(AuthResponse.builder()
+                    .success(false)
+                    .message("Invalid or expired refresh token")
+                    .build());
+        }
         try {
             String email = jwtService.extractUsername(rt);
             return userRepository.findByEmailWithRole(email)
                     .or(() -> userRepository.findByEmail(email))
                     .filter(u -> jwtService.isTokenValid(rt, u))
+                    // Reject a refresh token whose version is stale — i.e. the password was
+                    // changed/reset after it was issued. Bounds a stolen refresh token's life.
+                    .filter(u -> jwtService.extractTokenVersion(rt)
+                            == (u.getTokenVersion() == null ? 0 : u.getTokenVersion()))
                     .map(user -> {
                         String newAccess  = jwtService.generateToken(user);
                         String newRefresh = jwtService.generateRefreshToken(user);

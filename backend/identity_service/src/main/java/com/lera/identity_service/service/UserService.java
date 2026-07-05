@@ -339,7 +339,33 @@ public class UserService {
         return userRepository.findById(id).map(user -> {
             user.setPasswordHash(passwordEncoder.encode(newPassword));
             user.setPasswordChangeRequired(false); // they've now set their own password
+            bumpTokenVersion(user); // invalidate outstanding refresh tokens
             return mapToDTO(userRepository.save(user));
+        });
+    }
+
+    /** Increment the token version so previously-issued refresh tokens stop working. */
+    private void bumpTokenVersion(User user) {
+        user.setTokenVersion((user.getTokenVersion() == null ? 0 : user.getTokenVersion()) + 1);
+    }
+
+    /**
+     * Change the password AND return a freshly-minted access+refresh pair carrying the new
+     * tokenVersion. The caller sets these as cookies so the user stays logged in seamlessly,
+     * while the old refresh token (now a stale tokenVersion) is dead at /refresh.
+     */
+    @Transactional
+    public Optional<AuthResponse> updatePasswordAndReissue(UUID id, String newPassword) {
+        return userRepository.findByIdWithRelations(id).map(user -> {
+            user.setPasswordHash(passwordEncoder.encode(newPassword));
+            user.setPasswordChangeRequired(false);
+            bumpTokenVersion(user);
+            userRepository.save(user);
+            return AuthResponse.builder()
+                    .success(true)
+                    .token(jwtService.generateToken(user))
+                    .refreshToken(jwtService.generateRefreshToken(user))
+                    .build();
         });
     }
 

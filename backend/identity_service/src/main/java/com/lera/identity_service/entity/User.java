@@ -70,7 +70,14 @@ public class User {
     @Column(name = "password_change_required")
     @Builder.Default
     private Boolean passwordChangeRequired = false;
-    
+
+    // Bumped on every password change/reset. Stamped into issued tokens as the "tv" claim;
+    // a refresh token whose tv no longer matches is rejected at /refresh, so stolen/old
+    // refresh tokens can't mint new access tokens after the password is changed.
+    @Column(name = "token_version")
+    @Builder.Default
+    private Integer tokenVersion = 0;
+
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
     

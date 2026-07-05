@@ -4,9 +4,11 @@ import com.lera.identity_service.dto.AuthResponse;
 import com.lera.identity_service.dto.RegisterRequest;
 import com.lera.identity_service.dto.UserDTO;
 import com.lera.identity_service.security.AccessGuard;
+import com.lera.identity_service.security.AuthCookies;
 import com.lera.identity_service.security.AuthUser;
 import com.lera.identity_service.security.SecurityUtils;
 import com.lera.identity_service.service.AuditService;
+import com.lera.identity_service.service.JwtService;
 import com.lera.identity_service.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 import java.util.ArrayList;
@@ -32,6 +35,8 @@ public class UserController {
     private final UserService userService;
     private final AuditService auditService;
     private final AccessGuard accessGuard;
+    private final JwtService jwtService;
+    private final AuthCookies authCookies;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER')")
@@ -350,7 +355,8 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> changeMyPassword(
             @AuthenticationPrincipal AuthUser authUser,
-            @Valid @RequestBody Map<String, String> body) {
+            @Valid @RequestBody Map<String, String> body,
+            HttpServletResponse httpResponse) {
         Map<String, Object> response = new HashMap<>();
         if (authUser == null) {
             response.put("success", false);
@@ -384,12 +390,20 @@ public class UserController {
             return ResponseEntity.status(403).body(response);
         }
 
-        return userService.updatePassword(authUser.getUserId(), newPassword)
-                .map(user -> {
+        // Change the password and get a fresh token pair (new tokenVersion). Bumping the
+        // version kills the old refresh token; reissuing cookies here keeps this user logged
+        // in seamlessly instead of being bounced to /login when the access token expires.
+        return userService.updatePasswordAndReissue(authUser.getUserId(), newPassword)
+                .map(auth -> {
                     auditService.log("USER_PASSWORD_CHANGED", "User",
                             authUser.getUserId(), authUser.getUserId(), null, null);
+                    authCookies.setAuthCookies(httpResponse,
+                            auth.getToken(), jwtService.getAccessTokenSeconds(),
+                            auth.getRefreshToken(), jwtService.getRefreshTokenSeconds());
                     response.put("success", true);
                     response.put("message", "Password updated successfully");
+                    response.put("token", auth.getToken());
+                    response.put("refreshToken", auth.getRefreshToken());
                     return ResponseEntity.ok(response);
                 })
                 .orElseGet(() -> {

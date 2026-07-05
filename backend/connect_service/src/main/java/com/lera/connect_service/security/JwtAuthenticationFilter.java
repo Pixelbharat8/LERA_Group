@@ -37,6 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             byte[] keyBytes = Base64.getDecoder().decode(jwtSecret);
             Claims claims = Jwts.parserBuilder().setSigningKey(Keys.hmacShaKeyFor(keyBytes)).build().parseClaimsJws(jwt).getBody();
             if (claims.getExpiration().before(new Date())) { filterChain.doFilter(request, response); return; }
+            if ("refresh".equals(claims.get("tokenType", String.class))) { filterChain.doFilter(request, response); return; } // refresh tokens are not access credentials
             AuthUser principal = AuthUser.builder().userId(claims.get("userId", String.class) != null ? UUID.fromString(claims.get("userId", String.class)) : null).centerId(claims.get("centerId", String.class) != null && !claims.get("centerId", String.class).equals("null") ? UUID.fromString(claims.get("centerId", String.class)) : null).roleName(claims.get("roleName", String.class)).email(claims.getSubject()).build();
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(principal, null, principal.getRoleName() != null ? List.of(new SimpleGrantedAuthority("ROLE_" + principal.getRoleName().toUpperCase())) : List.of());
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

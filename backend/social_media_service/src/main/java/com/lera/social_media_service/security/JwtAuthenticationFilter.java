@@ -48,6 +48,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 return;
             }
+            // A refresh token must never authenticate a normal request — it's only valid at /refresh.
+            if ("refresh".equals(claims.get("tokenType", String.class))) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             AuthUser principal = AuthUser.builder()
                     .userId(claims.get("userId", String.class) != null ? UUID.fromString(claims.get("userId", String.class)) : null)

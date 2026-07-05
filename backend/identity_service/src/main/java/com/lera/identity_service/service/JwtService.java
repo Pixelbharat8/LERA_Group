@@ -85,11 +85,37 @@ public class JwtService {
     }
     
     public String generateToken(Map<String, Object> extraClaims, User user) {
+        // Mark this as an ACCESS token so a long-lived refresh token can't be
+        // replayed as a bearer credential, and stamp the user's tokenVersion so
+        // a password change/reset can invalidate outstanding refresh tokens.
+        extraClaims.put("tokenType", "access");
+        extraClaims.put("tv", currentTokenVersion(user));
         return buildToken(extraClaims, user, jwtExpiration);
     }
-    
+
     public String generateRefreshToken(User user) {
-        return buildToken(new HashMap<>(), user, refreshExpiration);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("tokenType", "refresh");
+        claims.put("tv", currentTokenVersion(user));
+        return buildToken(claims, user, refreshExpiration);
+    }
+
+    private static int currentTokenVersion(User user) {
+        return user.getTokenVersion() == null ? 0 : user.getTokenVersion();
+    }
+
+    /** "access" or "refresh" (null for legacy tokens issued before this claim existed). */
+    public String extractTokenType(String token) {
+        try { return extractClaim(token, c -> c.get("tokenType", String.class)); }
+        catch (Exception e) { return null; }
+    }
+
+    /** Token's stamped tokenVersion, or 0 if absent (legacy token). */
+    public int extractTokenVersion(String token) {
+        try {
+            Integer tv = extractClaim(token, c -> c.get("tv", Integer.class));
+            return tv == null ? 0 : tv;
+        } catch (Exception e) { return 0; }
     }
     
     private String buildToken(Map<String, Object> extraClaims, User user, long expiration) {
