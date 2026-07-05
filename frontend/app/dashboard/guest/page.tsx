@@ -284,16 +284,16 @@ export default function GuestDashboard() {
                   <h4 className="font-bold text-xl mb-3">🏆 Why Choose LERA?</h4>
                   <div className="grid md:grid-cols-3 gap-4">
                     <div className="text-center">
-                      <div className="text-3xl font-bold">500+</div>
-                      <div className="text-sm opacity-90">Happy Students</div>
+                      <div className="text-3xl font-bold">🤖</div>
+                      <div className="text-sm opacity-90">AI-Powered Learning</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold">50+</div>
-                      <div className="text-sm opacity-90">Expert Teachers</div>
+                      <div className="text-3xl font-bold">🌍</div>
+                      <div className="text-sm opacity-90">Native Teachers</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold">95%</div>
-                      <div className="text-sm opacity-90">Success Rate</div>
+                      <div className="text-3xl font-bold">🎯</div>
+                      <div className="text-sm opacity-90">Personalized Paths</div>
                     </div>
                   </div>
                 </div>
