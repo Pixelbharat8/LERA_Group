@@ -23,8 +23,6 @@ export default function CommunicationsManagement() {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({ title: "", titleVi: "", message: "", messageVi: "", type: "info", recipients: "all" });
   const [activeTab, setActiveTab] = useState<"notifications" | "templates" | "announcements">("notifications");
-  const [editingTemplate, setEditingTemplate] = useState<{ name: string; type: string } | null>(null);
-  const [editingAnnouncement, setEditingAnnouncement] = useState<{ title: string; date: string; status: string } | null>(null);
 
   useEffect(() => {
     fetchNotifications();
@@ -64,16 +62,6 @@ export default function CommunicationsManagement() {
     } catch (error) {
       console.error("Error sending notification:", error);
     }
-  };
-
-  const handleEditTemplate = (template: { name: string; type: string }) => {
-    setEditingTemplate(template);
-    alert(`Opening editor for template: ${template.name}\nType: ${template.type}\n\nNote: Template editing requires connecting to the templates API.`);
-  };
-
-  const handleEditAnnouncement = (announcement: { title: string; date: string; status: string }) => {
-    setEditingAnnouncement(announcement);
-    alert(`Opening editor for announcement: ${announcement.title}\nDate: ${announcement.date}\nStatus: ${announcement.status}\n\nNote: Announcement editing requires connecting to the announcements API.`);
   };
 
   if (loading) {
@@ -170,7 +158,6 @@ export default function CommunicationsManagement() {
                     </span>
                   </div>
                   <p className="text-gray-500 text-sm">Reusable {template.type.toLowerCase()} template</p>
-                  <button onClick={() => handleEditTemplate(template)} className="mt-3 text-blue-600 text-sm hover:underline">Edit Template</button>
                 </div>
               ))}
             </div>
