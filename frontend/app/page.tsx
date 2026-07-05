@@ -7,6 +7,7 @@ import Footer from "./components/Footer";
 import AnimatedCounter from "./components/AnimatedCounter";
 import { useReveal } from "./hooks/useReveal";
 import StickyTrialBar from "./components/StickyTrialBar";
+import TrustMark from "./components/TrustMark";
 import FacebookFeatured from "./components/FacebookFeatured";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -537,21 +538,16 @@ export default function Home() {
           <p className="text-center text-xs sm:text-sm font-semibold tracking-wider uppercase text-gray-400 mb-6">
             {getContent("trust_title", "Aligned with international standards", "Đạt chuẩn quốc tế")}
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:gap-x-5">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:gap-x-8">
             {[
-              "Cambridge English",
-              "IELTS",
-              "TOEFL",
-              "TESOL / CELTA",
-              "Cambridge Assessment",
-            ].map((name, i, arr) => (
-              <span key={name} className="flex items-center gap-3 sm:gap-5">
-                <span
-                  className="font-display font-semibold text-gray-400 hover:text-brand-navy transition-colors text-sm sm:text-base tracking-wide whitespace-nowrap"
-                  title={name}
-                >
-                  {name}
-                </span>
+              { slug: "cambridge-english", name: "Cambridge English" },
+              { slug: "ielts", name: "IELTS" },
+              { slug: "toefl", name: "TOEFL" },
+              { slug: "tesol-celta", name: "TESOL / CELTA" },
+              { slug: "cambridge-assessment", name: "Cambridge Assessment" },
+            ].map((mark, i, arr) => (
+              <span key={mark.slug} className="flex items-center gap-3 sm:gap-8">
+                <TrustMark slug={mark.slug} name={mark.name} />
                 {i < arr.length - 1 && <span className="text-gray-300" aria-hidden>•</span>}
               </span>
             ))}
