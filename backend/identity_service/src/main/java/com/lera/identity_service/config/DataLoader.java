@@ -172,6 +172,21 @@ public class DataLoader implements CommandLineRunner {
             log.info("Created PARENT role");
         }
 
+        // ACCOUNTANT is referenced in ~140 @PreAuthorize checks (finance/payroll) but was never
+        // seeded — so it couldn't be assigned to anyone and those gates were dead. Seed it here;
+        // seedRolePermissions() (run after this) then grants it the finance permission set.
+        if (roleRepository.findByName("ACCOUNTANT").isEmpty()) {
+            Role accountant = Role.builder()
+                    .name("ACCOUNTANT")
+                    .displayName("Accountant")
+                    .description("Finance & payroll access")
+                    .level(45)
+                    .isSystemRole(true)
+                    .build();
+            roleRepository.save(accountant);
+            log.info("Created ACCOUNTANT role");
+        }
+
         // Add CHAIRMAN role
         if (roleRepository.findByName("CHAIRMAN").isEmpty()) {
             Role chairman = Role.builder()

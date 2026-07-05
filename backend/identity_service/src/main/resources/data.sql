@@ -27,6 +27,7 @@ VALUES
     ('00000000-0000-0000-0000-000000000005', 'CENTER_MANAGER', 'Center Manager', 'Quản lý trung tâm', 'Full center management', 70, true, NOW()),
     ('00000000-0000-0000-0000-000000000007', 'ACADEMIC_MANAGER', 'Academic Manager', 'Quản lý học vụ', 'Academic operations management', 65, true, NOW()),
     ('00000000-0000-0000-0000-000000000006', 'CENTER_ADMIN', 'Center Admin', 'Quản trị trung tâm', 'Center administrative access', 60, true, NOW()),
+    ('00000000-0000-0000-0000-000000000013', 'ACCOUNTANT', 'Accountant', 'Kế toán', 'Finance & payroll access', 45, true, NOW()),
     ('00000000-0000-0000-0000-000000000008', 'TEACHER', 'Teacher', 'Giáo viên', 'Teaching staff', 40, true, NOW()),
     ('00000000-0000-0000-0000-000000000009', 'TA', 'Teaching Assistant', 'Trợ giảng', 'Teaching assistant', 35, true, NOW()),
     ('00000000-0000-0000-0000-000000000010', 'STAFF', 'Staff', 'Nhân viên', 'General staff', 30, true, NOW()),
