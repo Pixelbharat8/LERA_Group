@@ -180,6 +180,33 @@ UUID, connect `assignment_submissions` table collision). Remaining gate is the s
 (Phase 1 update+flyway-off, Phase 2 update+Flyway) on real staging infra to confirm ordering/Flyway
 history on the target Postgres.
 
+#### ✅ 3c. Entity-first two-boot verification — ALL 9 services (2026-07-08)
+The schema-dump sim in 3b **cannot catch entity-vs-migration drift** (it reuses the live DB's
+already-correct tables, so the divergent shape never appears). Ran the definitive test per service
+on a throwaway DB: **boot 1** = `ddl-auto=update` + Flyway **off** (Hibernate builds the ENTITY-shaped
+tables, exactly like dev / Phase-1) → **boot 2** = same DB, Flyway **on** (migrations run against the
+entity-shaped tables, exactly like Phase-2 / a real deploy). This is the true prod bootstrap sequence.
+
+Found + fixed **3 real deploy blockers** the sim had missed (all committed + re-verified clean):
+- **academy `V20250115`** — seeds `form_configurations` (a JPA entity, `@GeneratedValue(UUID)` → no DB
+  `id` default). The `CREATE TABLE IF NOT EXISTS` no-ops against the entity table and the seed INSERT
+  omitted `id` → `null value in column "id"` → migration aborts. Fixed: INSERT now supplies
+  `id = gen_random_uuid()` for all 6 rows.
+- **ai_gateway `V1`** — indexed phantom `ai_tutor_sessions` (feature removed, no entity) →
+  `relation "ai_tutor_sessions" does not exist` → migration aborts. Fixed: wrapped the indexes in a
+  table-existence `DO` guard (self-heals if the feature returns).
+- **attendance `AttendanceDataLoader`** (startup, not a migration) — ran `select count(*) from
+  class_sessions` (an academy-owned table) at boot; on a fresh bootstrap attendance can start before
+  academy creates it → `BadSqlGrammarException` crashes startup. Also seeded demo attendance with
+  random student UUIDs. Fixed: skip seeding in deployed profiles (no fake data in prod) + check table
+  existence before querying (no boot-order crash).
+
+**Result: all 9 services build entities (boot 1) then apply every migration under Flyway (boot 2) →
+0 failures, health UP.** payment (V192) + academy + ai_gateway + attendance carried fixes; identity,
+connect, payroll, rule_engine, social_media were already clean. Method note: the entity-first two-boot
+is the gate that catches this class — keep it in the staging dry-run (3b's sim is necessary but not
+sufficient).
+
 **Verify:** `aws cloudformation describe-stacks`; no app-service port open to `0.0.0.0/0`;
 RDS shows Multi-AZ + encrypted.
 
