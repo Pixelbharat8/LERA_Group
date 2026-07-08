@@ -7,9 +7,11 @@ import com.lera.academy_service.repository.TestimonialRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 
 @Component
 @RequiredArgsConstructor
@@ -18,11 +20,24 @@ public class DataLoader implements CommandLineRunner {
 
     private final CourseProgramRepository courseProgramRepository;
     private final TestimonialRepository testimonialRepository;
+    private final Environment environment;
 
     @Override
     public void run(String... args) {
+        // Sample courses + FABRICATED testimonials (published, fake parent names) — dev only.
+        // Never publish fake reviews on the deployed public site; real content comes via the CMS.
+        if (isDeployedProfile()) {
+            return;
+        }
         initCourses();
         initTestimonials();
+    }
+
+    private boolean isDeployedProfile() {
+        return Arrays.stream(environment.getActiveProfiles())
+                .anyMatch(p -> p.equalsIgnoreCase("prod")
+                        || p.equalsIgnoreCase("docker")
+                        || p.equalsIgnoreCase("staging"));
     }
 
     private void initCourses() {

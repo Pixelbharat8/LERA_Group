@@ -4,9 +4,11 @@ import com.lera.academy_service.entity.*;
 import com.lera.academy_service.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 
 @Component
 @RequiredArgsConstructor
@@ -17,14 +19,27 @@ public class AcademyDataLoader implements CommandLineRunner {
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final Environment environment;
 
     @Override
     public void run(String... args) throws Exception {
+        // Demo catalog + FABRICATED students/teachers/classes/enrollments — dev only. Never seed
+        // fake people into a deployed environment; real data arrives via import/CMS.
+        if (isDeployedProfile()) {
+            return;
+        }
         loadCourses();
         loadTeachers();
         loadStudents();
         loadClasses();
         loadEnrollments();
+    }
+
+    private boolean isDeployedProfile() {
+        return Arrays.stream(environment.getActiveProfiles())
+                .anyMatch(p -> p.equalsIgnoreCase("prod")
+                        || p.equalsIgnoreCase("docker")
+                        || p.equalsIgnoreCase("staging"));
     }
 
     private void loadCourses() {
