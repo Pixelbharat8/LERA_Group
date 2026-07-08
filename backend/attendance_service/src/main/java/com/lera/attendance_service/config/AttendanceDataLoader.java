@@ -4,10 +4,12 @@ import com.lera.attendance_service.entity.AttendanceRecord;
 import com.lera.attendance_service.repository.AttendanceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.UUID;
 
 @Component
@@ -16,12 +18,37 @@ public class AttendanceDataLoader implements CommandLineRunner {
 
     private final AttendanceRepository attendanceRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final Environment environment;
 
     @Override
     public void run(String... args) {
+        // Demo attendance uses random student UUIDs — never seed it into a deployed environment.
+        if (isDeployedProfile()) {
+            return;
+        }
+        // class_sessions is owned by academy_service in the shared DB. On a fresh bootstrap the
+        // attendance service can start before academy has created it — skip seeding instead of
+        // crashing startup with "relation class_sessions does not exist".
+        if (!tableExists("class_sessions")) {
+            return;
+        }
         if (attendanceRepository.count() == 0) {
             loadSampleAttendanceRecords();
         }
+    }
+
+    private boolean isDeployedProfile() {
+        return Arrays.stream(environment.getActiveProfiles())
+                .anyMatch(p -> p.equalsIgnoreCase("prod")
+                        || p.equalsIgnoreCase("docker")
+                        || p.equalsIgnoreCase("staging"));
+    }
+
+    private boolean tableExists(String table) {
+        Long n = jdbcTemplate.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name=?",
+                Long.class, table);
+        return n != null && n > 0;
     }
 
     private void loadSampleAttendanceRecords() {
