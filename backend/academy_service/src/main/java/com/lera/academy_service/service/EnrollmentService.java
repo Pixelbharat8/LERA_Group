@@ -54,8 +54,10 @@ public class EnrollmentService {
             throw new IllegalStateException("Student is already enrolled in this class");
         }
 
-        // Validate class exists and is open
-        ClassEntity classEntity = classRepository.findById(enrollment.getClassId())
+        // Validate class exists and is open. Lock the class row (PESSIMISTIC_WRITE) so concurrent
+        // enrollments to the same class serialize through the capacity check below — otherwise two
+        // simultaneous enrollments can both pass the count and overbook past maxStudents.
+        ClassEntity classEntity = classRepository.findByIdForUpdate(enrollment.getClassId())
                 .orElseThrow(() -> new IllegalArgumentException("Class not found: " + enrollment.getClassId()));
 
         if (!"OPEN".equalsIgnoreCase(classEntity.getStatus())) {

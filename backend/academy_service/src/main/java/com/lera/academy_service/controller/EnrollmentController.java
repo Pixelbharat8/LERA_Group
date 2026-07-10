@@ -3,6 +3,7 @@ package com.lera.academy_service.controller;
 import com.lera.academy_service.entity.Enrollment;
 import com.lera.academy_service.repository.EnrollmentRepository;
 import com.lera.academy_service.security.AcademyAuthorizationService;
+import com.lera.academy_service.service.EnrollmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,7 @@ public class EnrollmentController {
     
     private final EnrollmentRepository enrollmentRepository;
     private final AcademyAuthorizationService authz;
+    private final EnrollmentService enrollmentService;
     
     @GetMapping
     public ResponseEntity<List<Enrollment>> getAllEnrollments(
@@ -85,21 +87,26 @@ public class EnrollmentController {
     public ResponseEntity<Enrollment> createEnrollment(@Valid @RequestBody Enrollment enrollment) {
         // Only into a class the caller may manage (centre-scoped / class-owning).
         authz.assertCanViewClassRoster(enrollment.getClassId());
-        if (enrollmentRepository.existsByStudentIdAndClassId(enrollment.getStudentId(), enrollment.getClassId())) {
-            return ResponseEntity.badRequest().build();
+        // Route through the service so the business rules are actually enforced: no duplicate,
+        // class must be OPEN, and capacity (maxStudents) is respected — with a row lock so
+        // concurrent enrollments can't overbook.
+        try {
+            return ResponseEntity.ok(enrollmentService.enrollStudent(enrollment));
+        } catch (IllegalStateException e) {          // duplicate / class closed / at capacity
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        } catch (IllegalArgumentException e) {        // class not found
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
-        return ResponseEntity.ok(enrollmentRepository.save(enrollment));
     }
 
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','ACADEMIC_MANAGER')")
     public ResponseEntity<List<Enrollment>> createEnrollmentsBulk(@Valid @RequestBody List<Enrollment> enrollments) {
         enrollments.forEach(e -> authz.assertCanViewClassRoster(e.getClassId()));
-        List<Enrollment> validEnrollments = enrollments.stream()
-                .filter(e -> !enrollmentRepository.existsByStudentIdAndClassId(e.getStudentId(), e.getClassId()))
-                .toList();
-        List<Enrollment> savedEnrollments = enrollmentRepository.saveAll(validEnrollments);
-        return ResponseEntity.ok(savedEnrollments);
+        // Graceful: enrollStudentsBulk skips rows that are duplicates / over-capacity / into a
+        // closed class (logs + continues) and returns only the newly-enrolled — so an import
+        // batch is never hard-failed by one full class.
+        return ResponseEntity.ok(enrollmentService.enrollStudentsBulk(enrollments));
     }
     
     @PutMapping("/{id}")
