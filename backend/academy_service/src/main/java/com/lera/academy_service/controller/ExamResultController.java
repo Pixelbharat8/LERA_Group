@@ -10,6 +10,7 @@ import com.lera.academy_service.repository.ExamResultRepository;
 import com.lera.academy_service.repository.StudentRepository;
 import com.lera.academy_service.security.AcademyAuthorizationService;
 import com.lera.academy_service.security.AcademyRoles;
+import com.lera.academy_service.service.ExamResultService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +34,7 @@ public class ExamResultController {
     private final ClassRepository classRepository;
     private final StudentRepository studentRepository;
     private final AcademyAuthorizationService authz;
+    private final ExamResultService examResultService;
 
     private String getStudentName(UUID studentId) {
         if (studentId == null) return "Unknown Student";
@@ -137,7 +139,12 @@ public class ExamResultController {
         // A teacher may only record results for a class they teach; managers only their centre.
         assertCanGradeExam(result.getExamId());
         result.setCreatedAt(LocalDateTime.now());
-        return ResponseEntity.ok(examResultRepository.save(result));
+        // Validate score/percentage bounds via the service (was saved unvalidated before).
+        try {
+            return ResponseEntity.ok(examResultService.save(result));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     @PutMapping("/{id}")
@@ -154,7 +161,12 @@ public class ExamResultController {
                 result.setGradedBy(resultDetails.getGradedBy());
                 result.setGradedAt(LocalDateTime.now());
             }
-            return ResponseEntity.ok(examResultRepository.save(result));
+            // Re-validate on edit so a PUT can't set an out-of-bounds score/percentage.
+            try {
+                return ResponseEntity.ok(examResultService.save(result));
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+            }
         }).orElse(ResponseEntity.notFound().build());
     }
 
