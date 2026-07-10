@@ -2,6 +2,7 @@ package com.lera.connect_service.controller;
 
 import com.lera.connect_service.entity.ChatMessage;
 import com.lera.connect_service.entity.Conversation;
+import com.lera.connect_service.repository.ChatGroupRepository;
 import com.lera.connect_service.repository.ChatMessageRepository;
 import com.lera.connect_service.repository.ConversationRepository;
 import com.lera.connect_service.security.AuthUser;
@@ -38,6 +39,9 @@ class ChatControllerAuthorizationTest {
     private ConversationRepository conversationRepository;
 
     @Mock
+    private ChatGroupRepository chatGroupRepository;
+
+    @Mock
     private RestTemplate restTemplate;
 
     @Mock
@@ -52,7 +56,7 @@ class ChatControllerAuthorizationTest {
 
     @BeforeEach
     void setUp() {
-        ChatAuthorizationService chatAuth = new ChatAuthorizationService(conversationRepository, chatMessageRepository);
+        ChatAuthorizationService chatAuth = new ChatAuthorizationService(conversationRepository, chatMessageRepository, chatGroupRepository);
         controller = new ChatController(
                 chatMessageRepository, conversationRepository, chatAuth, chatRealtimePublisher, restTemplate);
     }

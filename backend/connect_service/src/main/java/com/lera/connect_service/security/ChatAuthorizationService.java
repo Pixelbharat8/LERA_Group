@@ -1,8 +1,10 @@
 package com.lera.connect_service.security;
 
 import com.lera.connect_service.entity.ChatAttachment;
+import com.lera.connect_service.entity.ChatGroup;
 import com.lera.connect_service.entity.ChatMessage;
 import com.lera.connect_service.entity.Conversation;
+import com.lera.connect_service.repository.ChatGroupRepository;
 import com.lera.connect_service.repository.ChatMessageRepository;
 import com.lera.connect_service.repository.ConversationRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -22,6 +26,7 @@ public class ChatAuthorizationService {
 
     private final ConversationRepository conversationRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatGroupRepository chatGroupRepository;
 
     public UUID effectiveUserId(AuthUser user, String requestedUserId) {
         if (requestedUserId == null || requestedUserId.isBlank()) {
@@ -33,10 +38,43 @@ public class ChatAuthorizationService {
 
     public Conversation requireParticipantConversation(AuthUser user, String conversationIdRaw) {
         UUID conversationId = ConnectSecurity.parseUuid(conversationIdRaw, "conversationId");
+        // The frontend addresses a group chat by the GROUP id. A ChatGroup has no backing
+        // Conversation row until its first message, so resolve in order: direct conversation id ->
+        // existing group conversation (by groupId) -> lazily create one for a member of the group.
         Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conversation not found"));
+                .or(() -> conversationRepository.findByGroupId(conversationId).stream().findFirst())
+                .orElseGet(() -> createGroupConversationIfMember(conversationId, user));
+        if (conversation == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Conversation not found");
+        }
         ConnectSecurity.assertCanAccessConversation(user, conversation);
         return conversation;
+    }
+
+    /**
+     * A ChatGroup is created without a Conversation; back it with one on first access so messaging
+     * works. Only for an actual member of the group — a non-member (or unknown id) returns null and
+     * is surfaced as "Conversation not found" by the caller.
+     */
+    private Conversation createGroupConversationIfMember(UUID groupId, AuthUser user) {
+        ChatGroup group = chatGroupRepository.findById(groupId).orElse(null);
+        if (group == null) {
+            return null;
+        }
+        UUID self = ConnectSecurity.requireUserId(user);
+        List<UUID> members = group.getMemberIds();
+        if (members == null || !members.contains(self)) {
+            return null;
+        }
+        Conversation conversation = Conversation.builder()
+                .conversationType("GROUP")
+                .groupId(groupId)
+                .participantIds(new ArrayList<>(members))
+                .isActive(true)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        return conversationRepository.save(conversation);
     }
 
     public ChatMessage requireParticipantMessage(AuthUser user, String messageIdRaw) {

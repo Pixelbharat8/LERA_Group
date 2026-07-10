@@ -4,6 +4,7 @@ import com.lera.connect_service.entity.ChatAttachment;
 import com.lera.connect_service.entity.ChatMessage;
 import com.lera.connect_service.entity.Conversation;
 import com.lera.connect_service.repository.ChatAttachmentRepository;
+import com.lera.connect_service.repository.ChatGroupRepository;
 import com.lera.connect_service.repository.ChatMessageRepository;
 import com.lera.connect_service.repository.ConversationRepository;
 import com.lera.connect_service.security.AuthUser;
@@ -37,6 +38,8 @@ class AttachmentControllerAuthorizationTest {
     private ConversationRepository conversationRepository;
     @Mock
     private ChatMessageRepository chatMessageRepository;
+    @Mock
+    private ChatGroupRepository chatGroupRepository;
 
     private AttachmentController controller;
 
@@ -48,7 +51,7 @@ class AttachmentControllerAuthorizationTest {
     @BeforeEach
     void setUp() {
         ChatAuthorizationService chatAuth =
-                new ChatAuthorizationService(conversationRepository, chatMessageRepository);
+                new ChatAuthorizationService(conversationRepository, chatMessageRepository, chatGroupRepository);
         controller = new AttachmentController(attachmentRepository, attachmentStorage, chatAuth);
     }
 
