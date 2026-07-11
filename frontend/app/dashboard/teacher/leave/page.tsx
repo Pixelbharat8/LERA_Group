@@ -71,9 +71,16 @@ export default function TeacherLeavePage() {
 
   const fetchLeaveBalance = async (userId: string) => {
     try {
-      const data = await apiFetch(`/api/leaves/balance/${userId}`);
+      const data = await apiFetch(`/api/leaves/balance/${userId}`) as any;
       if (data && typeof data === 'object') {
-        setLeaveBalance(data);
+        // Map the accrual API's keys to the card fields — the raw response uses
+        // expectedAnnualLeaves/totalAvailable/totalUsedThisYear, so assigning it
+        // directly left the cards reading undefined (blank). Fall back to numbers.
+        setLeaveBalance({
+          totalLeaves: Number(data.expectedAnnualLeaves ?? data.totalLeaves ?? 12),
+          remainingLeaves: Number(data.totalAvailable ?? data.remainingLeaves ?? 0),
+          usedLeaves: Number(data.totalUsedThisYear ?? data.usedLeaves ?? 0),
+        });
       }
     } catch (error) {
       console.error('Error fetching leave balance:', error);
