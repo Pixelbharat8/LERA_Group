@@ -419,7 +419,7 @@ export default function TeacherGradesPage() {
         dueDate: assignmentForm.dueDate || null,
         maxScore: Number(assignmentForm.maxScore),
         isGraded: assignmentForm.isGraded,
-        createdBy: teacherId ? Number(teacherId) : null
+        createdBy: teacherId || null
       };
 
       await apiFetch("/api/assignments", {

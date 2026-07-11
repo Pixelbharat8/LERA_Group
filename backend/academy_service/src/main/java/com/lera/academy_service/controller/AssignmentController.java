@@ -52,7 +52,7 @@ public class AssignmentController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getAllAssignments(
             @RequestParam(required = false) UUID classId,
-            @RequestParam(required = false) Long teacherId,
+            @RequestParam(required = false) UUID teacherId,
             @RequestParam(required = false) UUID studentId,
             @RequestParam(required = false) UUID centerId,
             @RequestParam(required = false) String role,
@@ -131,7 +131,7 @@ public class AssignmentController {
 
     @GetMapping("/teacher/{teacherId}")
     @PreAuthorize(AcademyRoles.STAFF)
-    public ResponseEntity<List<Assignment>> getAssignmentsByTeacher(@PathVariable Long teacherId) {
+    public ResponseEntity<List<Assignment>> getAssignmentsByTeacher(@PathVariable UUID teacherId) {
         return ResponseEntity.ok(assignmentRepository.findByCreatedBy(teacherId));
     }
 
@@ -277,6 +277,14 @@ public class AssignmentController {
     @PostMapping
     @PreAuthorize(AcademyRoles.STAFF)
     public ResponseEntity<Assignment> createAssignment(@Valid @RequestBody Assignment assignment) {
+        // created_by is NOT NULL and must hold a teacher (UUID). If the client omits it,
+        // resolve it from the authenticated user's teacher record rather than failing the insert.
+        if (assignment.getCreatedBy() == null) {
+            UUID uid = CurrentUser.id().orElse(null);
+            if (uid != null) {
+                teacherRepository.findByUserId(uid).ifPresent(t -> assignment.setCreatedBy(t.getId()));
+            }
+        }
         return ResponseEntity.ok(assignmentRepository.save(assignment));
     }
 

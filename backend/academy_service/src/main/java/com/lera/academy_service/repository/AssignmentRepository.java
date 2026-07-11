@@ -11,7 +11,7 @@ import java.util.UUID;
 @Repository
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     List<Assignment> findByClassId(UUID classId);
-    List<Assignment> findByCreatedBy(Long createdBy);
+    List<Assignment> findByCreatedBy(UUID createdBy);
     List<Assignment> findByModuleId(Long moduleId);
     List<Assignment> findByAssignmentType(String assignmentType);
     List<Assignment> findByClassIdAndAssignmentType(UUID classId, String assignmentType);

@@ -100,7 +100,7 @@ public class Assignment {
     private Boolean isPublished;
     
     @Column(name = "created_by", nullable = false)
-    private Long createdBy;
+    private UUID createdBy;
     
     @Column(name = "created_at")
     private LocalDateTime createdAt;

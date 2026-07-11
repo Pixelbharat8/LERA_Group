@@ -38,7 +38,7 @@ public class AssignmentService {
         return assignmentRepository.findByClassId(classId);
     }
 
-    public List<Assignment> findByCreatedBy(Long createdBy) {
+    public List<Assignment> findByCreatedBy(UUID createdBy) {
         return assignmentRepository.findByCreatedBy(createdBy);
     }
 
