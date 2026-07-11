@@ -69,12 +69,13 @@ class CampaignServiceTest {
     @Test
     void performance_computesRoiWhenBudgetSet() {
         UUID id = UUID.randomUUID();
-        campaignExists(id, new BigDecimal("1000"));
+        campaignExists(id, new BigDecimal("3000000"));
         when(leadRepository.findByCampaignId(id)).thenReturn(List.of(lead(id, "CONVERTED"), lead(id, "CONVERTED")));
 
         Map<String, Object> p = service.getCampaignPerformance(id);
 
-        // estRevenue = 2 × 1000 = 2000; ROI = (2000 − 1000)/1000 × 100 = 100
+        // Default revenue/conversion = 3,000,000 (no system_settings override in the test).
+        // estRevenue = 2 × 3,000,000 = 6,000,000; ROI = (6,000,000 − 3,000,000)/3,000,000 × 100 = 100
         assertEquals(0, ((BigDecimal) p.get("estimatedROI")).compareTo(new BigDecimal("100.00")));
     }
 

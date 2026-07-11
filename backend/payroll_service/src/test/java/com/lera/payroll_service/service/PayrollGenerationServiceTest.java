@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,23 +53,20 @@ class PayrollGenerationServiceTest {
                     if (url.contains("/api/users")) return new ResponseEntity(staff, HttpStatus.OK);
                     return new ResponseEntity(Map.of("totalHours", totalHours), HttpStatus.OK);
                 });
-        when(payrollRepository.save(any(PayrollRecord.class))).thenAnswer(i -> i.getArgument(0));
+        // lenient: staff-skipped tests (no salary config) never reach save()
+        lenient().when(payrollRepository.save(any(PayrollRecord.class))).thenAnswer(i -> i.getArgument(0));
     }
 
     @Test
-    void staffWithoutConfig_usesDefaultBaseSalaryAndNoTeachingPay() {
+    void staffWithoutConfig_isSkippedNotPaidAFabricatedDefault() {
         mockHttp(oneStaff("STAFF"), "0");
         when(salaryConfigRepository.findByTeacherId(any())).thenReturn(Optional.empty());
 
         List<PayrollRecord> result = service.generatePayrollForPeriod(req());
 
-        assertEquals(1, result.size());
-        PayrollRecord r = result.get(0);
-        // default config base = 5,000,000; STAFF earns no teaching pay → total = base
-        assertEquals(0, r.getTotalAmount().compareTo(new BigDecimal("5000000")));
-        assertEquals(0, r.getTeachingAmount().compareTo(BigDecimal.ZERO));
-        assertEquals("PENDING", r.getStatus());
-        assertEquals("VND", r.getCurrency());
+        // Staff with no salary config are SKIPPED rather than paid a fabricated default
+        // (previously a flat 5,000,000 VND) — their salary must be configured first.
+        assertEquals(0, result.size());
     }
 
     @Test
