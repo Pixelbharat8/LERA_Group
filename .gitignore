@@ -70,3 +70,6 @@ frontend/_crawl*.js
 
 # prod schema-seed artifact
 lera_schema.sql
+
+# Runtime file-upload storage (chat attachments, etc.) — not source
+backend/*/uploads/
