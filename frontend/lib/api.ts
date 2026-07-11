@@ -174,8 +174,14 @@ export async function apiFetch(
     //  • anonymous (public-page) and silent (background/optional) calls — degrade to defaults;
     //  • 404 Not Found — on a background data load this means "no data for this user / optional
     //    resource" (e.g. a parent with no record yet), which must not nag with a red toast.
+    //  • 403 permission-gate denials ("Permission denied: …", incl. "(revoked for this user)") —
+    //    an INTENTIONAL access-control decision (e.g. an admin turned a feature off for this user).
+    //    The UI already degrades on the missing data / hides the feature, so a scary red toast on
+    //    every background load is noise, not signal.
     // 5xx and other client errors still toast so genuine failures stay visible.
-    if (typeof window !== "undefined" && !opts.anonymous && !opts.silent && res.status !== 404) {
+    const isPermissionDenial = res.status === 403 && finalMsg.startsWith("Permission denied");
+    if (typeof window !== "undefined" && !opts.anonymous && !opts.silent
+        && res.status !== 404 && !isPermissionDenial) {
       window.dispatchEvent(new CustomEvent("lera:error", { detail: { message: finalMsg } }));
     }
     throw new Error(finalMsg);
