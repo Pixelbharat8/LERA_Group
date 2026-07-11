@@ -11,6 +11,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -158,6 +159,16 @@ public class TeacherStaffLeave {
     @Column(nullable = false)
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    // Populate timestamps on insert. Needed because @Builder.Default moves the field initializer
+    // off the no-arg constructor, so an entity deserialized from a request body (Jackson) has null
+    // createdAt/updatedAt — and both DB columns are NOT NULL. Without this, every leave apply fails.
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (this.createdAt == null) this.createdAt = now;
+        if (this.updatedAt == null) this.updatedAt = now;
+    }
 
     @PreUpdate
     protected void onUpdate() {
