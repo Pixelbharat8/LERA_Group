@@ -1,6 +1,7 @@
 package com.lera.rule_engine.entity;
 
 import jakarta.persistence.*;
+import jakarta.persistence.PrePersist;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -68,6 +69,13 @@ public class BusinessRule {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) createdAt = now;
+        if (updatedAt == null) updatedAt = now;
+    }
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();

@@ -4,6 +4,7 @@ import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
 import jakarta.persistence.*;
+import jakarta.persistence.PrePersist;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -100,6 +101,13 @@ public class SocialMediaPost {
     @Column(name = "updated_at")
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) createdAt = now;
+        if (updatedAt == null) updatedAt = now;
+    }
 
     @PreUpdate
     protected void onUpdate() {

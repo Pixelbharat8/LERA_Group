@@ -1,6 +1,7 @@
 package com.lera.connect_service.entity;
 
 import jakarta.persistence.*;
+import jakarta.persistence.PrePersist;
 import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -100,6 +101,13 @@ public class Lead {
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
     
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) createdAt = now;
+        if (updatedAt == null) updatedAt = now;
+    }
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();

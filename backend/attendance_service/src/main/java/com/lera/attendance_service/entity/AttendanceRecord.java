@@ -46,6 +46,12 @@ public class AttendanceRecord {
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
     
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (this.createdAt == null) this.createdAt = now;
+    }
+
     @PreUpdate
     protected void onUpdate() {
         createdAt = LocalDateTime.now();
