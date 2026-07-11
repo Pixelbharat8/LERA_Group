@@ -83,6 +83,28 @@ public class PermissionGateFilter extends OncePerRequestFilter {
         return path.equals(prefix) || path.startsWith(prefix + "/") || path.startsWith(prefix + "?");
     }
 
+    /** True for {@code GET /api/user-permissions/user/{id}} where {@code id} is the caller itself. */
+    private static boolean isOwnPermissionRead(String method, String path, UUID self) {
+        if (self == null || !"GET".equalsIgnoreCase(method)) {
+            return false;
+        }
+        String prefix = "/api/user-permissions/user/";
+        if (!path.startsWith(prefix)) {
+            return false;
+        }
+        String rest = path.substring(prefix.length());
+        int cut = rest.length();
+        for (int i = 0; i < rest.length(); i++) {
+            char c = rest.charAt(i);
+            if (c == '/' || c == '?') { cut = i; break; }
+        }
+        try {
+            return self.equals(UUID.fromString(rest.substring(0, cut)));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
@@ -102,6 +124,16 @@ public class PermissionGateFilter extends OncePerRequestFilter {
         // this caller even if their role would allow it. Only an explicit false denies.
         String upColumn = userPermissionColumn(req.getRequestURI());
         UUID userId = currentUserId(auth);
+
+        // A user may ALWAYS read their OWN permission set (bootstrap): the frontend loads
+        // /api/user-permissions/user/{self} on every dashboard load to learn what to show. Gating
+        // that behind users.view is a paradox — a user whose users.view is revoked could never load
+        // (and thus never correctly apply) their own overrides. Self-reads bypass both gate layers.
+        if (isOwnPermissionRead(req.getMethod(), req.getRequestURI(), userId)) {
+            chain.doFilter(req, res);
+            return;
+        }
+
         if (upColumn != null && userId != null && userExplicitlyDenied(userId, upColumn)) {
             deny(res, required + " (revoked for this user)");
             return;
