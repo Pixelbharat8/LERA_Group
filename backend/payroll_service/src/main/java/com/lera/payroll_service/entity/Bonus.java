@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import jakarta.validation.constraints.PositiveOrZero;
 
 @Entity
@@ -21,7 +22,7 @@ public class Bonus {
     private Long id;
 
     @Column(name = "teacher_id", nullable = false)
-    private Long teacherId;
+    private UUID teacherId;
 
     @Column(name = "payroll_cycle_id")
     private Long payrollCycleId;

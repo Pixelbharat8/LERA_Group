@@ -31,7 +31,7 @@ public class DeductionService {
         return deductionRepository.findAll();
     }
 
-    public List<Deduction> getByTeacher(Long teacherId) {
+    public List<Deduction> getByTeacher(UUID teacherId) {
         return deductionRepository.findByTeacherId(teacherId);
     }
 

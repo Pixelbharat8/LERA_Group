@@ -31,7 +31,7 @@ public class BonusService {
         return bonusRepository.findAll();
     }
 
-    public List<Bonus> getByTeacher(Long teacherId) {
+    public List<Bonus> getByTeacher(UUID teacherId) {
         return bonusRepository.findByTeacherId(teacherId);
     }
 

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/payroll/bonuses")
@@ -33,7 +34,7 @@ public class BonusController {
     }
     
     @GetMapping("/teacher/{teacherId}")
-    public ResponseEntity<List<Bonus>> getBonusesByTeacher(@PathVariable Long teacherId) {
+    public ResponseEntity<List<Bonus>> getBonusesByTeacher(@PathVariable UUID teacherId) {
         return ResponseEntity.ok(bonusService.getByTeacher(teacherId));
     }
     
