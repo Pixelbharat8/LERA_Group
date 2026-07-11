@@ -9,7 +9,7 @@ interface Assignment {
   id: number;
   title: string;
   description?: string;
-  classId: number;
+  classId: string;
   assignmentType: string;
   assignedDate: string;
   dueDate: string;
@@ -17,19 +17,41 @@ interface Assignment {
   isGraded: boolean;
 }
 
+interface ClassOption {
+  id: string;
+  name?: string;
+  className?: string;
+  teacherId?: string;
+}
+
+const emptyForm = { title: "", assignmentType: "homework", dueDate: "", maxScore: 100, classId: "" };
+
 export default function AssignmentManagement() {
   const { centerId, shouldFilterByCenter, loading: userLoading } = useUserCenter();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [classes, setClasses] = useState<ClassOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ title: "", assignmentType: "homework", dueDate: "", maxScore: 100, classId: 1, createdBy: 1 });
+  const [formData, setFormData] = useState({ ...emptyForm });
 
   useEffect(() => {
     if (!userLoading) {
       fetchAssignments();
+      fetchClasses();
     }
   }, [userLoading, centerId]);
+
+  const fetchClasses = async () => {
+    try {
+      const data = await apiFetch(
+        buildCenterFilterUrl("/api/classes", shouldFilterByCenter ? centerId : null)
+      );
+      setClasses(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+    }
+  };
 
   const fetchAssignments = async () => {
     try {
@@ -46,7 +68,7 @@ export default function AssignmentManagement() {
 
   const openCreate = () => {
     setEditingId(null);
-    setFormData({ title: "", assignmentType: "homework", dueDate: "", maxScore: 100, classId: 1, createdBy: 1 });
+    setFormData({ ...emptyForm });
     setShowModal(true);
   };
 
@@ -57,32 +79,47 @@ export default function AssignmentManagement() {
       assignmentType: assignment.assignmentType,
       dueDate: assignment.dueDate ? assignment.dueDate.split("T")[0] : "",
       maxScore: assignment.maxScore,
-      classId: assignment.classId,
-      createdBy: 1,
+      classId: assignment.classId ?? "",
     });
     setShowModal(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.classId) {
+      alert("Please select a class.");
+      return;
+    }
+    // created_by must be a teacher UUID; the assignment belongs to the selected class's teacher.
+    const selectedClass = classes.find((c) => c.id === formData.classId);
+    const createdBy = selectedClass?.teacherId ?? null;
+    if (editingId === null && !createdBy) {
+      alert("The selected class has no assigned teacher — assign a teacher before creating assignments for it.");
+      return;
+    }
+    const payload = {
+      ...formData,
+      assignmentType: formData.assignmentType.toUpperCase(),
+    };
     try {
       if (editingId !== null) {
         await apiFetch(`/api/assignments/${editingId}`, {
           method: "PUT",
-          body: JSON.stringify({ ...formData }),
+          body: JSON.stringify(payload),
         });
       } else {
         await apiFetch("/api/assignments", {
           method: "POST",
-          body: JSON.stringify({ ...formData, assignedDate: new Date().toISOString().split('T')[0] }),
+          body: JSON.stringify({ ...payload, createdBy, assignedDate: new Date().toISOString().split('T')[0] }),
         });
       }
       setShowModal(false);
       setEditingId(null);
       fetchAssignments();
-      setFormData({ title: "", assignmentType: "homework", dueDate: "", maxScore: 100, classId: 1, createdBy: 1 });
-    } catch (error) {
+      setFormData({ ...emptyForm });
+    } catch (error: any) {
       console.error("Error saving assignment:", error);
+      alert(error?.message || "Failed to save assignment.");
     }
   };
 
@@ -217,6 +254,15 @@ export default function AssignmentManagement() {
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
                 <input type="text" required value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full border rounded-lg px-3 py-2" />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Class *</label>
+                <select required value={formData.classId} onChange={(e) => setFormData({ ...formData, classId: e.target.value })} className="w-full border rounded-lg px-3 py-2">
+                  <option value="">Select a class…</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name || c.className || c.id}</option>
+                  ))}
+                </select>
               </div>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
