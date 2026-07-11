@@ -185,11 +185,15 @@ public class ChatController {
             @AuthenticationPrincipal AuthUser authUser) {
         try {
             String conversationId = (String) dto.get("conversationId");
-            chatAuth.requireParticipantConversation(authUser, conversationId);
+            Conversation conv = chatAuth.requireParticipantConversation(authUser, conversationId);
             ConnectSecurity.assertActorIsSelf(authUser, (String) dto.get("senderId"));
 
             ChatMessage message = new ChatMessage();
-            message.setLeadId(UUID.fromString(conversationId));
+            // Key the message by the RESOLVED conversation id, not the raw request id. For a group
+            // the client sends the GROUP id, which differs from the backing conversation's id — and
+            // getMessages/markRead/search all read by conv.getId(), so saving under the raw id would
+            // make group messages invisible.
+            message.setLeadId(conv.getId());
             message.setSenderId(ConnectSecurity.requireUserId(authUser));
             
             message.setMessage((String) dto.get("message"));
@@ -223,17 +227,13 @@ public class ChatController {
 
             ChatMessage saved = chatMessageRepository.save(message);
             
-            // Update conversation last message
+            // Update the (already-resolved) conversation's last-message metadata.
             try {
-                Optional<Conversation> convOpt = conversationRepository.findById(message.getLeadId());
-                if (convOpt.isPresent()) {
-                    Conversation conv = convOpt.get();
-                    conv.setLastMessage(message.getMessage());
-                    conv.setLastMessageAt(LocalDateTime.now());
-                    conv.setLastMessageSenderId(message.getSenderId());
-                    conv.setUpdatedAt(LocalDateTime.now());
-                    conversationRepository.save(conv);
-                }
+                conv.setLastMessage(message.getMessage());
+                conv.setLastMessageAt(LocalDateTime.now());
+                conv.setLastMessageSenderId(message.getSenderId());
+                conv.setUpdatedAt(LocalDateTime.now());
+                conversationRepository.save(conv);
             } catch (Exception e) {
                 // Ignore conversation update errors
             }
@@ -312,9 +312,9 @@ public class ChatController {
             List<Map<String, Object>> forwardedMessages = new ArrayList<>();
 
             for (String convId : toConversationIds) {
-                chatAuth.requireParticipantConversation(authUser, convId);
+                Conversation targetConv = chatAuth.requireParticipantConversation(authUser, convId);
                 ChatMessage forwarded = new ChatMessage();
-                forwarded.setLeadId(UUID.fromString(convId));
+                forwarded.setLeadId(targetConv.getId()); // resolved id (group id != conversation id)
                 forwarded.setSenderId(senderId);
                 forwarded.setMessage(originalMsg.getMessage());
                 forwarded.setMessageType(originalMsg.getMessageType());
