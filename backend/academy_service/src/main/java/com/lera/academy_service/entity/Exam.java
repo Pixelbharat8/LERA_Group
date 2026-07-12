@@ -25,7 +25,13 @@ public class Exam {
     
     @Column(name = "exam_type_id")
     private UUID examTypeId;
-    
+
+    // Exam type as a plain enum string (QUIZ, EXAM, MIDTERM, FINAL, ...), mirroring
+    // Assignment.assignmentType. The frontend sends/reads this as a string; the legacy
+    // exam_type_id UUID FK points at a table that doesn't exist and stays null.
+    @Column(name = "exam_type")
+    private String examType;
+
     @Column(nullable = false)
     private String name;
     
