@@ -31,7 +31,14 @@ public class ExamResult {
     @Column(precision = 5, scale = 2)
     @PositiveOrZero
     private BigDecimal score;
-    
+
+    // Max score snapshot at grading time. The gradebook renders score/maxScore; without this
+    // column it was dropped on save and the UI fell back to a hardcoded 100 — wrong denominator
+    // for any exam not out of 100.
+    @Column(name = "max_score", precision = 5, scale = 2)
+    @PositiveOrZero
+    private BigDecimal maxScore;
+
     @Column(precision = 5, scale = 2)
     @PositiveOrZero
     @DecimalMax(value = "100", inclusive = true)
