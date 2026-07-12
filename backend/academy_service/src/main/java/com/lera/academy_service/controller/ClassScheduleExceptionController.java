@@ -1,6 +1,7 @@
 package com.lera.academy_service.controller;
 
 import com.lera.academy_service.security.AcademyRoles;
+import com.lera.academy_service.security.CurrentUser;
 import com.lera.academy_service.entity.ClassScheduleException;
 import com.lera.academy_service.repository.ClassScheduleExceptionRepository;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,11 @@ public class ClassScheduleExceptionController {
 
     @PostMapping
     public ResponseEntity<ClassScheduleException> create(@Valid @RequestBody ClassScheduleException classScheduleException) {
+        // created_by is NOT NULL; populate it from the authenticated user when the client omits it
+        // (audit field — avoids a NOT NULL insert failure, same guard as assignment create).
+        if (classScheduleException.getCreatedBy() == null) {
+            CurrentUser.id().ifPresent(classScheduleException::setCreatedBy);
+        }
         return ResponseEntity.ok(classScheduleExceptionRepository.save(classScheduleException));
     }
 
