@@ -32,6 +32,11 @@ public class Exam {
     @Column(name = "exam_type")
     private String examType;
 
+    // Lifecycle status (SCHEDULED, COMPLETED, DRAFT, ...). The UI sends it on create and
+    // colour-codes exam.status on read; without this column it was silently dropped.
+    @Column(name = "status")
+    private String status;
+
     @Column(nullable = false)
     private String name;
     

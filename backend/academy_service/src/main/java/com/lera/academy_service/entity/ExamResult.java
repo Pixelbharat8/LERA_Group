@@ -51,7 +51,12 @@ public class ExamResult {
     
     @Column(name = "graded_at")
     private LocalDateTime gradedAt;
-    
+
+    // Grading status (GRADED, PENDING, ...). The UI sends it on save and counts
+    // r.status == "GRADED"; without this column it was dropped, so the count stayed 0.
+    @Column(name = "status")
+    private String status;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
     
