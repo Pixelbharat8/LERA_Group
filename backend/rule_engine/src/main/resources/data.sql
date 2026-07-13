@@ -1,4 +1,9 @@
 -- =====================================================
+--
+-- NOTE: seed ids are FIXED, never gen_random_uuid(). Spring re-runs data.sql on every
+-- startup (spring.sql.init.mode=always in dev; 'never' in prod). A random id can never
+-- collide, so ON CONFLICT DO NOTHING cannot fire and the rows are re-INSERTED each boot —
+-- which duplicated this dev DB's seed data many times over. Keep ids literal.
 -- LERA Rule Engine Service - Seed Data
 -- =====================================================
 -- This file creates initial data for business rules, conditions, actions, and executions
@@ -54,24 +59,24 @@ ON CONFLICT DO NOTHING;
 INSERT INTO rule_conditions (id, rule_id, condition_order, field_name, operator, value, value_type, logical_operator, created_at)
 VALUES 
     -- Early Bird Discount conditions
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000001', 1, 'enrollment_date', 'BEFORE', 'semester_start_date', 'DATE', 'AND', NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000001', 2, 'days_before_start', 'GREATER_THAN_OR_EQUAL', '30', 'INTEGER', 'AND', NOW()),
+    ('5eed0008-0000-0000-0000-000000000001', 'br000000-0000-0000-0000-000000000001', 1, 'enrollment_date', 'BEFORE', 'semester_start_date', 'DATE', 'AND', NOW()),
+    ('5eed0008-0000-0000-0000-000000000002', 'br000000-0000-0000-0000-000000000001', 2, 'days_before_start', 'GREATER_THAN_OR_EQUAL', '30', 'INTEGER', 'AND', NOW()),
     
     -- Sibling Discount conditions
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000002', 1, 'sibling_enrolled', 'EQUALS', 'true', 'BOOLEAN', 'AND', NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000002', 2, 'child_order', 'GREATER_THAN', '1', 'INTEGER', 'AND', NOW()),
+    ('5eed0008-0000-0000-0000-000000000003', 'br000000-0000-0000-0000-000000000002', 1, 'sibling_enrolled', 'EQUALS', 'true', 'BOOLEAN', 'AND', NOW()),
+    ('5eed0008-0000-0000-0000-000000000004', 'br000000-0000-0000-0000-000000000002', 2, 'child_order', 'GREATER_THAN', '1', 'INTEGER', 'AND', NOW()),
     
     -- Low Attendance conditions
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000004', 1, 'attendance_percentage', 'LESS_THAN', '70', 'DECIMAL', 'AND', NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000004', 2, 'period_type', 'EQUALS', 'MONTHLY', 'STRING', 'AND', NOW()),
+    ('5eed0008-0000-0000-0000-000000000005', 'br000000-0000-0000-0000-000000000004', 1, 'attendance_percentage', 'LESS_THAN', '70', 'DECIMAL', 'AND', NOW()),
+    ('5eed0008-0000-0000-0000-000000000006', 'br000000-0000-0000-0000-000000000004', 2, 'period_type', 'EQUALS', 'MONTHLY', 'STRING', 'AND', NOW()),
     
     -- Consecutive Absence conditions
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000005', 1, 'consecutive_absences', 'GREATER_THAN_OR_EQUAL', '3', 'INTEGER', 'AND', NOW()),
+    ('5eed0008-0000-0000-0000-000000000007', 'br000000-0000-0000-0000-000000000005', 1, 'consecutive_absences', 'GREATER_THAN_OR_EQUAL', '3', 'INTEGER', 'AND', NOW()),
     
     -- Promotion eligibility conditions
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000010', 1, 'attendance_percentage', 'GREATER_THAN_OR_EQUAL', '80', 'DECIMAL', 'AND', NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000010', 2, 'assessment_score', 'GREATER_THAN_OR_EQUAL', '70', 'DECIMAL', 'AND', NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000010', 3, 'months_enrolled', 'GREATER_THAN_OR_EQUAL', '3', 'INTEGER', 'AND', NOW())
+    ('5eed0008-0000-0000-0000-000000000008', 'br000000-0000-0000-0000-000000000010', 1, 'attendance_percentage', 'GREATER_THAN_OR_EQUAL', '80', 'DECIMAL', 'AND', NOW()),
+    ('5eed0008-0000-0000-0000-000000000009', 'br000000-0000-0000-0000-000000000010', 2, 'assessment_score', 'GREATER_THAN_OR_EQUAL', '70', 'DECIMAL', 'AND', NOW()),
+    ('5eed0008-0000-0000-0000-000000000010', 'br000000-0000-0000-0000-000000000010', 3, 'months_enrolled', 'GREATER_THAN_OR_EQUAL', '3', 'INTEGER', 'AND', NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -80,21 +85,21 @@ ON CONFLICT DO NOTHING;
 INSERT INTO rule_actions (id, rule_id, action_order, action_type, action_params, notification_template, notification_channels, created_at)
 VALUES 
     -- Discount actions
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000001', 1, 'APPLY_DISCOUNT', '{"type": "PERCENTAGE", "value": 10}', NULL, NULL, NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000002', 1, 'APPLY_DISCOUNT', '{"type": "PERCENTAGE", "value": 15}', NULL, NULL, NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000003', 1, 'APPLY_DISCOUNT', '{"type": "MONTHS_FREE", "value": 2}', NULL, NULL, NOW()),
+    ('5eed0008-0000-0000-0000-000000000011', 'br000000-0000-0000-0000-000000000001', 1, 'APPLY_DISCOUNT', '{"type": "PERCENTAGE", "value": 10}', NULL, NULL, NOW()),
+    ('5eed0008-0000-0000-0000-000000000012', 'br000000-0000-0000-0000-000000000002', 1, 'APPLY_DISCOUNT', '{"type": "PERCENTAGE", "value": 15}', NULL, NULL, NOW()),
+    ('5eed0008-0000-0000-0000-000000000013', 'br000000-0000-0000-0000-000000000003', 1, 'APPLY_DISCOUNT', '{"type": "MONTHS_FREE", "value": 2}', NULL, NULL, NOW()),
     
     -- Notification actions
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000004', 1, 'SEND_NOTIFICATION', '{"urgency": "MEDIUM"}', 'low_attendance_alert', '["email", "sms"]', NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000005', 1, 'SEND_NOTIFICATION', '{"urgency": "HIGH"}', 'consecutive_absence_alert', '["email", "sms", "app_push"]', NOW()),
+    ('5eed0008-0000-0000-0000-000000000014', 'br000000-0000-0000-0000-000000000004', 1, 'SEND_NOTIFICATION', '{"urgency": "MEDIUM"}', 'low_attendance_alert', '["email", "sms"]', NOW()),
+    ('5eed0008-0000-0000-0000-000000000015', 'br000000-0000-0000-0000-000000000005', 1, 'SEND_NOTIFICATION', '{"urgency": "HIGH"}', 'consecutive_absence_alert', '["email", "sms", "app_push"]', NOW()),
     
     -- Approval actions
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000006', 1, 'AUTO_APPROVE', '{"notify_manager": true}', 'leave_auto_approved', '["email"]', NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000007', 1, 'ESCALATE', '{"to": "center_manager", "sla_hours": 2}', 'emergency_leave_escalated', '["email", "sms"]', NOW()),
+    ('5eed0008-0000-0000-0000-000000000016', 'br000000-0000-0000-0000-000000000006', 1, 'AUTO_APPROVE', '{"notify_manager": true}', 'leave_auto_approved', '["email"]', NOW()),
+    ('5eed0008-0000-0000-0000-000000000017', 'br000000-0000-0000-0000-000000000007', 1, 'ESCALATE', '{"to": "center_manager", "sla_hours": 2}', 'emergency_leave_escalated', '["email", "sms"]', NOW()),
     
     -- Enrollment actions
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000008', 1, 'VALIDATE', '{"validation_type": "AGE_CHECK"}', NULL, NULL, NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000009', 1, 'VALIDATE', '{"validation_type": "CAPACITY_CHECK"}', NULL, NULL, NOW())
+    ('5eed0008-0000-0000-0000-000000000018', 'br000000-0000-0000-0000-000000000008', 1, 'VALIDATE', '{"validation_type": "AGE_CHECK"}', NULL, NULL, NOW()),
+    ('5eed0008-0000-0000-0000-000000000019', 'br000000-0000-0000-0000-000000000009', 1, 'VALIDATE', '{"validation_type": "CAPACITY_CHECK"}', NULL, NULL, NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -103,17 +108,17 @@ ON CONFLICT DO NOTHING;
 INSERT INTO rule_executions (id, rule_id, triggered_at, trigger_event, input_data, output_data, status, execution_time_ms, error_message, created_at)
 VALUES 
     -- Successful executions
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000001', '2024-01-15 10:30:00', 'ENROLLMENT_CREATED', '{"student_id": "50000000-0000-0000-0000-000000000001", "enrollment_date": "2024-01-15", "semester_start": "2024-02-01"}', '{"discount_applied": true, "discount_amount": 250000}', 'SUCCESS', 45, NULL, NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000002', '2024-01-20 14:00:00', 'ENROLLMENT_CREATED', '{"student_id": "50000000-0000-0000-0000-000000000002", "sibling_count": 2}', '{"discount_applied": true, "discount_amount": 337500}', 'SUCCESS', 38, NULL, NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000004', '2024-02-15 09:00:00', 'ATTENDANCE_CALCULATED', '{"student_id": "50000000-0000-0000-0000-000000000006", "attendance_percentage": 65}', '{"notifications_sent": 3, "recipients": ["parent", "teacher", "center_admin"]}', 'SUCCESS', 120, NULL, NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000005', '2024-02-18 08:30:00', 'ATTENDANCE_MARKED', '{"student_id": "50000000-0000-0000-0000-000000000004", "consecutive_absences": 3}', '{"notifications_sent": 2, "urgency": "HIGH"}', 'SUCCESS', 85, NULL, NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000006', '2024-02-10 07:45:00', 'LEAVE_REQUESTED', '{"user_id": "e0000000-0000-0000-0000-000000000010", "leave_type": "SICK_LEAVE", "duration": 1}', '{"auto_approved": true, "approval_time": "0ms"}', 'SUCCESS', 25, NULL, NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000008', '2024-01-10 11:00:00', 'ENROLLMENT_VALIDATION', '{"student_id": "50000000-0000-0000-0000-000000000001", "student_age": 9, "program_min_age": 6, "program_max_age": 10}', '{"validation_passed": true}', 'SUCCESS', 15, NULL, NOW()),
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000010', '2024-03-01 10:00:00', 'MONTHLY_EVALUATION', '{"student_id": "50000000-0000-0000-0000-000000000003", "attendance": 92, "assessment_score": 85, "months_enrolled": 4}', '{"eligible": true, "notifications_sent": 2}', 'SUCCESS', 95, NULL, NOW()),
+    ('5eed0008-0000-0000-0000-000000000020', 'br000000-0000-0000-0000-000000000001', '2024-01-15 10:30:00', 'ENROLLMENT_CREATED', '{"student_id": "50000000-0000-0000-0000-000000000001", "enrollment_date": "2024-01-15", "semester_start": "2024-02-01"}', '{"discount_applied": true, "discount_amount": 250000}', 'SUCCESS', 45, NULL, NOW()),
+    ('5eed0008-0000-0000-0000-000000000021', 'br000000-0000-0000-0000-000000000002', '2024-01-20 14:00:00', 'ENROLLMENT_CREATED', '{"student_id": "50000000-0000-0000-0000-000000000002", "sibling_count": 2}', '{"discount_applied": true, "discount_amount": 337500}', 'SUCCESS', 38, NULL, NOW()),
+    ('5eed0008-0000-0000-0000-000000000022', 'br000000-0000-0000-0000-000000000004', '2024-02-15 09:00:00', 'ATTENDANCE_CALCULATED', '{"student_id": "50000000-0000-0000-0000-000000000006", "attendance_percentage": 65}', '{"notifications_sent": 3, "recipients": ["parent", "teacher", "center_admin"]}', 'SUCCESS', 120, NULL, NOW()),
+    ('5eed0008-0000-0000-0000-000000000023', 'br000000-0000-0000-0000-000000000005', '2024-02-18 08:30:00', 'ATTENDANCE_MARKED', '{"student_id": "50000000-0000-0000-0000-000000000004", "consecutive_absences": 3}', '{"notifications_sent": 2, "urgency": "HIGH"}', 'SUCCESS', 85, NULL, NOW()),
+    ('5eed0008-0000-0000-0000-000000000024', 'br000000-0000-0000-0000-000000000006', '2024-02-10 07:45:00', 'LEAVE_REQUESTED', '{"user_id": "e0000000-0000-0000-0000-000000000010", "leave_type": "SICK_LEAVE", "duration": 1}', '{"auto_approved": true, "approval_time": "0ms"}', 'SUCCESS', 25, NULL, NOW()),
+    ('5eed0008-0000-0000-0000-000000000025', 'br000000-0000-0000-0000-000000000008', '2024-01-10 11:00:00', 'ENROLLMENT_VALIDATION', '{"student_id": "50000000-0000-0000-0000-000000000001", "student_age": 9, "program_min_age": 6, "program_max_age": 10}', '{"validation_passed": true}', 'SUCCESS', 15, NULL, NOW()),
+    ('5eed0008-0000-0000-0000-000000000026', 'br000000-0000-0000-0000-000000000010', '2024-03-01 10:00:00', 'MONTHLY_EVALUATION', '{"student_id": "50000000-0000-0000-0000-000000000003", "attendance": 92, "assessment_score": 85, "months_enrolled": 4}', '{"eligible": true, "notifications_sent": 2}', 'SUCCESS', 95, NULL, NOW()),
     
     -- Failed execution
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000013', '2024-02-25 09:00:00', 'PAYMENT_OVERDUE', '{"invoice_id": "10000000-0000-0000-0000-000000000006", "days_overdue": 10}', NULL, 'FAILED', 200, 'Email service unavailable - retry scheduled', NOW()),
+    ('5eed0008-0000-0000-0000-000000000027', 'br000000-0000-0000-0000-000000000013', '2024-02-25 09:00:00', 'PAYMENT_OVERDUE', '{"invoice_id": "10000000-0000-0000-0000-000000000006", "days_overdue": 10}', NULL, 'FAILED', 200, 'Email service unavailable - retry scheduled', NOW()),
     
     -- Skipped execution (conditions not met)
-    (gen_random_uuid(), 'br000000-0000-0000-0000-000000000011', '2024-02-28 10:00:00', 'MONTHLY_EVALUATION', '{"student_id": "50000000-0000-0000-0000-000000000004", "gpa": 7.5, "attendance": 88}', '{"eligible": false, "reason": "GPA below threshold"}', 'SKIPPED', 30, NULL, NOW())
+    ('5eed0008-0000-0000-0000-000000000028', 'br000000-0000-0000-0000-000000000011', '2024-02-28 10:00:00', 'MONTHLY_EVALUATION', '{"student_id": "50000000-0000-0000-0000-000000000004", "gpa": 7.5, "attendance": 88}', '{"eligible": false, "reason": "GPA below threshold"}', 'SKIPPED', 30, NULL, NOW())
 ON CONFLICT DO NOTHING;

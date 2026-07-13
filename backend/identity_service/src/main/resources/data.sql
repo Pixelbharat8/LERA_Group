@@ -1,4 +1,9 @@
 -- =====================================================
+--
+-- NOTE: seed ids are FIXED, never gen_random_uuid(). Spring re-runs data.sql on every
+-- startup (spring.sql.init.mode=always in dev; 'never' in prod). A random id can never
+-- collide, so ON CONFLICT DO NOTHING cannot fire and the rows are re-INSERTED each boot —
+-- which duplicated this dev DB's seed data many times over. Keep ids literal.
 -- LERA Identity Service - Seed Data
 -- =====================================================
 -- PERMANENT FIX: All columns match entity definitions exactly
@@ -164,7 +169,7 @@ ON CONFLICT (email) DO UPDATE SET
 -- =====================================================
 INSERT INTO role_permissions (id, role_id, permission_id, created_at)
 SELECT 
-    gen_random_uuid(),
+    '5eed0005-0000-0000-0000-000000000001',
     r.id,
     p.id,
     NOW()
@@ -180,13 +185,13 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO system_settings (id, setting_key, setting_value, setting_type, category, description, is_public, updated_at)
 VALUES 
-    (gen_random_uuid(), 'academy_name', 'LERA Sports Academy', 'text', 'GENERAL', 'Academy name', true, NOW()),
-    (gen_random_uuid(), 'default_currency', 'VND', 'text', 'FINANCE', 'Default currency', true, NOW()),
-    (gen_random_uuid(), 'timezone', 'Asia/Ho_Chi_Minh', 'text', 'GENERAL', 'System timezone', true, NOW()),
-    (gen_random_uuid(), 'session_timeout', '3600', 'number', 'SECURITY', 'Session timeout in seconds', false, NOW()),
-    (gen_random_uuid(), 'max_login_attempts', '5', 'number', 'SECURITY', 'Maximum login attempts', false, NOW()),
-    (gen_random_uuid(), 'email_notifications', 'true', 'boolean', 'NOTIFICATIONS', 'Enable email notifications', false, NOW()),
-    (gen_random_uuid(), 'sms_notifications', 'true', 'boolean', 'NOTIFICATIONS', 'Enable SMS notifications', false, NOW())
+    ('5eed0005-0000-0000-0000-000000000002', 'academy_name', 'LERA Sports Academy', 'text', 'GENERAL', 'Academy name', true, NOW()),
+    ('5eed0005-0000-0000-0000-000000000003', 'default_currency', 'VND', 'text', 'FINANCE', 'Default currency', true, NOW()),
+    ('5eed0005-0000-0000-0000-000000000004', 'timezone', 'Asia/Ho_Chi_Minh', 'text', 'GENERAL', 'System timezone', true, NOW()),
+    ('5eed0005-0000-0000-0000-000000000005', 'session_timeout', '3600', 'number', 'SECURITY', 'Session timeout in seconds', false, NOW()),
+    ('5eed0005-0000-0000-0000-000000000006', 'max_login_attempts', '5', 'number', 'SECURITY', 'Maximum login attempts', false, NOW()),
+    ('5eed0005-0000-0000-0000-000000000007', 'email_notifications', 'true', 'boolean', 'NOTIFICATIONS', 'Enable email notifications', false, NOW()),
+    ('5eed0005-0000-0000-0000-000000000008', 'sms_notifications', 'true', 'boolean', 'NOTIFICATIONS', 'Enable SMS notifications', false, NOW())
 ON CONFLICT (setting_key) DO NOTHING;
 
 -- =====================================================
@@ -195,10 +200,10 @@ ON CONFLICT (setting_key) DO NOTHING;
 -- =====================================================
 INSERT INTO feature_flags (id, flag_key, flag_name, description, is_enabled, rollout_percentage, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), 'ai_tutor_enabled', 'AI Tutor', 'Enable AI Tutor feature', true, 100, NOW(), NOW()),
-    (gen_random_uuid(), 'online_payments', 'Online Payments', 'Enable online payment processing', true, 100, NOW(), NOW()),
-    (gen_random_uuid(), 'sms_notifications', 'SMS Notifications', 'Enable SMS notifications', true, 100, NOW(), NOW()),
-    (gen_random_uuid(), 'parent_portal', 'Parent Portal', 'Enable parent portal access', true, 100, NOW(), NOW()),
-    (gen_random_uuid(), 'gamification', 'Gamification', 'Enable gamification features', true, 100, NOW(), NOW()),
-    (gen_random_uuid(), 'multi_language', 'Multi Language', 'Enable multi-language support', true, 100, NOW(), NOW())
+    ('5eed0005-0000-0000-0000-000000000009', 'ai_tutor_enabled', 'AI Tutor', 'Enable AI Tutor feature', true, 100, NOW(), NOW()),
+    ('5eed0005-0000-0000-0000-000000000010', 'online_payments', 'Online Payments', 'Enable online payment processing', true, 100, NOW(), NOW()),
+    ('5eed0005-0000-0000-0000-000000000011', 'sms_notifications', 'SMS Notifications', 'Enable SMS notifications', true, 100, NOW(), NOW()),
+    ('5eed0005-0000-0000-0000-000000000012', 'parent_portal', 'Parent Portal', 'Enable parent portal access', true, 100, NOW(), NOW()),
+    ('5eed0005-0000-0000-0000-000000000013', 'gamification', 'Gamification', 'Enable gamification features', true, 100, NOW(), NOW()),
+    ('5eed0005-0000-0000-0000-000000000014', 'multi_language', 'Multi Language', 'Enable multi-language support', true, 100, NOW(), NOW())
 ON CONFLICT (flag_key) DO NOTHING;

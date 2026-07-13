@@ -1,4 +1,9 @@
 -- =====================================================
+--
+-- NOTE: seed ids are FIXED, never gen_random_uuid(). Spring re-runs data.sql on every
+-- startup (spring.sql.init.mode=always in dev; 'never' in prod). A random id can never
+-- collide, so ON CONFLICT DO NOTHING cannot fire and the rows are re-INSERTED each boot —
+-- which duplicated this dev DB's seed data many times over. Keep ids literal.
 -- LERA AI Gateway Service - Seed Data
 -- =====================================================
 -- This file creates initial data for AI conversations, learning paths, assessments, recommendations
@@ -22,14 +27,14 @@ ON CONFLICT DO NOTHING;
 INSERT INTO ai_conversations (id, user_id, student_id, conversation_type, subject, topic, ai_model, message_count, session_duration_minutes, started_at, ended_at, status, satisfaction_rating, learning_outcome, key_concepts, follow_up_needed, notes, created_at, updated_at)
 VALUES 
     -- Completed tutoring sessions
-    (gen_random_uuid(), 'e0000000-0000-0000-0000-000000000050', '50000000-0000-0000-0000-000000000001', 'TUTORING', 'ENGLISH', 'Speaking confidence', 'GPT-4', 15, 25, '2024-02-10 15:00:00', '2024-02-10 15:25:00', 'ENDED', 4.5, 'Student learned self-introduction and basic conversation starters', '["self-introduction", "greetings", "simple questions"]', false, 'Very engaged session, student asked good questions', NOW(), NOW()),
-    (gen_random_uuid(), 'e0000000-0000-0000-0000-000000000051', '50000000-0000-0000-0000-000000000002', 'TUTORING', 'PHONICS', 'Letter sounds', 'GPT-4', 12, 20, '2024-02-12 16:00:00', '2024-02-12 16:20:00', 'ENDED', 5.0, 'Excellent understanding of vowel sounds and blending', '["vowel sounds", "blending", "CVC words"]', false, 'Student showed immediate improvement in reading', NOW(), NOW()),
-    (gen_random_uuid(), 'e0000000-0000-0000-0000-000000000050', '50000000-0000-0000-0000-000000000001', 'ASSESSMENT', 'GRAMMAR', 'Tenses knowledge', 'GPT-4', 20, 30, '2024-02-15 10:00:00', '2024-02-15 10:30:00', 'ENDED', 4.0, 'Good understanding of present tense, needs work on past tense', '["present simple", "present continuous", "past simple"]', true, 'Schedule follow-up on irregular verbs', NOW(), NOW()),
-    (gen_random_uuid(), NULL, '50000000-0000-0000-0000-000000000003', 'PRACTICE', 'IELTS', 'Writing Task 2', 'GPT-4', 25, 40, '2024-02-18 14:00:00', '2024-02-18 14:40:00', 'ENDED', 4.8, 'Advanced understanding of essay structure and argument development', '["essay structure", "thesis statement", "supporting evidence"]', false, 'Ready for advanced writing module', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000050', '50000000-0000-0000-0000-000000000001', 'TUTORING', 'ENGLISH', 'Speaking confidence', 'GPT-4', 15, 25, '2024-02-10 15:00:00', '2024-02-10 15:25:00', 'ENDED', 4.5, 'Student learned self-introduction and basic conversation starters', '["self-introduction", "greetings", "simple questions"]', false, 'Very engaged session, student asked good questions', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000051', '50000000-0000-0000-0000-000000000002', 'TUTORING', 'PHONICS', 'Letter sounds', 'GPT-4', 12, 20, '2024-02-12 16:00:00', '2024-02-12 16:20:00', 'ENDED', 5.0, 'Excellent understanding of vowel sounds and blending', '["vowel sounds", "blending", "CVC words"]', false, 'Student showed immediate improvement in reading', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000050', '50000000-0000-0000-0000-000000000001', 'ASSESSMENT', 'GRAMMAR', 'Tenses knowledge', 'GPT-4', 20, 30, '2024-02-15 10:00:00', '2024-02-15 10:30:00', 'ENDED', 4.0, 'Good understanding of present tense, needs work on past tense', '["present simple", "present continuous", "past simple"]', true, 'Schedule follow-up on irregular verbs', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000004', NULL, '50000000-0000-0000-0000-000000000003', 'PRACTICE', 'IELTS', 'Writing Task 2', 'GPT-4', 25, 40, '2024-02-18 14:00:00', '2024-02-18 14:40:00', 'ENDED', 4.8, 'Advanced understanding of essay structure and argument development', '["essay structure", "thesis statement", "supporting evidence"]', false, 'Ready for advanced writing module', NOW(), NOW()),
     -- Active session
-    (gen_random_uuid(), 'e0000000-0000-0000-0000-000000000050', '50000000-0000-0000-0000-000000000001', 'HOMEWORK_HELP', 'ENGLISH', 'Reading comprehension help', 'GPT-4', 8, 15, '2024-03-10 18:00:00', NULL, 'ACTIVE', NULL, NULL, NULL, false, 'Helping with reading passage analysis', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000005', 'e0000000-0000-0000-0000-000000000050', '50000000-0000-0000-0000-000000000001', 'HOMEWORK_HELP', 'ENGLISH', 'Reading comprehension help', 'GPT-4', 8, 15, '2024-03-10 18:00:00', NULL, 'ACTIVE', NULL, NULL, NULL, false, 'Helping with reading passage analysis', NOW(), NOW()),
     -- General inquiry
-    (gen_random_uuid(), 'e0000000-0000-0000-0000-000000000040', NULL, 'GENERAL', 'GENERAL', 'Program information', 'GPT-4', 5, 8, '2024-03-05 09:00:00', '2024-03-05 09:08:00', 'ENDED', 4.0, 'Parent got all information about IELTS prep course', '["IELTS prep", "schedule", "pricing"]', false, 'Potential enrollment for IELTS', NOW(), NOW())
+    ('5eed0002-0000-0000-0000-000000000006', 'e0000000-0000-0000-0000-000000000040', NULL, 'GENERAL', 'GENERAL', 'Program information', 'GPT-4', 5, 8, '2024-03-05 09:00:00', '2024-03-05 09:08:00', 'ENDED', 4.0, 'Parent got all information about IELTS prep course', '["IELTS prep", "schedule", "pricing"]', false, 'Potential enrollment for IELTS', NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -50,14 +55,14 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO ai_recommendations (id, student_id, recommendation_type, title, description, reason, priority, status, expires_at, action_taken_at, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000001', 'SKILL_DEVELOPMENT', 'Focus on Speaking Practice', 'Increase speaking practice sessions to improve fluency', 'Assessment shows speaking as weakest area, but good improvement potential', 'HIGH', 'ACTIVE', '2024-04-30', NULL, NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000001', 'PROGRAM', 'Consider LERA Primary Level', 'Student shows readiness for primary level English', 'Vocabulary has improved significantly, ready for more challenging content', 'MEDIUM', 'ACTIVE', '2024-05-15', NULL, NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000002', 'PRACTICE', 'Extra Reading Drills', 'Schedule 2 additional reading practice sessions per week', 'Recent performance shows need for more reading fluency practice', 'HIGH', 'ACCEPTED', '2024-03-31', '2024-03-05 10:00:00', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000003', 'COMPETITION', 'Register for Speech Contest', 'Student is ready for competitive speaking at regional level', 'Excellent assessment results and teacher recommendation', 'HIGH', 'ACCEPTED', '2024-04-15', '2024-02-20 14:00:00', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000003', 'SKILL_DEVELOPMENT', 'Debate Skills Module', 'Enroll in debate and public speaking program', 'Shows natural communication abilities that should be developed', 'MEDIUM', 'ACTIVE', '2024-06-30', NULL, NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000005', 'PROGRAM', 'IELTS Exam Ready', 'Schedule official IELTS exam', 'Completed IELTS writing path with excellent results', 'HIGH', 'ACTIVE', '2024-04-30', NULL, NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000006', 'SCHEDULE', 'Increase Study Frequency', 'Add one more study session per week', 'Progress is slower than expected, additional practice recommended', 'MEDIUM', 'PENDING', '2024-04-15', NULL, NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000004', 'STUDY_TIPS', 'Vocabulary Building', 'Use flashcards and spaced repetition for vocabulary', 'Vocabulary retention could be improved with better techniques', 'LOW', 'DISMISSED', '2024-03-01', '2024-02-15 09:00:00', NOW(), NOW())
+    ('5eed0002-0000-0000-0000-000000000007', '50000000-0000-0000-0000-000000000001', 'SKILL_DEVELOPMENT', 'Focus on Speaking Practice', 'Increase speaking practice sessions to improve fluency', 'Assessment shows speaking as weakest area, but good improvement potential', 'HIGH', 'ACTIVE', '2024-04-30', NULL, NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000008', '50000000-0000-0000-0000-000000000001', 'PROGRAM', 'Consider LERA Primary Level', 'Student shows readiness for primary level English', 'Vocabulary has improved significantly, ready for more challenging content', 'MEDIUM', 'ACTIVE', '2024-05-15', NULL, NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000009', '50000000-0000-0000-0000-000000000002', 'PRACTICE', 'Extra Reading Drills', 'Schedule 2 additional reading practice sessions per week', 'Recent performance shows need for more reading fluency practice', 'HIGH', 'ACCEPTED', '2024-03-31', '2024-03-05 10:00:00', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000010', '50000000-0000-0000-0000-000000000003', 'COMPETITION', 'Register for Speech Contest', 'Student is ready for competitive speaking at regional level', 'Excellent assessment results and teacher recommendation', 'HIGH', 'ACCEPTED', '2024-04-15', '2024-02-20 14:00:00', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000011', '50000000-0000-0000-0000-000000000003', 'SKILL_DEVELOPMENT', 'Debate Skills Module', 'Enroll in debate and public speaking program', 'Shows natural communication abilities that should be developed', 'MEDIUM', 'ACTIVE', '2024-06-30', NULL, NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000012', '50000000-0000-0000-0000-000000000005', 'PROGRAM', 'IELTS Exam Ready', 'Schedule official IELTS exam', 'Completed IELTS writing path with excellent results', 'HIGH', 'ACTIVE', '2024-04-30', NULL, NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000013', '50000000-0000-0000-0000-000000000006', 'SCHEDULE', 'Increase Study Frequency', 'Add one more study session per week', 'Progress is slower than expected, additional practice recommended', 'MEDIUM', 'PENDING', '2024-04-15', NULL, NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000014', '50000000-0000-0000-0000-000000000004', 'STUDY_TIPS', 'Vocabulary Building', 'Use flashcards and spaced repetition for vocabulary', 'Vocabulary retention could be improved with better techniques', 'LOW', 'DISMISSED', '2024-03-01', '2024-02-15 09:00:00', NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -65,13 +70,13 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO ai_learning_progress (id, student_id, learning_path_id, skill_name, skill_category, current_level, target_level, progress_percentage, last_assessed_at, notes, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000001', '1a000000-0000-0000-0000-000000000001', 'Vocabulary', 'LANGUAGE', 3, 5, 60.00, '2024-03-01', 'Good progress, maintaining consistency', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000001', '1a000000-0000-0000-0000-000000000001', 'Grammar', 'LANGUAGE', 3, 5, 55.00, '2024-03-01', 'Accuracy improving, work on complex sentences', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000001', '1a000000-0000-0000-0000-000000000001', 'Speaking', 'COMMUNICATION', 2, 5, 30.00, '2024-03-01', 'Needs focused practice', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000001', '1a000000-0000-0000-0000-000000000002', 'Letter Recognition', 'PHONICS', 4, 5, 80.00, '2024-02-28', 'Excellent improvement', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000001', '1a000000-0000-0000-0000-000000000002', 'Blending', 'PHONICS', 2, 5, 35.00, '2024-02-28', 'Technique needs refinement', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000003', '1a000000-0000-0000-0000-000000000003', 'Reading Comprehension', 'COGNITIVE', 4, 5, 85.00, '2024-03-05', 'Exceptional understanding', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000003', '1a000000-0000-0000-0000-000000000003', 'Essay Writing', 'WRITING', 3, 5, 65.00, '2024-03-05', 'Good structure, work on arguments', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000005', '1a000000-0000-0000-0000-000000000004', 'IELTS Writing Task 1', 'ACADEMIC', 5, 5, 100.00, '2024-03-01', 'Mastered', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000005', '1a000000-0000-0000-0000-000000000004', 'IELTS Writing Task 2', 'ACADEMIC', 5, 5, 100.00, '2024-03-01', 'Mastered', NOW(), NOW())
+    ('5eed0002-0000-0000-0000-000000000015', '50000000-0000-0000-0000-000000000001', '1a000000-0000-0000-0000-000000000001', 'Vocabulary', 'LANGUAGE', 3, 5, 60.00, '2024-03-01', 'Good progress, maintaining consistency', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000016', '50000000-0000-0000-0000-000000000001', '1a000000-0000-0000-0000-000000000001', 'Grammar', 'LANGUAGE', 3, 5, 55.00, '2024-03-01', 'Accuracy improving, work on complex sentences', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000017', '50000000-0000-0000-0000-000000000001', '1a000000-0000-0000-0000-000000000001', 'Speaking', 'COMMUNICATION', 2, 5, 30.00, '2024-03-01', 'Needs focused practice', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000018', '50000000-0000-0000-0000-000000000001', '1a000000-0000-0000-0000-000000000002', 'Letter Recognition', 'PHONICS', 4, 5, 80.00, '2024-02-28', 'Excellent improvement', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000019', '50000000-0000-0000-0000-000000000001', '1a000000-0000-0000-0000-000000000002', 'Blending', 'PHONICS', 2, 5, 35.00, '2024-02-28', 'Technique needs refinement', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000020', '50000000-0000-0000-0000-000000000003', '1a000000-0000-0000-0000-000000000003', 'Reading Comprehension', 'COGNITIVE', 4, 5, 85.00, '2024-03-05', 'Exceptional understanding', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000021', '50000000-0000-0000-0000-000000000003', '1a000000-0000-0000-0000-000000000003', 'Essay Writing', 'WRITING', 3, 5, 65.00, '2024-03-05', 'Good structure, work on arguments', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000022', '50000000-0000-0000-0000-000000000005', '1a000000-0000-0000-0000-000000000004', 'IELTS Writing Task 1', 'ACADEMIC', 5, 5, 100.00, '2024-03-01', 'Mastered', NOW(), NOW()),
+    ('5eed0002-0000-0000-0000-000000000023', '50000000-0000-0000-0000-000000000005', '1a000000-0000-0000-0000-000000000004', 'IELTS Writing Task 2', 'ACADEMIC', 5, 5, 100.00, '2024-03-01', 'Mastered', NOW(), NOW())
 ON CONFLICT DO NOTHING;

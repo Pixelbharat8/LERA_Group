@@ -1,4 +1,9 @@
 -- =====================================================
+--
+-- NOTE: seed ids are FIXED, never gen_random_uuid(). Spring re-runs data.sql on every
+-- startup (spring.sql.init.mode=always in dev; 'never' in prod). A random id can never
+-- collide, so ON CONFLICT DO NOTHING cannot fire and the rows are re-INSERTED each boot —
+-- which duplicated this dev DB's seed data many times over. Keep ids literal.
 -- LERA Academy Service - Seed Data
 -- =====================================================
 -- This file creates initial data for students, teachers, programs, classes, enrollments
@@ -89,17 +94,17 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO enrollments (id, student_id, class_id, enrollment_date, start_date, status, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', '2024-01-15', '2024-01-15', 'ACTIVE', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000003', '2024-02-01', '2024-02-01', 'ACTIVE', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000001', '2024-02-01', '2024-02-01', 'ACTIVE', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000004', '2024-01-20', '2024-01-20', 'ACTIVE', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000008', '2024-01-20', '2024-01-20', 'ACTIVE', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000003', '2024-03-01', '2024-03-01', 'ACTIVE', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000005', '2024-02-01', '2024-02-01', 'ACTIVE', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000006', '2024-01-10', '2024-01-10', 'ACTIVE', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000006', 'd0000000-0000-0000-0000-000000000006', '2024-02-15', '2024-02-15', 'ACTIVE', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000007', 'd0000000-0000-0000-0000-000000000007', '2024-02-01', '2024-02-01', 'ACTIVE', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000008', 'd0000000-0000-0000-0000-000000000002', '2024-01-15', '2024-01-15', 'ACTIVE', NOW(), NOW())
+    ('5eed0001-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', '2024-01-15', '2024-01-15', 'ACTIVE', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000003', '2024-02-01', '2024-02-01', 'ACTIVE', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000003', '50000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000001', '2024-02-01', '2024-02-01', 'ACTIVE', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000004', '50000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000004', '2024-01-20', '2024-01-20', 'ACTIVE', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000005', '50000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000008', '2024-01-20', '2024-01-20', 'ACTIVE', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000006', '50000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000003', '2024-03-01', '2024-03-01', 'ACTIVE', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000007', '50000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000005', '2024-02-01', '2024-02-01', 'ACTIVE', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000008', '50000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000006', '2024-01-10', '2024-01-10', 'ACTIVE', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000009', '50000000-0000-0000-0000-000000000006', 'd0000000-0000-0000-0000-000000000006', '2024-02-15', '2024-02-15', 'ACTIVE', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000010', '50000000-0000-0000-0000-000000000007', 'd0000000-0000-0000-0000-000000000007', '2024-02-01', '2024-02-01', 'ACTIVE', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000011', '50000000-0000-0000-0000-000000000008', 'd0000000-0000-0000-0000-000000000002', '2024-01-15', '2024-01-15', 'ACTIVE', NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -107,11 +112,11 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO exams (id, class_id, title, description, exam_type, exam_date, duration_minutes, max_score, passing_score, status, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000001', 'LERA Starters Q1 Assessment', 'Quarterly progress assessment for young learners', 'ORAL', '2024-03-15', 30, 100, 60, 'COMPLETED', NOW(), NOW()),
-    (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000003', 'Explorers Level Test', 'Speaking and listening proficiency test', 'ORAL', '2024-04-01', 45, 100, 70, 'SCHEDULED', NOW(), NOW()),
-    (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000004', 'Primary English Assessment', 'Reading, writing, listening, speaking test', 'WRITTEN', '2024-03-20', 60, 100, 65, 'SCHEDULED', NOW(), NOW()),
-    (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000006', 'IELTS Practice Test', 'Full IELTS simulation test', 'WRITTEN', '2024-04-10', 180, 9, 6.5, 'SCHEDULED', NOW(), NOW()),
-    (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000008', 'Phonics Mastery Test', 'Phonics knowledge and reading assessment', 'ORAL', '2024-03-30', 45, 100, 70, 'SCHEDULED', NOW(), NOW())
+    ('5eed0001-0000-0000-0000-000000000012', 'd0000000-0000-0000-0000-000000000001', 'LERA Starters Q1 Assessment', 'Quarterly progress assessment for young learners', 'ORAL', '2024-03-15', 30, 100, 60, 'COMPLETED', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000013', 'd0000000-0000-0000-0000-000000000003', 'Explorers Level Test', 'Speaking and listening proficiency test', 'ORAL', '2024-04-01', 45, 100, 70, 'SCHEDULED', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000014', 'd0000000-0000-0000-0000-000000000004', 'Primary English Assessment', 'Reading, writing, listening, speaking test', 'WRITTEN', '2024-03-20', 60, 100, 65, 'SCHEDULED', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000015', 'd0000000-0000-0000-0000-000000000006', 'IELTS Practice Test', 'Full IELTS simulation test', 'WRITTEN', '2024-04-10', 180, 9, 6.5, 'SCHEDULED', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000016', 'd0000000-0000-0000-0000-000000000008', 'Phonics Mastery Test', 'Phonics knowledge and reading assessment', 'ORAL', '2024-03-30', 45, 100, 70, 'SCHEDULED', NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -119,9 +124,9 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO certificates (id, student_id, certificate_type, title, description, issue_date, status, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000001', 'COMPLETION', 'LERA Starters Level 1', 'Successfully completed LERA Starters program', '2024-03-15', 'ISSUED', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000003', 'ACHIEVEMENT', 'English Speaking Star', 'Outstanding achievement in speaking class', '2024-03-20', 'ISSUED', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000005', 'PARTICIPATION', 'English Speech Contest 2024', 'Participated in Junior English Speech Championship', '2024-02-28', 'ISSUED', NOW(), NOW())
+    ('5eed0001-0000-0000-0000-000000000017', '50000000-0000-0000-0000-000000000001', 'COMPLETION', 'LERA Starters Level 1', 'Successfully completed LERA Starters program', '2024-03-15', 'ISSUED', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000018', '50000000-0000-0000-0000-000000000003', 'ACHIEVEMENT', 'English Speaking Star', 'Outstanding achievement in speaking class', '2024-03-20', 'ISSUED', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000019', '50000000-0000-0000-0000-000000000005', 'PARTICIPATION', 'English Speech Contest 2024', 'Participated in Junior English Speech Championship', '2024-02-28', 'ISSUED', NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -129,9 +134,9 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO banners (id, title, subtitle, image_url, link_url, button_text, display_order, is_active, start_date, end_date, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), 'Welcome to LERA Academy', 'Where English Dreams Come True', 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b', '/programs', 'Explore Programs', 1, true, '2024-01-01', '2024-12-31', NOW(), NOW()),
-    (gen_random_uuid(), 'Summer English Camp 2024', 'Register Now - Limited Spots!', 'https://images.unsplash.com/photo-1577896851231-70ef18881754', '/summer-camp', 'Register Now', 2, true, '2024-04-01', '2024-07-31', NOW(), NOW()),
-    (gen_random_uuid(), 'IELTS Preparation Course', 'Achieve Your Target Score', 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173', '/programs/ielts', 'Learn More', 3, true, '2024-01-01', '2024-06-30', NOW(), NOW())
+    ('5eed0001-0000-0000-0000-000000000020', 'Welcome to LERA Academy', 'Where English Dreams Come True', 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b', '/programs', 'Explore Programs', 1, true, '2024-01-01', '2024-12-31', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000021', 'Summer English Camp 2024', 'Register Now - Limited Spots!', 'https://images.unsplash.com/photo-1577896851231-70ef18881754', '/summer-camp', 'Register Now', 2, true, '2024-04-01', '2024-07-31', NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000022', 'IELTS Preparation Course', 'Achieve Your Target Score', 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173', '/programs/ielts', 'Learn More', 3, true, '2024-01-01', '2024-06-30', NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -139,10 +144,10 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO testimonials (id, name, role, content, rating, image_url, is_featured, is_active, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), 'Nguyen Van Minh', 'Parent', 'My son has improved tremendously since joining LERA. The teachers are professional and engaging. His English confidence has grown significantly!', 5, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', true, true, NOW(), NOW()),
-    (gen_random_uuid(), 'Tran Thi Lan', 'Parent', 'The facilities are excellent and the teaching programs are well-structured. My daughter loves her LERA Explorers class. Highly recommended!', 5, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', true, true, NOW(), NOW()),
-    (gen_random_uuid(), 'Le Van Duc', 'Parent', 'Great experience for my daughter. She loves coming to class every week. The phonics program has really helped her reading skills.', 4, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e', false, true, NOW(), NOW()),
-    (gen_random_uuid(), 'Pham Thi Huong', 'Parent', 'Professional staff and great communication. We always know about our childs progress. The IELTS prep course is excellent!', 5, 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80', true, true, NOW(), NOW())
+    ('5eed0001-0000-0000-0000-000000000023', 'Nguyen Van Minh', 'Parent', 'My son has improved tremendously since joining LERA. The teachers are professional and engaging. His English confidence has grown significantly!', 5, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', true, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000024', 'Tran Thi Lan', 'Parent', 'The facilities are excellent and the teaching programs are well-structured. My daughter loves her LERA Explorers class. Highly recommended!', 5, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', true, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000025', 'Le Van Duc', 'Parent', 'Great experience for my daughter. She loves coming to class every week. The phonics program has really helped her reading skills.', 4, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e', false, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000026', 'Pham Thi Huong', 'Parent', 'Professional staff and great communication. We always know about our childs progress. The IELTS prep course is excellent!', 5, 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80', true, true, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -150,12 +155,12 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO faqs (id, question, answer, category, display_order, is_active, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), 'What age groups do you accept?', 'We accept students from ages 2 to adult for various English programs. Each program has specific age requirements tailored for optimal learning.', 'ENROLLMENT', 1, true, NOW(), NOW()),
-    (gen_random_uuid(), 'How do I enroll my child?', 'You can enroll online through our website or visit any of our centers. A free trial class is available for new students.', 'ENROLLMENT', 2, true, NOW(), NOW()),
-    (gen_random_uuid(), 'What are the payment options?', 'We accept cash, bank transfer, and credit card payments. Monthly, quarterly, and annual payment plans are available with discounts.', 'PAYMENT', 3, true, NOW(), NOW()),
-    (gen_random_uuid(), 'Do you offer trial classes?', 'Yes! We offer a FREE trial class for all new students to experience our programs and teaching methods before enrolling.', 'ENROLLMENT', 4, true, NOW(), NOW()),
-    (gen_random_uuid(), 'What teaching methodology do you use?', 'We use communicative language teaching combined with Cambridge methodology. All classes are interactive with native and bilingual teachers.', 'GENERAL', 5, true, NOW(), NOW()),
-    (gen_random_uuid(), 'How can I track my childs progress?', 'Parents can access the parent portal to view attendance, progress reports, test scores, and communicate directly with teachers.', 'GENERAL', 6, true, NOW(), NOW())
+    ('5eed0001-0000-0000-0000-000000000027', 'What age groups do you accept?', 'We accept students from ages 2 to adult for various English programs. Each program has specific age requirements tailored for optimal learning.', 'ENROLLMENT', 1, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000028', 'How do I enroll my child?', 'You can enroll online through our website or visit any of our centers. A free trial class is available for new students.', 'ENROLLMENT', 2, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000029', 'What are the payment options?', 'We accept cash, bank transfer, and credit card payments. Monthly, quarterly, and annual payment plans are available with discounts.', 'PAYMENT', 3, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000030', 'Do you offer trial classes?', 'Yes! We offer a FREE trial class for all new students to experience our programs and teaching methods before enrolling.', 'ENROLLMENT', 4, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000031', 'What teaching methodology do you use?', 'We use communicative language teaching combined with Cambridge methodology. All classes are interactive with native and bilingual teachers.', 'GENERAL', 5, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000032', 'How can I track my childs progress?', 'Parents can access the parent portal to view attendance, progress reports, test scores, and communicate directly with teachers.', 'GENERAL', 6, true, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -163,7 +168,7 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO leadership_members (id, name, name_vi, position, position_vi, bio, bio_vi, image_url, display_order, is_active, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), 'Dr. Nguyen Van A', 'TS. Nguyễn Văn A', 'Founder & Chairman', 'Nhà sáng lập & Chủ tịch', 'PhD in Education with 20+ years in English language education. Former Cambridge examiner.', 'Tiến sĩ Giáo dục với hơn 20 năm trong lĩnh vực giảng dạy tiếng Anh. Cựu giám khảo Cambridge.', 'https://images.unsplash.com/photo-1560250097-0b93528c311a', 1, true, NOW(), NOW()),
-    (gen_random_uuid(), 'Tran Thi B', 'Trần Thị B', 'CEO', 'Tổng Giám đốc', 'MBA graduate with extensive experience in education management. Passionate about innovative teaching.', 'Thạc sĩ MBA với nhiều năm kinh nghiệm quản lý giáo dục. Đam mê giảng dạy sáng tạo.', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2', 2, true, NOW(), NOW()),
-    (gen_random_uuid(), 'John Smith', 'John Smith', 'Head of Academic', 'Trưởng phòng Học vụ', 'CELTA & DELTA certified. British Council trained. 15+ years teaching experience internationally.', 'Chứng chỉ CELTA & DELTA. Được đào tạo British Council. Hơn 15 năm kinh nghiệm giảng dạy quốc tế.', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e', 3, true, NOW(), NOW())
+    ('5eed0001-0000-0000-0000-000000000033', 'Dr. Nguyen Van A', 'TS. Nguyễn Văn A', 'Founder & Chairman', 'Nhà sáng lập & Chủ tịch', 'PhD in Education with 20+ years in English language education. Former Cambridge examiner.', 'Tiến sĩ Giáo dục với hơn 20 năm trong lĩnh vực giảng dạy tiếng Anh. Cựu giám khảo Cambridge.', 'https://images.unsplash.com/photo-1560250097-0b93528c311a', 1, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000034', 'Tran Thi B', 'Trần Thị B', 'CEO', 'Tổng Giám đốc', 'MBA graduate with extensive experience in education management. Passionate about innovative teaching.', 'Thạc sĩ MBA với nhiều năm kinh nghiệm quản lý giáo dục. Đam mê giảng dạy sáng tạo.', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2', 2, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000035', 'John Smith', 'John Smith', 'Head of Academic', 'Trưởng phòng Học vụ', 'CELTA & DELTA certified. British Council trained. 15+ years teaching experience internationally.', 'Chứng chỉ CELTA & DELTA. Được đào tạo British Council. Hơn 15 năm kinh nghiệm giảng dạy quốc tế.', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e', 3, true, NOW(), NOW())
 ON CONFLICT DO NOTHING;
