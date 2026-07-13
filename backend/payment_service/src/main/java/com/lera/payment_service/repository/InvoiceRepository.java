@@ -27,6 +27,15 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
     @Query("SELECT COALESCE(SUM(i.totalAmount), 0) FROM Invoice i WHERE UPPER(i.status) IN ('PENDING','OVERDUE')")
     BigDecimal sumOutstanding();
 
+    // ── Centre-scoped variants (finance dashboard for a centre-bound user) ──
+    long countByCenterId(UUID centerId);
+
+    long countByCenterIdAndStatus(UUID centerId, String status);
+
+    @Query("SELECT COALESCE(SUM(i.totalAmount), 0) FROM Invoice i "
+            + "WHERE UPPER(i.status) IN ('PENDING','OVERDUE') AND i.centerId = :centerId")
+    BigDecimal sumOutstandingByCenter(@Param("centerId") UUID centerId);
+
     /** Invoices in a given status whose due date is strictly before the cutoff (for overdue sweeps). */
     List<Invoice> findByStatusAndDueDateBefore(String status, LocalDate cutoff);
 

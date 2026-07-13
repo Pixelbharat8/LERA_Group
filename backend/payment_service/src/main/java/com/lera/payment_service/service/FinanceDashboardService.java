@@ -57,48 +57,81 @@ public class FinanceDashboardService {
         return result;
     }
 
+    /**
+     * Finance summary. `centerId` is the caller's EFFECTIVE centre, already resolved by
+     * PaymentAccessService.effectiveCenterId: null for an org-wide role viewing the whole company,
+     * or a specific centre (a centre-bound user is always pinned to their own). Every figure below
+     * is scoped to it — previously this argument was accepted and then ignored, so a centre-bound
+     * accountant/manager saw ALL-COMPANY financials and the org-wide "filter by centre" did nothing.
+     */
     public Map<String, Object> getDashboardSummary(UUID centerId) {
         Map<String, Object> summary = new HashMap<>();
-        
-        BigDecimal totalRevenue = paymentRepository.getTotalRevenue();
+        boolean scoped = centerId != null;
+        LocalDateTime monthStart = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+
+        BigDecimal totalRevenue = scoped
+                ? paymentRepository.sumAmountByCenterAndStatus(centerId, "COMPLETED")
+                : paymentRepository.getTotalRevenue();
         summary.put("totalRevenue", totalRevenue != null ? totalRevenue : BigDecimal.ZERO);
+
         // Real current-month revenue (was incorrectly shown as the all-time total on the dashboard).
-        BigDecimal thisMonth = paymentRepository.sumCompletedSince(LocalDate.now().withDayOfMonth(1).atStartOfDay());
+        BigDecimal thisMonth = scoped
+                ? paymentRepository.sumCompletedByCenterSince(centerId, monthStart)
+                : paymentRepository.sumCompletedSince(monthStart);
         summary.put("thisMonthRevenue", thisMonth != null ? thisMonth : BigDecimal.ZERO);
-        summary.put("pendingPayments", paymentRepository.countByStatus("PENDING"));
-        summary.put("completedPayments", paymentRepository.countByStatus("COMPLETED"));
-        summary.put("failedPayments", paymentRepository.countByStatus("FAILED"));
-        long totalInvoices = invoiceRepository.count();
+
+        summary.put("pendingPayments", scoped
+                ? paymentRepository.countByCenterIdAndStatus(centerId, "PENDING")
+                : paymentRepository.countByStatus("PENDING"));
+        summary.put("completedPayments", scoped
+                ? paymentRepository.countByCenterIdAndStatus(centerId, "COMPLETED")
+                : paymentRepository.countByStatus("COMPLETED"));
+        summary.put("failedPayments", scoped
+                ? paymentRepository.countByCenterIdAndStatus(centerId, "FAILED")
+                : paymentRepository.countByStatus("FAILED"));
+
+        long totalInvoices = scoped ? invoiceRepository.countByCenterId(centerId) : invoiceRepository.count();
         summary.put("totalInvoices", totalInvoices);
 
         // DB-side aggregation — previously this loaded the entire invoices table into memory.
         Map<String, Long> invoiceStats = new HashMap<>();
         invoiceStats.put("total", totalInvoices);
-        invoiceStats.put("paid", invoiceRepository.countByStatus("PAID"));
-        invoiceStats.put("pending", invoiceRepository.countByStatus("PENDING"));
-        invoiceStats.put("overdue", invoiceRepository.countByStatus("OVERDUE"));
-        invoiceStats.put("cancelled", invoiceRepository.countByStatus("CANCELLED"));
+        for (String st : List.of("PAID", "PENDING", "OVERDUE", "CANCELLED")) {
+            invoiceStats.put(st.toLowerCase(), scoped
+                    ? invoiceRepository.countByCenterIdAndStatus(centerId, st)
+                    : invoiceRepository.countByStatus(st));
+        }
         summary.put("invoiceStats", invoiceStats);
 
-        BigDecimal outstandingAmount = invoiceRepository.sumOutstanding();
+        BigDecimal outstandingAmount = scoped
+                ? invoiceRepository.sumOutstandingByCenter(centerId)
+                : invoiceRepository.sumOutstanding();
         summary.put("outstandingAmount", outstandingAmount != null ? outstandingAmount : BigDecimal.ZERO);
 
-        List<Refund> approvedRefunds = refundRepository.findByStatus("APPROVED");
-        BigDecimal refundedAmount = approvedRefunds.stream()
-                .map(r -> r.getAmount() != null ? r.getAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        summary.put("refundedAmount", refundedAmount);
+        // Refunds carry no centre; they are attributed via the payment they refund.
+        BigDecimal refundedAmount = scoped
+                ? refundRepository.sumApprovedByCenter(centerId)
+                : refundRepository.sumApproved();
+        summary.put("refundedAmount", refundedAmount != null ? refundedAmount : BigDecimal.ZERO);
 
-        long activePlans = studentFeePlanRepository.findByStatus("ACTIVE").size();
+        // Fee plans carry only a studentId; a plan is attributed to the centre billing that student.
+        long activePlans = scoped
+                ? studentFeePlanRepository.countActiveByCenter(centerId)
+                : studentFeePlanRepository.countByStatus("ACTIVE");
         summary.put("activePlans", activePlans);
 
-        BigDecimal totalCredits = ledgerEntryRepository.getTotalCredits();
-        BigDecimal totalDebits = ledgerEntryRepository.getTotalDebits();
-        summary.put("totalCredits", totalCredits != null ? totalCredits : BigDecimal.ZERO);
-        summary.put("totalDebits", totalDebits != null ? totalDebits : BigDecimal.ZERO);
-        summary.put("netBalance", (totalCredits != null ? totalCredits : BigDecimal.ZERO)
-                .subtract(totalDebits != null ? totalDebits : BigDecimal.ZERO));
-        
+        BigDecimal totalCredits = scoped
+                ? ledgerEntryRepository.getTotalCreditsByCenter(centerId)
+                : ledgerEntryRepository.getTotalCredits();
+        BigDecimal totalDebits = scoped
+                ? ledgerEntryRepository.getTotalDebitsByCenter(centerId)
+                : ledgerEntryRepository.getTotalDebits();
+        BigDecimal credits = totalCredits != null ? totalCredits : BigDecimal.ZERO;
+        BigDecimal debits = totalDebits != null ? totalDebits : BigDecimal.ZERO;
+        summary.put("totalCredits", credits);
+        summary.put("totalDebits", debits);
+        summary.put("netBalance", credits.subtract(debits));
+
         return summary;
     }
 

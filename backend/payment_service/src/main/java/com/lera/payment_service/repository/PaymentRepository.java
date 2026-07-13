@@ -39,6 +39,12 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = 'COMPLETED' AND p.createdAt >= :start")
     BigDecimal sumCompletedSince(java.time.LocalDateTime start);
 
+    /** Centre-scoped equivalent of sumCompletedSince (finance dashboard for a centre-bound user). */
+    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p "
+            + "WHERE p.status = 'COMPLETED' AND p.centerId = :centerId AND p.createdAt >= :start")
+    BigDecimal sumCompletedByCenterSince(@Param("centerId") UUID centerId,
+                                         @Param("start") java.time.LocalDateTime start);
+
     /** Completed revenue within a half-open window [start, end) — backs period revenue + growth. */
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = 'COMPLETED' AND p.createdAt >= :start AND p.createdAt < :end")
     BigDecimal sumCompletedBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);

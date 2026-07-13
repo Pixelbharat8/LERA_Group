@@ -3,6 +3,7 @@ package com.lera.payment_service.repository;
 import com.lera.payment_service.entity.LedgerEntry;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,6 +22,15 @@ public interface LedgerEntryRepository extends JpaRepository<LedgerEntry, UUID> 
 
     @Query("SELECT COALESCE(SUM(e.debitAmount), 0) FROM LedgerEntry e WHERE e.status = 'POSTED'")
     BigDecimal getTotalDebits();
+
+    // ── Centre-scoped variants (finance dashboard for a centre-bound user) ──
+    @Query("SELECT COALESCE(SUM(e.creditAmount), 0) FROM LedgerEntry e "
+            + "WHERE e.status = 'POSTED' AND e.centerId = :centerId")
+    BigDecimal getTotalCreditsByCenter(@Param("centerId") UUID centerId);
+
+    @Query("SELECT COALESCE(SUM(e.debitAmount), 0) FROM LedgerEntry e "
+            + "WHERE e.status = 'POSTED' AND e.centerId = :centerId")
+    BigDecimal getTotalDebitsByCenter(@Param("centerId") UUID centerId);
 
     @Query("SELECT COALESCE(SUM(e.creditAmount), 0) FROM LedgerEntry e WHERE e.status = 'POSTED' AND e.transactionDate BETWEEN ?1 AND ?2")
     BigDecimal getTotalCreditsBetween(LocalDate startDate, LocalDate endDate);
