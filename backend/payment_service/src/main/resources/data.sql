@@ -3,6 +3,15 @@
 -- =====================================================
 -- This file creates initial data for payments, invoices, fee rules, discounts, scholarships
 -- Uses PostgreSQL ON CONFLICT for upsert operations
+--
+-- ⚠️  NEVER use gen_random_uuid() for a seed row's id.
+-- Spring Boot re-runs this file on EVERY startup (spring.sql.init.mode=always in dev; it is
+-- 'never' in prod, so prod is unaffected). A random id can never collide, so ON CONFLICT DO
+-- NOTHING silently does nothing to stop it and the row is INSERTED AGAIN on every boot.
+-- That is exactly what happened here: payments/fee_receipts/refunds/student_fee_plans/
+-- ledger_entries each re-seeded per restart until the dev DB held 14 copies of every payment
+-- and reported ~14x the real revenue. Every seed row now has a FIXED id so ON CONFLICT works
+-- and re-seeding is a genuine no-op.
 
 -- =====================================================
 -- FEE_RULES (Fee structures for courses)
@@ -86,11 +95,11 @@ ON CONFLICT (invoice_number) DO UPDATE SET
 -- =====================================================
 INSERT INTO payments (id, invoice_id, center_id, student_id, payment_method, amount, currency, transaction_id, payment_gateway, status, paid_at, notes, created_at)
 VALUES 
-    (gen_random_uuid(), '30000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', 'BANK_TRANSFER', 2700000, 'VND', 'TXN-2024-001', 'VCB', 'COMPLETED', '2024-01-20 10:30:00', 'Bank transfer confirmed', NOW()),
-    (gen_random_uuid(), '30000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000002', 'VNPAY', 2250000, 'VND', 'VNP-2024-002', 'VNPAY', 'COMPLETED', '2024-01-22 14:15:00', 'VNPay payment successful', NOW()),
-    (gen_random_uuid(), '30000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000003', 'CASH', 6000000, 'VND', 'CASH-2024-003', NULL, 'COMPLETED', '2024-01-18 09:00:00', 'Cash payment received', NOW()),
-    (gen_random_uuid(), '30000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000005', 'MOMO', 4590000, 'VND', 'MOMO-2024-005', 'MOMO', 'COMPLETED', '2024-01-25 16:45:00', 'Momo payment confirmed', NOW()),
-    (gen_random_uuid(), '30000000-0000-0000-0000-000000000008', 'c0000000-0000-0000-0000-000000000003', '50000000-0000-0000-0000-000000000008', 'CARD', 2000000, 'VND', 'CARD-2024-008', 'STRIPE', 'COMPLETED', '2024-01-28 11:20:00', 'Credit card payment processed', NOW())
+    ('aa000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', 'BANK_TRANSFER', 2700000, 'VND', 'TXN-2024-001', 'VCB', 'COMPLETED', '2024-01-20 10:30:00', 'Bank transfer confirmed', NOW()),
+    ('aa000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000002', 'VNPAY', 2250000, 'VND', 'VNP-2024-002', 'VNPAY', 'COMPLETED', '2024-01-22 14:15:00', 'VNPay payment successful', NOW()),
+    ('aa000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000003', 'CASH', 6000000, 'VND', 'CASH-2024-003', NULL, 'COMPLETED', '2024-01-18 09:00:00', 'Cash payment received', NOW()),
+    ('aa000000-0000-0000-0000-000000000004', '30000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000005', 'MOMO', 4590000, 'VND', 'MOMO-2024-005', 'MOMO', 'COMPLETED', '2024-01-25 16:45:00', 'Momo payment confirmed', NOW()),
+    ('aa000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000008', 'c0000000-0000-0000-0000-000000000003', '50000000-0000-0000-0000-000000000008', 'CARD', 2000000, 'VND', 'CARD-2024-008', 'STRIPE', 'COMPLETED', '2024-01-28 11:20:00', 'Credit card payment processed', NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -98,11 +107,11 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO fee_receipts (id, receipt_number, payment_id, student_id, amount, receipt_date, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), 'RCP-2024-001', NULL, '50000000-0000-0000-0000-000000000001', 2700000, '2024-01-20', NOW(), NOW()),
-    (gen_random_uuid(), 'RCP-2024-002', NULL, '50000000-0000-0000-0000-000000000002', 2250000, '2024-01-22', NOW(), NOW()),
-    (gen_random_uuid(), 'RCP-2024-003', NULL, '50000000-0000-0000-0000-000000000003', 6000000, '2024-01-18', NOW(), NOW()),
-    (gen_random_uuid(), 'RCP-2024-004', NULL, '50000000-0000-0000-0000-000000000005', 4590000, '2024-01-25', NOW(), NOW()),
-    (gen_random_uuid(), 'RCP-2024-005', NULL, '50000000-0000-0000-0000-000000000008', 2000000, '2024-01-28', NOW(), NOW())
+    ('ab000000-0000-0000-0000-000000000001', 'RCP-2024-001', NULL, '50000000-0000-0000-0000-000000000001', 2700000, '2024-01-20', NOW(), NOW()),
+    ('ab000000-0000-0000-0000-000000000002', 'RCP-2024-002', NULL, '50000000-0000-0000-0000-000000000002', 2250000, '2024-01-22', NOW(), NOW()),
+    ('ab000000-0000-0000-0000-000000000003', 'RCP-2024-003', NULL, '50000000-0000-0000-0000-000000000003', 6000000, '2024-01-18', NOW(), NOW()),
+    ('ab000000-0000-0000-0000-000000000004', 'RCP-2024-004', NULL, '50000000-0000-0000-0000-000000000005', 4590000, '2024-01-25', NOW(), NOW()),
+    ('ab000000-0000-0000-0000-000000000005', 'RCP-2024-005', NULL, '50000000-0000-0000-0000-000000000008', 2000000, '2024-01-28', NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -110,8 +119,8 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO refunds (id, payment_id, amount, reason, status, requested_at, processed_at, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), NULL, 500000, 'Class cancelled by academy', 'COMPLETED', '2024-02-01 10:00:00', '2024-02-03 15:00:00', NOW(), NOW()),
-    (gen_random_uuid(), NULL, 1000000, 'Student withdrawal - medical reason', 'PENDING', '2024-02-15 09:00:00', NULL, NOW(), NOW())
+    ('ac000000-0000-0000-0000-000000000001', NULL, 500000, 'Class cancelled by academy', 'COMPLETED', '2024-02-01 10:00:00', '2024-02-03 15:00:00', NOW(), NOW()),
+    ('ac000000-0000-0000-0000-000000000002', NULL, 1000000, 'Student withdrawal - medical reason', 'PENDING', '2024-02-15 09:00:00', NULL, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -119,8 +128,8 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO student_fee_plans (id, student_id, plan_name, total_amount, paid_amount, remaining_amount, installments, status, start_date, end_date, created_at, updated_at)
 VALUES 
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000003', 'Annual English Program Plan', 42000000, 24000000, 18000000, 12, 'ACTIVE', '2024-01-01', '2024-12-31', NOW(), NOW()),
-    (gen_random_uuid(), '50000000-0000-0000-0000-000000000005', 'Multi-Course Package', 60000000, 20000000, 40000000, 12, 'ACTIVE', '2024-01-01', '2024-12-31', NOW(), NOW())
+    ('ad000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000003', 'Annual English Program Plan', 42000000, 24000000, 18000000, 12, 'ACTIVE', '2024-01-01', '2024-12-31', NOW(), NOW()),
+    ('ad000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000005', 'Multi-Course Package', 60000000, 20000000, 40000000, 12, 'ACTIVE', '2024-01-01', '2024-12-31', NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -128,9 +137,9 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 INSERT INTO ledger_entries (id, entry_type, amount, description, reference_type, reference_id, center_id, entry_date, created_at)
 VALUES 
-    (gen_random_uuid(), 'CREDIT', 2700000, 'Payment received - INV-2024-001', 'INVOICE', '30000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', '2024-01-20', NOW()),
-    (gen_random_uuid(), 'CREDIT', 2250000, 'Payment received - INV-2024-002', 'INVOICE', '30000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001', '2024-01-22', NOW()),
-    (gen_random_uuid(), 'CREDIT', 6000000, 'Payment received - INV-2024-003', 'INVOICE', '30000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000001', '2024-01-18', NOW()),
-    (gen_random_uuid(), 'CREDIT', 4590000, 'Payment received - INV-2024-005', 'INVOICE', '30000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000002', '2024-01-25', NOW()),
-    (gen_random_uuid(), 'DEBIT', 500000, 'Refund processed - Class cancelled', 'REFUND', NULL, 'c0000000-0000-0000-0000-000000000001', '2024-02-03', NOW())
+    ('ae000000-0000-0000-0000-000000000001', 'CREDIT', 2700000, 'Payment received - INV-2024-001', 'INVOICE', '30000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', '2024-01-20', NOW()),
+    ('ae000000-0000-0000-0000-000000000002', 'CREDIT', 2250000, 'Payment received - INV-2024-002', 'INVOICE', '30000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001', '2024-01-22', NOW()),
+    ('ae000000-0000-0000-0000-000000000003', 'CREDIT', 6000000, 'Payment received - INV-2024-003', 'INVOICE', '30000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000001', '2024-01-18', NOW()),
+    ('ae000000-0000-0000-0000-000000000004', 'CREDIT', 4590000, 'Payment received - INV-2024-005', 'INVOICE', '30000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000002', '2024-01-25', NOW()),
+    ('ae000000-0000-0000-0000-000000000005', 'DEBIT', 500000, 'Refund processed - Class cancelled', 'REFUND', NULL, 'c0000000-0000-0000-0000-000000000001', '2024-02-03', NOW())
 ON CONFLICT DO NOTHING;
