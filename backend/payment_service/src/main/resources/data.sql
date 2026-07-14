@@ -31,46 +31,46 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 -- LATE_FEE_RULES (Late payment penalties)
 -- =====================================================
-INSERT INTO late_fee_rules (id, name, description, fee_type, amount, grace_period_days, is_active, created_at, updated_at)
-VALUES 
-    ('10000000-0000-0000-0000-000000000001', 'Standard Late Fee', 'Default late payment fee', 'PERCENTAGE', 5.00, 7, true, NOW(), NOW()),
-    ('10000000-0000-0000-0000-000000000002', 'Extended Late Fee', 'Late fee after 30 days', 'PERCENTAGE', 10.00, 30, true, NOW(), NOW())
+INSERT INTO late_fee_rules (id, rule_name, fee_type, fee_value, grace_period_days, days_after_due, compound_interest, is_active, created_at, updated_at)
+VALUES
+    ('10000000-0000-0000-0000-000000000001', 'Standard Late Fee', 'PERCENTAGE', 5.00, 7, 7, false, true, NOW(), NOW()),
+    ('10000000-0000-0000-0000-000000000002', 'Extended Late Fee', 'PERCENTAGE', 10.00, 30, 30, false, true, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- DISCOUNTS (Available discounts)
 -- =====================================================
-INSERT INTO discounts (id, name, description, discount_type, discount_value, min_amount, max_discount, valid_from, valid_until, usage_limit, used_count, is_active, created_at, updated_at)
-VALUES 
-    ('d0000000-0000-0000-0001-000000000001', 'Early Bird 2024', '10% off for early enrollment', 'PERCENTAGE', 10.00, 1000000, 500000, '2024-01-01', '2024-03-31', 100, 45, true, NOW(), NOW()),
-    ('d0000000-0000-0000-0001-000000000002', 'Sibling Discount', '15% off for second child enrollment', 'PERCENTAGE', 15.00, 1000000, 750000, '2024-01-01', '2024-12-31', NULL, 23, true, NOW(), NOW()),
-    ('d0000000-0000-0000-0001-000000000003', 'Annual Package', '2 months free for annual payment', 'FIXED', 5000000, 20000000, 5000000, '2024-01-01', '2024-12-31', NULL, 12, true, NOW(), NOW()),
-    ('d0000000-0000-0000-0001-000000000004', 'Referral Bonus', '500K off for referral', 'FIXED', 500000, 2000000, 500000, '2024-01-01', '2024-12-31', NULL, 67, true, NOW(), NOW()),
-    ('d0000000-0000-0000-0001-000000000005', 'Summer Camp Special', '20% off summer camp', 'PERCENTAGE', 20.00, 3000000, 1000000, '2024-05-01', '2024-07-31', 200, 0, true, NOW(), NOW())
+INSERT INTO discounts (id, code, name, discount_type, discount_value, min_purchase, valid_from, valid_to, max_uses, current_uses, is_active, created_at)
+VALUES
+    ('d0000000-0000-0000-0001-000000000001', 'EARLYBIRD2024', 'Early Bird 2024', 'PERCENTAGE', 10.00, 1000000, '2024-01-01', '2024-03-31', 100, 45, true, NOW()),
+    ('d0000000-0000-0000-0001-000000000002', 'SIBLING', 'Sibling Discount', 'PERCENTAGE', 15.00, 1000000, '2024-01-01', '2024-12-31', NULL, 23, true, NOW()),
+    ('d0000000-0000-0000-0001-000000000003', 'ANNUAL', 'Annual Package', 'FIXED', 5000000, 20000000, '2024-01-01', '2024-12-31', NULL, 12, true, NOW()),
+    ('d0000000-0000-0000-0001-000000000004', 'REFERRAL', 'Referral Bonus', 'FIXED', 500000, 2000000, '2024-01-01', '2024-12-31', NULL, 67, true, NOW()),
+    ('d0000000-0000-0000-0001-000000000005', 'SUMMER20', 'Summer Camp Special', 'PERCENTAGE', 20.00, 3000000, '2024-05-01', '2024-07-31', 200, 0, true, NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- SCHOLARSHIPS (Financial aid programs)
 -- =====================================================
-INSERT INTO scholarships (id, name, description, scholarship_type, coverage_percentage, max_amount, eligibility_criteria, is_active, academic_year, created_at, updated_at)
-VALUES 
-    ('50000000-0000-0000-0001-000000000001', 'Academic Excellence', 'Full scholarship for outstanding English students', 'MERIT', 100.00, 50000000, 'IELTS 7.5+ or Cambridge CAE pass', true, '2024-2025', NOW(), NOW()),
-    ('50000000-0000-0000-0001-000000000002', 'Financial Need', '50% tuition support for qualifying families', 'NEED_BASED', 50.00, 25000000, 'Household income below threshold', true, '2024-2025', NOW(), NOW()),
-    ('50000000-0000-0000-0001-000000000003', 'Academic Merit', '30% off for high academic achievers', 'MERIT', 30.00, 15000000, 'GPA 8.5 or above', true, '2024-2025', NOW(), NOW()),
-    ('50000000-0000-0000-0001-000000000004', 'Community Service', '25% scholarship for community volunteers', 'MERIT', 25.00, 12500000, '100+ volunteer hours', true, '2024-2025', NOW(), NOW())
+INSERT INTO scholarships (id, scholarship_name, scholarship_code, description, scholarship_type, discount_type, discount_value, max_discount_amount, eligibility_criteria, is_active, created_at, updated_at)
+VALUES
+    ('50000000-0000-0000-0001-000000000001', 'Academic Excellence', 'SCH-EXCELLENCE', 'Full scholarship for outstanding English students', 'MERIT', 'PERCENTAGE', 100.00, 50000000, 'IELTS 7.5+ or Cambridge CAE pass', true, NOW(), NOW()),
+    ('50000000-0000-0000-0001-000000000002', 'Financial Need', 'SCH-NEED', '50% tuition support for qualifying families', 'NEED_BASED', 'PERCENTAGE', 50.00, 25000000, 'Household income below threshold', true, NOW(), NOW()),
+    ('50000000-0000-0000-0001-000000000003', 'Academic Merit', 'SCH-MERIT', '30% off for high academic achievers', 'MERIT', 'PERCENTAGE', 30.00, 15000000, 'GPA 8.5 or above', true, NOW(), NOW()),
+    ('50000000-0000-0000-0001-000000000004', 'Community Service', 'SCH-SERVICE', '25% scholarship for community volunteers', 'MERIT', 'PERCENTAGE', 25.00, 12500000, '100+ volunteer hours', true, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- PAYMENT_METHODS (Accepted payment methods)
 -- =====================================================
-INSERT INTO payment_methods (id, name, description, method_type, is_active, processing_fee, created_at, updated_at)
-VALUES 
-    ('20000000-0000-0000-0000-000000000001', 'Cash', 'Cash payment at center', 'CASH', true, 0.00, NOW(), NOW()),
-    ('20000000-0000-0000-0000-000000000002', 'Bank Transfer', 'Direct bank transfer', 'BANK_TRANSFER', true, 0.00, NOW(), NOW()),
-    ('20000000-0000-0000-0000-000000000003', 'VNPay', 'VNPay online payment', 'ONLINE', true, 1.50, NOW(), NOW()),
-    ('20000000-0000-0000-0000-000000000004', 'Momo', 'Momo e-wallet', 'E_WALLET', true, 1.00, NOW(), NOW()),
-    ('20000000-0000-0000-0000-000000000005', 'Credit Card', 'Visa/Mastercard', 'CARD', true, 2.50, NOW(), NOW()),
-    ('20000000-0000-0000-0000-000000000006', 'ZaloPay', 'ZaloPay e-wallet', 'E_WALLET', true, 1.00, NOW(), NOW())
+INSERT INTO payment_methods (id, method_name, method_code, description, method_type, is_active, is_online, transaction_fee_percentage, created_at, updated_at)
+VALUES
+    ('20000000-0000-0000-0000-000000000001', 'Cash', 'CASH', 'Cash payment at center', 'CASH', true, false, 0.00, NOW(), NOW()),
+    ('20000000-0000-0000-0000-000000000002', 'Bank Transfer', 'BANK_TRANSFER', 'Direct bank transfer', 'BANK_TRANSFER', true, false, 0.00, NOW(), NOW()),
+    ('20000000-0000-0000-0000-000000000003', 'VNPay', 'VNPAY', 'VNPay online payment', 'ONLINE', true, true, 1.50, NOW(), NOW()),
+    ('20000000-0000-0000-0000-000000000004', 'Momo', 'MOMO', 'Momo e-wallet', 'E_WALLET', true, true, 1.00, NOW(), NOW()),
+    ('20000000-0000-0000-0000-000000000005', 'Credit Card', 'CARD', 'Visa/Mastercard', 'CARD', true, true, 2.50, NOW(), NOW()),
+    ('20000000-0000-0000-0000-000000000006', 'ZaloPay', 'ZALOPAY', 'ZaloPay e-wallet', 'E_WALLET', true, true, 1.00, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -105,41 +105,45 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 -- FEE_RECEIPTS (Payment receipts)
 -- =====================================================
-INSERT INTO fee_receipts (id, receipt_number, payment_id, student_id, amount, receipt_date, created_at, updated_at)
-VALUES 
-    ('ab000000-0000-0000-0000-000000000001', 'RCP-2024-001', NULL, '50000000-0000-0000-0000-000000000001', 2700000, '2024-01-20', NOW(), NOW()),
-    ('ab000000-0000-0000-0000-000000000002', 'RCP-2024-002', NULL, '50000000-0000-0000-0000-000000000002', 2250000, '2024-01-22', NOW(), NOW()),
-    ('ab000000-0000-0000-0000-000000000003', 'RCP-2024-003', NULL, '50000000-0000-0000-0000-000000000003', 6000000, '2024-01-18', NOW(), NOW()),
-    ('ab000000-0000-0000-0000-000000000004', 'RCP-2024-004', NULL, '50000000-0000-0000-0000-000000000005', 4590000, '2024-01-25', NOW(), NOW()),
-    ('ab000000-0000-0000-0000-000000000005', 'RCP-2024-005', NULL, '50000000-0000-0000-0000-000000000008', 2000000, '2024-01-28', NOW(), NOW())
+INSERT INTO fee_receipts (id, receipt_number, payment_id, student_id, amount, payment_method, receipt_date, created_at)
+VALUES
+    ('ab000000-0000-0000-0000-000000000001', 'RCP-2024-001', 'aa000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', 2700000, 'BANK_TRANSFER', '2024-01-20', NOW()),
+    ('ab000000-0000-0000-0000-000000000002', 'RCP-2024-002', 'aa000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000002', 2250000, 'VNPAY', '2024-01-22', NOW()),
+    ('ab000000-0000-0000-0000-000000000003', 'RCP-2024-003', 'aa000000-0000-0000-0000-000000000003', '50000000-0000-0000-0000-000000000003', 6000000, 'CASH', '2024-01-18', NOW()),
+    ('ab000000-0000-0000-0000-000000000004', 'RCP-2024-004', 'aa000000-0000-0000-0000-000000000004', '50000000-0000-0000-0000-000000000005', 4590000, 'MOMO', '2024-01-25', NOW()),
+    ('ab000000-0000-0000-0000-000000000005', 'RCP-2024-005', 'aa000000-0000-0000-0000-000000000005', '50000000-0000-0000-0000-000000000008', 2000000, 'CARD', '2024-01-28', NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- REFUNDS (Refund records)
 -- =====================================================
-INSERT INTO refunds (id, payment_id, amount, reason, status, requested_at, processed_at, created_at, updated_at)
-VALUES 
-    ('ac000000-0000-0000-0000-000000000001', NULL, 500000, 'Class cancelled by academy', 'COMPLETED', '2024-02-01 10:00:00', '2024-02-03 15:00:00', NOW(), NOW()),
-    ('ac000000-0000-0000-0000-000000000002', NULL, 1000000, 'Student withdrawal - medical reason', 'PENDING', '2024-02-15 09:00:00', NULL, NOW(), NOW())
+-- status APPROVED is what FinanceDashboardService sums into refundedAmount; the refund is
+-- attributed to a centre through the payment it refunds, so payment_id must be set.
+INSERT INTO refunds (id, payment_id, amount, currency, reason, status, processed_at, created_at, updated_at)
+VALUES
+    ('ac000000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 500000, 'VND', 'Class cancelled by academy', 'APPROVED', '2024-02-03 15:00:00', NOW(), NOW()),
+    ('ac000000-0000-0000-0000-000000000002', 'aa000000-0000-0000-0000-000000000004', 1000000, 'VND', 'Student withdrawal - medical reason', 'PENDING', NULL, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- STUDENT_FEE_PLANS (Individual student payment plans)
 -- =====================================================
-INSERT INTO student_fee_plans (id, student_id, plan_name, total_amount, paid_amount, remaining_amount, installments, status, start_date, end_date, created_at, updated_at)
-VALUES 
-    ('ad000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000003', 'Annual English Program Plan', 42000000, 24000000, 18000000, 12, 'ACTIVE', '2024-01-01', '2024-12-31', NOW(), NOW()),
-    ('ad000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000005', 'Multi-Course Package', 60000000, 20000000, 40000000, 12, 'ACTIVE', '2024-01-01', '2024-12-31', NOW(), NOW())
+INSERT INTO student_fee_plans (id, student_id, plan_name, total_amount, installment_amount, installments, status, start_date, end_date, created_at, updated_at)
+VALUES
+    ('ad000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000003', 'Annual English Program Plan', 42000000, 3500000, 12, 'ACTIVE', '2024-01-01', '2024-12-31', NOW(), NOW()),
+    ('ad000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000005', 'Multi-Course Package', 60000000, 5000000, 12, 'ACTIVE', '2024-01-01', '2024-12-31', NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- LEDGER_ENTRIES (Financial ledger)
 -- =====================================================
-INSERT INTO ledger_entries (id, entry_type, amount, description, reference_type, reference_id, center_id, entry_date, created_at)
-VALUES 
-    ('ae000000-0000-0000-0000-000000000001', 'CREDIT', 2700000, 'Payment received - INV-2024-001', 'INVOICE', '30000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', '2024-01-20', NOW()),
-    ('ae000000-0000-0000-0000-000000000002', 'CREDIT', 2250000, 'Payment received - INV-2024-002', 'INVOICE', '30000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001', '2024-01-22', NOW()),
-    ('ae000000-0000-0000-0000-000000000003', 'CREDIT', 6000000, 'Payment received - INV-2024-003', 'INVOICE', '30000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000001', '2024-01-18', NOW()),
-    ('ae000000-0000-0000-0000-000000000004', 'CREDIT', 4590000, 'Payment received - INV-2024-005', 'INVOICE', '30000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000002', '2024-01-25', NOW()),
-    ('ae000000-0000-0000-0000-000000000005', 'DEBIT', 500000, 'Refund processed - Class cancelled', 'REFUND', NULL, 'c0000000-0000-0000-0000-000000000001', '2024-02-03', NOW())
+-- FinanceDashboardService sums credit_amount/debit_amount WHERE status='POSTED', so entries must
+-- be POSTED and use the credit/debit columns (there is no single "amount" column on this table).
+INSERT INTO ledger_entries (id, entry_type, credit_amount, debit_amount, description, reference_type, reference_id, center_id, status, transaction_date, created_at, updated_at)
+VALUES
+    ('ae000000-0000-0000-0000-000000000001', 'CREDIT', 2700000, 0, 'Payment received - INV-2024-001', 'INVOICE', '30000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', 'POSTED', '2024-01-20', NOW(), NOW()),
+    ('ae000000-0000-0000-0000-000000000002', 'CREDIT', 2250000, 0, 'Payment received - INV-2024-002', 'INVOICE', '30000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001', 'POSTED', '2024-01-22', NOW(), NOW()),
+    ('ae000000-0000-0000-0000-000000000003', 'CREDIT', 6000000, 0, 'Payment received - INV-2024-003', 'INVOICE', '30000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000001', 'POSTED', '2024-01-18', NOW(), NOW()),
+    ('ae000000-0000-0000-0000-000000000004', 'CREDIT', 4590000, 0, 'Payment received - INV-2024-005', 'INVOICE', '30000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000002', 'POSTED', '2024-01-25', NOW(), NOW()),
+    ('ae000000-0000-0000-0000-000000000005', 'DEBIT', 0, 500000, 'Refund processed - Class cancelled', 'REFUND', NULL, 'c0000000-0000-0000-0000-000000000001', 'POSTED', '2024-02-03', NOW(), NOW())
 ON CONFLICT DO NOTHING;
