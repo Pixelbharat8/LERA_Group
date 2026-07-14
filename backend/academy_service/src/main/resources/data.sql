@@ -110,44 +110,50 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 -- EXAMS (Assessment schedules)
 -- =====================================================
-INSERT INTO exams (id, class_id, title, description, exam_type, exam_date, duration_minutes, max_score, passing_score, status, created_at, updated_at)
-VALUES 
-    ('5eed0001-0000-0000-0000-000000000012', 'd0000000-0000-0000-0000-000000000001', 'LERA Starters Q1 Assessment', 'Quarterly progress assessment for young learners', 'ORAL', '2024-03-15', 30, 100, 60, 'COMPLETED', NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000013', 'd0000000-0000-0000-0000-000000000003', 'Explorers Level Test', 'Speaking and listening proficiency test', 'ORAL', '2024-04-01', 45, 100, 70, 'SCHEDULED', NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000014', 'd0000000-0000-0000-0000-000000000004', 'Primary English Assessment', 'Reading, writing, listening, speaking test', 'WRITTEN', '2024-03-20', 60, 100, 65, 'SCHEDULED', NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000015', 'd0000000-0000-0000-0000-000000000006', 'IELTS Practice Test', 'Full IELTS simulation test', 'WRITTEN', '2024-04-10', 180, 9, 6.5, 'SCHEDULED', NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000016', 'd0000000-0000-0000-0000-000000000008', 'Phonics Mastery Test', 'Phonics knowledge and reading assessment', 'ORAL', '2024-03-30', 45, 100, 70, 'SCHEDULED', NOW(), NOW())
+-- the exam's title column is "name" (NOT NULL); there is no updated_at on exams.
+INSERT INTO exams (id, class_id, name, description, exam_type, exam_date, duration_minutes, max_score, passing_score, status, created_at)
+VALUES
+    ('5eed0001-0000-0000-0000-000000000012', 'd0000000-0000-0000-0000-000000000001', 'LERA Starters Q1 Assessment', 'Quarterly progress assessment for young learners', 'ORAL', '2024-03-15', 30, 100, 60, 'COMPLETED', NOW()),
+    ('5eed0001-0000-0000-0000-000000000013', 'd0000000-0000-0000-0000-000000000003', 'Explorers Level Test', 'Speaking and listening proficiency test', 'ORAL', '2024-04-01', 45, 100, 70, 'SCHEDULED', NOW()),
+    ('5eed0001-0000-0000-0000-000000000014', 'd0000000-0000-0000-0000-000000000004', 'Primary English Assessment', 'Reading, writing, listening, speaking test', 'WRITTEN', '2024-03-20', 60, 100, 65, 'SCHEDULED', NOW()),
+    ('5eed0001-0000-0000-0000-000000000015', 'd0000000-0000-0000-0000-000000000006', 'IELTS Practice Test', 'Full IELTS simulation test', 'WRITTEN', '2024-04-10', 180, 9, 6.5, 'SCHEDULED', NOW()),
+    ('5eed0001-0000-0000-0000-000000000016', 'd0000000-0000-0000-0000-000000000008', 'Phonics Mastery Test', 'Phonics knowledge and reading assessment', 'ORAL', '2024-03-30', 45, 100, 70, 'SCHEDULED', NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- CERTIFICATES (Achievement certificates)
 -- =====================================================
-INSERT INTO certificates (id, student_id, certificate_type, title, description, issue_date, status, created_at, updated_at)
-VALUES 
-    ('5eed0001-0000-0000-0000-000000000017', '50000000-0000-0000-0000-000000000001', 'COMPLETION', 'LERA Starters Level 1', 'Successfully completed LERA Starters program', '2024-03-15', 'ISSUED', NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000018', '50000000-0000-0000-0000-000000000003', 'ACHIEVEMENT', 'English Speaking Star', 'Outstanding achievement in speaking class', '2024-03-20', 'ISSUED', NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000019', '50000000-0000-0000-0000-000000000005', 'PARTICIPATION', 'English Speech Contest 2024', 'Participated in Junior English Speech Championship', '2024-02-28', 'ISSUED', NOW(), NOW())
+-- certificates has no title/description/status; it requires certificate_number, course_name
+-- and student_name (all NOT NULL). The old seed's title becomes course_name.
+INSERT INTO certificates (id, certificate_number, student_id, student_name, course_name, certificate_type, remarks, issue_date, is_verified, is_revoked, created_at, updated_at)
+VALUES
+    ('5eed0001-0000-0000-0000-000000000017', 'CERT-2024-001', '50000000-0000-0000-0000-000000000001', 'Nguyen Minh Anh', 'LERA Starters Level 1', 'COMPLETION', 'Successfully completed LERA Starters program', '2024-03-15', true, false, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000018', 'CERT-2024-002', '50000000-0000-0000-0000-000000000003', 'Tran Bao Ngoc', 'English Speaking Star', 'ACHIEVEMENT', 'Outstanding achievement in speaking class', '2024-03-20', true, false, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000019', 'CERT-2024-003', '50000000-0000-0000-0000-000000000005', 'Le Gia Han', 'English Speech Contest 2024', 'PARTICIPATION', 'Participated in Junior English Speech Championship', '2024-02-28', true, false, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- BANNERS (Website banners)
 -- =====================================================
-INSERT INTO banners (id, title, subtitle, image_url, link_url, button_text, display_order, is_active, start_date, end_date, created_at, updated_at)
-VALUES 
-    ('5eed0001-0000-0000-0000-000000000020', 'Welcome to LERA Academy', 'Where English Dreams Come True', 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b', '/programs', 'Explore Programs', 1, true, '2024-01-01', '2024-12-31', NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000021', 'Summer English Camp 2024', 'Register Now - Limited Spots!', 'https://images.unsplash.com/photo-1577896851231-70ef18881754', '/summer-camp', 'Register Now', 2, true, '2024-04-01', '2024-07-31', NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000022', 'IELTS Preparation Course', 'Achieve Your Target Score', 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173', '/programs/ielts', 'Learn More', 3, true, '2024-01-01', '2024-06-30', NOW(), NOW())
+-- no updated_at column on banners
+INSERT INTO banners (id, title, subtitle, image_url, link_url, button_text, display_order, is_active, start_date, end_date, created_at)
+VALUES
+    ('5eed0001-0000-0000-0000-000000000020', 'Welcome to LERA Academy', 'Where English Dreams Come True', 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b', '/programs', 'Explore Programs', 1, true, '2024-01-01', '2024-12-31', NOW()),
+    ('5eed0001-0000-0000-0000-000000000021', 'Summer English Camp 2024', 'Register Now - Limited Spots!', 'https://images.unsplash.com/photo-1577896851231-70ef18881754', '/summer-camp', 'Register Now', 2, true, '2024-04-01', '2024-07-31', NOW()),
+    ('5eed0001-0000-0000-0000-000000000022', 'IELTS Preparation Course', 'Achieve Your Target Score', 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173', '/programs/ielts', 'Learn More', 3, true, '2024-01-01', '2024-06-30', NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- TESTIMONIALS (Customer reviews)
 -- =====================================================
-INSERT INTO testimonials (id, name, role, content, rating, image_url, is_featured, is_active, created_at, updated_at)
-VALUES 
-    ('5eed0001-0000-0000-0000-000000000023', 'Nguyen Van Minh', 'Parent', 'My son has improved tremendously since joining LERA. The teachers are professional and engaging. His English confidence has grown significantly!', 5, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', true, true, NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000024', 'Tran Thi Lan', 'Parent', 'The facilities are excellent and the teaching programs are well-structured. My daughter loves her LERA Explorers class. Highly recommended!', 5, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', true, true, NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000025', 'Le Van Duc', 'Parent', 'Great experience for my daughter. She loves coming to class every week. The phonics program has really helped her reading skills.', 4, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e', false, true, NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000026', 'Pham Thi Huong', 'Parent', 'Professional staff and great communication. We always know about our childs progress. The IELTS prep course is excellent!', 5, 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80', true, true, NOW(), NOW())
+-- real columns: parent_name (NOT NULL), content (NOT NULL), avatar_url, is_published.
+-- There is no name/role/image_url/is_active/updated_at on testimonials.
+INSERT INTO testimonials (id, parent_name, student_name, content, rating, avatar_url, is_featured, is_published, display_order, created_at)
+VALUES
+    ('5eed0001-0000-0000-0000-000000000023', 'Nguyen Van Minh', 'Minh Jr.', 'My son has improved tremendously since joining LERA. The teachers are professional and engaging. His English confidence has grown significantly!', 5, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', true, true, 1, NOW()),
+    ('5eed0001-0000-0000-0000-000000000024', 'Tran Thi Lan', 'Lan Anh', 'The facilities are excellent and the teaching programs are well-structured. My daughter loves her LERA Explorers class. Highly recommended!', 5, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', true, true, 2, NOW()),
+    ('5eed0001-0000-0000-0000-000000000025', 'Le Van Duc', 'Duc Minh', 'Great experience for my daughter. She loves coming to class every week. The phonics program has really helped her reading skills.', 4, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e', false, true, 3, NOW()),
+    ('5eed0001-0000-0000-0000-000000000026', 'Pham Thi Huong', 'Huong Giang', 'Professional staff and great communication. We always know about our childs progress. The IELTS prep course is excellent!', 5, 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80', true, true, 4, NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
@@ -166,8 +172,11 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 -- LEADERSHIP_MEMBERS (Team members for website)
 -- =====================================================
-INSERT INTO leadership_members (id, name, name_vi, position, position_vi, bio, bio_vi, image_url, display_order, is_active, created_at, updated_at)
-VALUES 
+-- The LeadershipMember entity maps to table "leadership_team" (NOT leadership_members, which
+-- does not exist) and its title column is "role" (NOT NULL), not "position". The old insert
+-- targeted a non-existent table, so the public /about page had no leadership team at all.
+INSERT INTO leadership_team (id, name, name_vi, role, role_vi, bio, bio_vi, image_url, display_order, is_active, created_at, updated_at)
+VALUES
     ('5eed0001-0000-0000-0000-000000000033', 'Dr. Nguyen Van A', 'TS. Nguyễn Văn A', 'Founder & Chairman', 'Nhà sáng lập & Chủ tịch', 'PhD in Education with 20+ years in English language education. Former Cambridge examiner.', 'Tiến sĩ Giáo dục với hơn 20 năm trong lĩnh vực giảng dạy tiếng Anh. Cựu giám khảo Cambridge.', 'https://images.unsplash.com/photo-1560250097-0b93528c311a', 1, true, NOW(), NOW()),
     ('5eed0001-0000-0000-0000-000000000034', 'Tran Thi B', 'Trần Thị B', 'CEO', 'Tổng Giám đốc', 'MBA graduate with extensive experience in education management. Passionate about innovative teaching.', 'Thạc sĩ MBA với nhiều năm kinh nghiệm quản lý giáo dục. Đam mê giảng dạy sáng tạo.', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2', 2, true, NOW(), NOW()),
     ('5eed0001-0000-0000-0000-000000000035', 'John Smith', 'John Smith', 'Head of Academic', 'Trưởng phòng Học vụ', 'CELTA & DELTA certified. British Council trained. 15+ years teaching experience internationally.', 'Chứng chỉ CELTA & DELTA. Được đào tạo British Council. Hơn 15 năm kinh nghiệm giảng dạy quốc tế.', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e', 3, true, NOW(), NOW())
