@@ -159,14 +159,17 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 -- FAQS (Frequently Asked Questions)
 -- =====================================================
-INSERT INTO faqs (id, question, answer, category, display_order, is_active, created_at, updated_at)
-VALUES 
-    ('5eed0001-0000-0000-0000-000000000027', 'What age groups do you accept?', 'We accept students from ages 2 to adult for various English programs. Each program has specific age requirements tailored for optimal learning.', 'ENROLLMENT', 1, true, NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000028', 'How do I enroll my child?', 'You can enroll online through our website or visit any of our centers. A free trial class is available for new students.', 'ENROLLMENT', 2, true, NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000029', 'What are the payment options?', 'We accept cash, bank transfer, and credit card payments. Monthly, quarterly, and annual payment plans are available with discounts.', 'PAYMENT', 3, true, NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000030', 'Do you offer trial classes?', 'Yes! We offer a FREE trial class for all new students to experience our programs and teaching methods before enrolling.', 'ENROLLMENT', 4, true, NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000031', 'What teaching methodology do you use?', 'We use communicative language teaching combined with Cambridge methodology. All classes are interactive with native and bilingual teachers.', 'GENERAL', 5, true, NOW(), NOW()),
-    ('5eed0001-0000-0000-0000-000000000032', 'How can I track my childs progress?', 'Parents can access the parent portal to view attendance, progress reports, test scores, and communicate directly with teachers.', 'GENERAL', 6, true, NOW(), NOW())
+-- "page" must be set: the public site fetches /api/faqs/page/contact, which filters on
+-- page = 'contact' AND is_active. With page left NULL these FAQs matched nothing and the
+-- contact page's FAQ section rendered empty.
+INSERT INTO faqs (id, question, answer, category, page, display_order, is_active, created_at, updated_at)
+VALUES
+    ('5eed0001-0000-0000-0000-000000000027', 'What age groups do you accept?', 'We accept students from ages 2 to adult for various English programs. Each program has specific age requirements tailored for optimal learning.', 'ENROLLMENT', 'contact', 1, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000028', 'How do I enroll my child?', 'You can enroll online through our website or visit any of our centers. A free trial class is available for new students.', 'ENROLLMENT', 'contact', 2, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000029', 'What are the payment options?', 'We accept cash, bank transfer, and credit card payments. Monthly, quarterly, and annual payment plans are available with discounts.', 'PAYMENT', 'contact', 3, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000030', 'Do you offer trial classes?', 'Yes! We offer a FREE trial class for all new students to experience our programs and teaching methods before enrolling.', 'ENROLLMENT', 'contact', 4, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000031', 'What teaching methodology do you use?', 'We use communicative language teaching combined with Cambridge methodology. All classes are interactive with native and bilingual teachers.', 'GENERAL', 'contact', 5, true, NOW(), NOW()),
+    ('5eed0001-0000-0000-0000-000000000032', 'How can I track my childs progress?', 'Parents can access the parent portal to view attendance, progress reports, test scores, and communicate directly with teachers.', 'GENERAL', 'contact', 6, true, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
