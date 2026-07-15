@@ -51,30 +51,26 @@ public class JdbcAuditWriter {
             String ip        = currentIp();
             String userAgent = currentUserAgent();
 
-            jdbc.update(
-                    "INSERT INTO audit_logs " +
-                    "(id, action, entity_type, entity_id, user_id, old_values, new_values, ip_address, user_agent, created_at) " +
-                    "VALUES (gen_random_uuid(), ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, NOW())",
-                    new Object[] {
-                        action,
-                        entityType,
-                        entityId,
-                        effectiveUserId,
-                        oldValues,
-                        newValues,
-                        ip,
-                        userAgent
-                    },
-                    new int[] {
-                        Types.VARCHAR,
-                        Types.VARCHAR,
-                        Types.OTHER,
-                        Types.OTHER,
-                        Types.VARCHAR,
-                        Types.VARCHAR,
-                        Types.VARCHAR,
-                        Types.VARCHAR
-                    });
+            // Write the audit row on a SEPARATE pooled connection — never the caller's
+            // transaction-bound connection — so a failed audit insert can never abort (poison)
+            // the business transaction. Audit stays best-effort: any failure is swallowed below.
+            try (java.sql.Connection conn = jdbc.getDataSource().getConnection()) {
+                conn.setAutoCommit(true);
+                try (java.sql.PreparedStatement ps = conn.prepareStatement(
+                        "INSERT INTO audit_logs " +
+                        "(id, action, entity_type, entity_id, user_id, old_values, new_values, ip_address, user_agent, created_at) " +
+                        "VALUES (gen_random_uuid(), ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, NOW())")) {
+                    ps.setString(1, action);
+                    ps.setString(2, entityType);
+                    ps.setObject(3, entityId, Types.OTHER);
+                    ps.setObject(4, effectiveUserId, Types.OTHER);
+                    ps.setString(5, oldValues);
+                    ps.setString(6, newValues);
+                    ps.setString(7, ip);
+                    ps.setString(8, userAgent);
+                    ps.executeUpdate();
+                }
+            }
         } catch (Exception ex) {
             log.warn("Audit log write failed for action={} entity={}#{}: {}",
                     action, entityType, entityId, ex.getMessage());
