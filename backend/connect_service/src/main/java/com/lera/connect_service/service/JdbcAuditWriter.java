@@ -36,8 +36,8 @@ public class JdbcAuditWriter {
 
             jdbc.update(
                     "INSERT INTO audit_logs " +
-                    "(action, entity_type, entity_id, user_id, old_values, new_values, ip_address, user_agent) " +
-                    "VALUES (?, ?, ?, ?, ?::jsonb, ?::jsonb, ?, ?)",
+                    "(id, action, entity_type, entity_id, user_id, old_values, new_values, ip_address, user_agent, created_at) " +
+                    "VALUES (gen_random_uuid(), ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, NOW())",
                     new Object[] {
                         action, entityType, entityId, effectiveUserId,
                         oldValues, newValues, ip, userAgent
