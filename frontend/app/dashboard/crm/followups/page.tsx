@@ -104,7 +104,9 @@ export default function FollowupsPage() {
     try {
       await apiFetch(`/api/followups/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ outcome: "CONVERTED" }),
+        // status DONE marks it complete (the main CRM dashboard counts pending via status);
+        // outcome records how it went.
+        body: JSON.stringify({ status: "DONE", outcome: "CONVERTED" }),
       });
       await fetchFollowups();
     } catch (err) {

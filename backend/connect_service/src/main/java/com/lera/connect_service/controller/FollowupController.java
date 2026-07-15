@@ -97,6 +97,9 @@ public class FollowupController {
             if (details.getActionType() != null) followup.setActionType(details.getActionType());
             if (details.getNotes() != null) followup.setNotes(details.getNotes());
             if (details.getOutcome() != null) followup.setOutcome(details.getOutcome());
+            // status (PENDING/DONE/SKIPPED) was silently dropped, so completing a follow-up never
+            // cleared it — the main CRM dashboard counts pending via status == "PENDING".
+            if (details.getStatus() != null) followup.setStatus(details.getStatus());
             return ResponseEntity.ok(followupRepository.save(followup));
         }).orElse(ResponseEntity.notFound().build());
     }
