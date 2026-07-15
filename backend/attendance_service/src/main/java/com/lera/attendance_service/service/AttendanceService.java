@@ -80,11 +80,17 @@ public class AttendanceService {
         long present = attendanceRepository.countPresentByStudent(studentId);
         long absent = attendanceRepository.countAbsentByStudent(studentId);
         List<AttendanceRecord> records = attendanceRepository.findByStudentIdOrderByCreatedAtDesc(studentId);
+        long late = records.stream().filter(r -> "LATE".equalsIgnoreCase(r.getStatus())).count();
         stats.put("presentCount", present);
+        stats.put("lateCount", late);
         stats.put("absentCount", absent);
         stats.put("totalRecords", records.size());
         if (!records.isEmpty()) {
-            stats.put("attendanceRate", (present * 100.0) / records.size());
+            // A student who showed up — even late — counts as attended, so the rate is
+            // (PRESENT + LATE) / total. EXCUSED still sits in the denominator (an excused
+            // absence lowers the rate). Previously only PRESENT counted, so a student who
+            // attended every class but was late once showed e.g. 67%.
+            stats.put("attendanceRate", ((present + late) * 100.0) / records.size());
         } else {
             stats.put("attendanceRate", 0.0);
         }
