@@ -41,8 +41,7 @@ public class AiConversation {
     private String topic;
 
     @Column(name = "ai_model", length = 50)
-    @Builder.Default
-    private String aiModel = "GPT-4"; // GPT-4, Claude, Gemini, etc.
+    private String aiModel; // set to the active provider's model at creation (e.g. claude-sonnet-5)
 
     @Column(name = "message_count")
     @Builder.Default
@@ -90,6 +89,7 @@ public class AiConversation {
     @PrePersist
     protected void onCreate() {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        if (this.startedAt == null) this.startedAt = now; // NOT NULL; field initializer is bypassed on request-body inserts
         if (this.createdAt == null) this.createdAt = now;
         if (this.updatedAt == null) this.updatedAt = now;
     }

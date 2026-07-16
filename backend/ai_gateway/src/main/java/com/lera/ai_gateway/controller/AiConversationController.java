@@ -26,6 +26,7 @@ public class AiConversationController {
 
     private final AiConversationRepository aiConversationRepository;
     private final AcademyStudentAccessClient academyStudentAccess;
+    private final com.lera.ai_gateway.service.AiConfigService aiConfig;
 
     @GetMapping
     public ResponseEntity<List<AiConversation>> getAllConversations(
@@ -91,6 +92,10 @@ public class AiConversationController {
             @Valid @RequestBody AiConversation conversation,
             @AuthenticationPrincipal AuthUser authUser) {
         conversation.setUserId(AiGatewaySecurity.requireUserId(authUser));
+        // Label the row with the model that will actually answer, not the entity's stale default.
+        if (conversation.getAiModel() == null || conversation.getAiModel().isBlank()) {
+            conversation.setAiModel(aiConfig.resolve().model());
+        }
         if (conversation.getStudentId() != null) {
             academyStudentAccess.assertCanAccessStudentEntity(authUser, conversation.getStudentId());
         }
