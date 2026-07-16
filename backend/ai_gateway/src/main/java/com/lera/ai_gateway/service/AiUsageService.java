@@ -93,6 +93,24 @@ public class AiUsageService {
         }
     }
 
+    /** Total tokens across all users — all-time when {@code period} is null, else for that month. */
+    public long totalTokens(String period) {
+        try {
+            Long v = period == null
+                ? jdbc.queryForObject("SELECT COALESCE(SUM(tokens_used),0) FROM ai_usage", Long.class)
+                : jdbc.queryForObject("SELECT COALESCE(SUM(tokens_used),0) FROM ai_usage WHERE period = ?", Long.class, period);
+            return v == null ? 0 : v;
+        } catch (Exception e) { return 0; }
+    }
+
+    /** Distinct users who consumed any tokens in the given month. */
+    public long activeUsers(String period) {
+        try {
+            Long v = jdbc.queryForObject("SELECT COUNT(DISTINCT user_id) FROM ai_usage WHERE period = ?", Long.class, period);
+            return v == null ? 0 : v;
+        } catch (Exception e) { return 0; }
+    }
+
     public Map<String, Object> status(UUID userId) {
         long b = budget(userId), u = used(userId);
         return Map.of(

@@ -25,6 +25,8 @@ public class AiController {
     private final AcademyStudentAccessClient academyStudentAccess;
     private final AiConfigService aiConfig;
     private final com.lera.ai_gateway.service.AiUsageService aiUsage;
+    private final com.lera.ai_gateway.repository.AiConversationRepository aiConversationRepo;
+    private final com.lera.ai_gateway.repository.AiAssessmentRepository aiAssessmentRepo;
 
     private static java.util.UUID uid(AuthUser u) { return u != null ? u.getUserId() : null; }
     private static long tokensOf(Map<String, Object> r) {
@@ -111,30 +113,31 @@ public class AiController {
     }
 
     // Stats endpoint for SuperAdmin dashboard
+    /**
+     * Real AI-usage stats for the Super Admin dashboard. Every figure is derived from actual data
+     * (the ai_conversations / ai_assessments tables and the ai_usage token ledger) — no fabricated
+     * numbers. Metrics we don't measure (request count, error rate, uptime) are simply omitted
+     * rather than invented; genuine zeros mean "no usage yet", which is the honest state pre-key.
+     */
     @GetMapping("/stats")
     public ResponseEntity<?> getStats(@AuthenticationPrincipal AuthUser authUser) {
         AiGatewaySecurity.assertOrgWide(authUser);
+        AiConfigService.AiSettings s = aiConfig.resolve();
+        String month = aiUsage.period();
         Map<String, Object> stats = new HashMap<>();
-        stats.put("totalRequests", 1250); // In production, track actual usage
-        stats.put("totalTokens", 125000);
-        stats.put("averageResponseTime", 1.2); // seconds
-        stats.put("activeModels", Arrays.asList("gpt-4o-mini", "gpt-4"));
-        stats.put("errorRate", 0.02);
-        stats.put("uptime", "99.9%");
-        stats.put("todayRequests", 150);
-        stats.put("todayTokens", 15000);
-        stats.put("modelUsage", Map.of(
-            "gpt-4o-mini", 800,
-            "gpt-4", 350,
-            "gpt-4-turbo", 100
-        ));
-        stats.put("subjectBreakdown", Map.of(
-            "English Grammar", 400,
-            "English Vocabulary", 300,
-            "English Conversation", 250,
-            "English Writing", 200,
-            "General Questions", 100
-        ));
+        // Dashboard cards — real counts from the AI tables (0 when unused, never fabricated).
+        stats.put("tutorSessions", aiConversationRepo.countByConversationType("TUTORING"));
+        stats.put("gradedEssays", aiAssessmentRepo.count());
+        stats.put("chatQueries", aiConversationRepo.count());
+        // Real token usage from the ai_usage ledger.
+        stats.put("totalTokens", aiUsage.totalTokens(null));
+        stats.put("currentMonthTokens", aiUsage.totalTokens(month));
+        stats.put("activeUsersThisMonth", aiUsage.activeUsers(month));
+        // Real provider/model configuration.
+        stats.put("provider", s.provider());
+        stats.put("model", s.model());
+        stats.put("configured", openAIService.isConfigured());
+        stats.put("period", month);
         stats.put("timestamp", LocalDateTime.now().toString());
         return ResponseEntity.ok(stats);
     }

@@ -13,4 +13,5 @@ public interface AiConversationRepository extends JpaRepository<AiConversation, 
     List<AiConversation> findByStudentId(UUID studentId);
     List<AiConversation> findByConversationType(String conversationType);
     List<AiConversation> findBySubject(String subject);
+    long countByConversationType(String conversationType);
 }
