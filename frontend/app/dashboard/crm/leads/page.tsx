@@ -57,6 +57,7 @@ export default function LeadsPage() {
     sync?: PlacementSyncPayload;
   } | null>(null);
   const [selectedCenter, setSelectedCenter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"default" | "ai_desc" | "ai_asc">("default");
   const [newLead, setNewLead] = useState({ fullName: "", phone: "", email: "", source: "Website", interestedCourse: "", studentAge: 0, centerId: "", preferredSchedule: "" });
 
   useEffect(() => {
@@ -263,9 +264,18 @@ export default function LeadsPage() {
   };
 
   // Filter leads by selected center (additional filter for non-CENTER_MANAGER)
-  const filteredLeads = selectedCenter === "all" 
-    ? leads 
+  const filteredLeads = selectedCenter === "all"
+    ? leads
     : leads.filter(l => l.centerId === selectedCenter);
+
+  // Optional triage sort by AI conversion likelihood (reuses the batch scores already in state).
+  // Unscored leads sort to the bottom of a high→low sort.
+  const sortedLeads = sortBy === "default"
+    ? filteredLeads
+    : [...filteredLeads].sort((a, b) => {
+        const lk = (l: any) => aiScores[l.id]?.conversionLikelihood ?? -1;
+        return sortBy === "ai_desc" ? lk(b) - lk(a) : lk(a) - lk(b);
+      });
 
   return (
     <div className="space-y-6">
@@ -482,6 +492,18 @@ export default function LeadsPage() {
             Showing <span className="font-medium">{filteredLeads.length}</span> leads
             {stats.conversionRate > 0 && <span className="ml-2 text-green-600">({stats.conversionRate}% conversion rate)</span>}
           </p>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500">Sort:</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "default" | "ai_desc" | "ai_asc")}
+              className="px-2 py-1 border rounded-lg text-sm"
+            >
+              <option value="default">Default</option>
+              <option value="ai_desc">🤖 AI score: high → low</option>
+              <option value="ai_asc">🤖 AI score: low → high</option>
+            </select>
+          </div>
         </div>
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -503,7 +525,7 @@ export default function LeadsPage() {
                 </td>
               </tr>
             ) : (
-              filteredLeads.map((lead) => (
+              sortedLeads.map((lead) => (
               <tr key={lead.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="font-medium">{lead.name}</div>
