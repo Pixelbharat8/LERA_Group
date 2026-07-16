@@ -82,6 +82,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [centers, setCenters] = useState<Center[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "notes" | "activities" | "followups">("overview");
+
+  // AI lead scoring (calls ai_gateway; a rule-based heuristic fallback works even with no API key set)
+  const [aiScore, setAiScore] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   
   // Modals
   const [showNoteModal, setShowNoteModal] = useState(false);
@@ -106,6 +110,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     fetchAllData();
   }, [id]);
 
+  // Ask the AI gateway to score this lead and recommend a next action. Falls back to the
+  // gateway's deterministic heuristic when no Claude key is configured, so this never blocks the UI.
+  const scoreLead = async (l?: Lead | null) => {
+    const target = l || lead;
+    if (!target) return;
+    setAiLoading(true);
+    try {
+      const r = await apiFetch("/api/ai/lead-score", {
+        method: "POST",
+        body: JSON.stringify({ lead: target }),
+      });
+      setAiScore(r);
+    } catch (err) {
+      console.error("Error scoring lead:", err);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const fetchAllData = async () => {
     setLoading(true);
     try {
@@ -119,6 +142,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       ]);
 
       setLead(leadData);
+      if (leadData) scoreLead(leadData);
       setNotes(Array.isArray(notesData) ? notesData : []);
       setActivities(Array.isArray(activitiesData) ? activitiesData : []);
       setFollowups(Array.isArray(followupsData) ? followupsData : []);
@@ -407,7 +431,55 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Tab Content */}
       <div className="bg-white rounded-xl shadow-sm p-6">
         {activeTab === "overview" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold text-indigo-900 flex items-center gap-2">🤖 AI Insight</h4>
+                <button
+                  onClick={() => scoreLead(lead)}
+                  disabled={aiLoading}
+                  className="text-sm px-3 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {aiLoading ? "Scoring…" : "↻ Re-score"}
+                </button>
+              </div>
+              {!aiScore ? (
+                <p className="text-sm text-gray-500">{aiLoading ? "Analyzing lead…" : "No score yet."}</p>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <div className="text-3xl font-bold text-indigo-700">{aiScore.conversionLikelihood}%</div>
+                      <div className="text-xs text-gray-500">conversion likelihood</div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="h-2 bg-indigo-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${aiScore.conversionLikelihood}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                      aiScore.temperature === "HOT" ? "bg-red-100 text-red-700" :
+                      aiScore.temperature === "WARM" ? "bg-amber-100 text-amber-700" :
+                      "bg-sky-100 text-sky-700"}`}>🌡 {aiScore.temperature}</span>
+                    <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">⚡ {aiScore.urgency} urgency</span>
+                    <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">📣 {aiScore.channel}</span>
+                  </div>
+                  <div className="bg-white border border-gray-100 rounded-lg p-3">
+                    <p className="text-xs font-medium text-gray-500 mb-1">Next best action</p>
+                    <p className="text-sm text-gray-800">{aiScore.nextAction}</p>
+                  </div>
+                  {aiScore.reasoning && <p className="text-xs text-gray-400">{aiScore.reasoning}</p>}
+                  <p className="text-[11px] text-gray-400">
+                    {aiScore.usingRealAI
+                      ? "AI-generated (Claude Sonnet 5)"
+                      : "Rule-based estimate — add a Claude API key in AI Gateway for AI scoring"}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-blue-50 p-4 rounded-lg">
               <h4 className="font-medium text-blue-800">📝 Notes</h4>
               <p className="text-2xl font-bold text-blue-600">{notes.length}</p>
@@ -422,6 +494,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <h4 className="font-medium text-yellow-800">📞 Follow-ups</h4>
               <p className="text-2xl font-bold text-yellow-600">{followups.length}</p>
               <button onClick={() => setShowFollowupModal(true)} className="mt-2 text-sm text-yellow-600 hover:underline">+ Schedule</button>
+            </div>
             </div>
           </div>
         )}
