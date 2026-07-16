@@ -43,6 +43,8 @@ export default function LeadsPage() {
   const [centers, setCenters] = useState<Center[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>({});
+  // AI conversion-likelihood per lead (id -> score), from a single batch heuristic call.
+  const [aiScores, setAiScores] = useState<Record<string, any>>({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -62,6 +64,23 @@ export default function LeadsPage() {
       fetchData();
     }
   }, [userLoading, userCenterId]);
+
+  // Score every lead in one batch call (deterministic heuristic on the gateway; no per-lead model
+  // calls) so each row can show a forward-looking AI conversion-likelihood chip.
+  const scoreBatch = async (rawLeads: any[]) => {
+    if (!Array.isArray(rawLeads) || rawLeads.length === 0) return;
+    try {
+      const r: any = await apiFetch("/api/ai/lead-score/batch", {
+        method: "POST",
+        body: JSON.stringify({ leads: rawLeads }),
+      });
+      const map: Record<string, any> = {};
+      (r?.scores || []).forEach((s: any) => { if (s?.id) map[s.id] = s; });
+      setAiScores(map);
+    } catch (err) {
+      console.error("Error batch-scoring leads:", err);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -96,6 +115,8 @@ export default function LeadsPage() {
         }))
       );
       
+      scoreBatch(leadsArray);
+
       // Calculate stats from filtered leads
       const convertedCount = leadsArray.filter((l: any) => l.status === "CONVERTED").length;
       setStats({
@@ -512,6 +533,18 @@ export default function LeadsPage() {
                       title={`Lead score: ${(lead as any).score ?? "—"}`}
                     >
                       {(lead as any).temperature === "HOT" ? "🔥" : (lead as any).temperature === "WARM" ? "🌡️" : "❄️"} {(lead as any).score ?? ""}
+                    </span>
+                  )}
+                  {aiScores[lead.id] && (
+                    <span
+                      className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                        aiScores[lead.id].conversionLikelihood >= 65 ? "bg-red-50 text-red-700" :
+                        aiScores[lead.id].conversionLikelihood >= 40 ? "bg-amber-50 text-amber-700" :
+                        "bg-sky-50 text-sky-700"
+                      }`}
+                      title={`AI: ${aiScores[lead.id].conversionLikelihood}% likely to convert · Next: ${aiScores[lead.id].nextAction}`}
+                    >
+                      🤖 {aiScores[lead.id].conversionLikelihood}%
                     </span>
                   )}
                   {(lead as any).duplicate && (

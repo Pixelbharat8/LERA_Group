@@ -246,6 +246,32 @@ public class AiController {
         return ResponseEntity.ok(out);
     }
 
+    /**
+     * Batch lead scoring for LIST views — scores many leads in one call using the deterministic
+     * heuristic ONLY (no per-lead model calls; running Claude per row would be impractical and
+     * costly at list scale). For the full single-lead AI analysis use POST /api/ai/lead-score.
+     * Returns one entry per input lead, keyed by its "id". POST body: { "leads": [ {...}, ... ] }.
+     */
+    @PostMapping("/lead-score/batch")
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<?> leadScoreBatch(@RequestBody Map<String, Object> req) {
+        Object leadsObj = req.get("leads");
+        if (!(leadsObj instanceof List<?> leads)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Body must contain a 'leads' array."));
+        }
+        List<Map<String, Object>> out = new ArrayList<>();
+        int n = 0;
+        for (Object o : leads) {
+            if (n++ >= 500) break; // cap to keep the call cheap and bounded
+            if (!(o instanceof Map)) continue;
+            Map<String, Object> lead = (Map<String, Object>) o;
+            Map<String, Object> score = new HashMap<>(heuristicScore(lead));
+            score.put("id", lead.get("id"));
+            out.add(score);
+        }
+        return ResponseEntity.ok(Map.of("scores", out, "count", out.size()));
+    }
+
     /** Compact, model-readable summary of a lead's fields (skips blanks; never leaks raw PII labels). */
     private String leadProfile(Map<String, Object> lead) {
         StringBuilder b = new StringBuilder();
