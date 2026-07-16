@@ -195,6 +195,183 @@ public class AiController {
     }
 
     /**
+     * AI LEAD SCORING + next-best-action (CRM). Given a lead's profile (status, source, existing
+     * rule-based score/temperature, notes, recency), Claude estimates conversion likelihood and
+     * recommends the next action + channel. Always returns a usable assessment: if no API key is
+     * configured or the model returns prose, it falls back to a deterministic heuristic so the CRM
+     * UI keeps working. POST body: { "lead": { ...lead fields... }, "lang": "en"|"vi" (optional) }.
+     */
+    @PostMapping("/lead-score")
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<?> leadScore(@RequestBody Map<String, Object> req,
+                                       @AuthenticationPrincipal AuthUser authUser) {
+        Object leadObj = req.get("lead");
+        Map<String, Object> lead = leadObj instanceof Map ? (Map<String, Object>) leadObj : req;
+        String lang = "vi".equalsIgnoreCase(String.valueOf(req.getOrDefault("lang", "en"))) ? "vi" : "en";
+        java.util.UUID me = uid(authUser);
+
+        Map<String, Object> out = new HashMap<>();
+        // Over quota → return the deterministic heuristic (no real tokens spent), flagged as such.
+        if (!aiUsage.canUse(me)) {
+            out.putAll(heuristicScore(lead));
+            out.put("usingRealAI", false);
+            out.put("quotaExceeded", true);
+            out.put("usage", aiUsage.status(me));
+            return ResponseEntity.ok(out);
+        }
+
+        String system = "You are a CRM conversion analyst for a premium English-education academy in Vietnam. "
+            + "Assess how likely a lead is to enroll and what to do next. "
+            + "Reply with ONLY valid JSON, no prose, no markdown fences.";
+        String prompt = "Analyze this sales lead and return JSON with this exact shape: "
+            + "{\"conversionLikelihood\": number 0-100, \"temperature\": \"HOT\"|\"WARM\"|\"COLD\", "
+            + "\"urgency\": \"HIGH\"|\"MEDIUM\"|\"LOW\", "
+            + "\"channel\": \"PHONE\"|\"ZALO\"|\"EMAIL\"|\"SMS\"|\"MEETING\", "
+            + "\"nextAction\": string (one concrete next step" + (lang.equals("vi") ? ", written in Vietnamese" : "") + "), "
+            + "\"reasoning\": string (1-2 sentences" + (lang.equals("vi") ? ", in Vietnamese" : "") + ")}. "
+            + "Lead profile:\n" + leadProfile(lead);
+
+        Map<String, Object> r = openAIService.chat(prompt, system, null);
+        boolean success = Boolean.TRUE.equals(r.get("success"));
+        if (success) aiUsage.record(me, tokensOf(r));
+
+        Map<String, Object> parsed = success ? extractJson(r.get("message")) : null;
+        Map<String, Object> assessment = normalizeAssessment(parsed, lead);
+
+        out.putAll(assessment);
+        out.put("usingRealAI", "ai".equals(assessment.get("source")));
+        out.put("tokensUsed", r.getOrDefault("tokensUsed", 0));
+        out.put("usage", aiUsage.status(me));
+        if (r.containsKey("error")) out.put("note", r.get("error"));
+        return ResponseEntity.ok(out);
+    }
+
+    /** Compact, model-readable summary of a lead's fields (skips blanks; never leaks raw PII labels). */
+    private String leadProfile(Map<String, Object> lead) {
+        StringBuilder b = new StringBuilder();
+        appendField(b, "Status", lead.get("status"));
+        appendField(b, "Existing rule-based score (0-100)", lead.get("score"));
+        appendField(b, "Existing temperature", lead.get("temperature"));
+        appendField(b, "Student age", lead.get("studentAge"));
+        appendField(b, "Interested in a specific program", lead.get("interestedProgramId") != null ? "yes" : null);
+        appendField(b, "Preferred schedule", lead.get("preferredSchedule"));
+        appendField(b, "Source", firstNonNull(lead.get("source"), lead.get("utmSource"), lead.get("sourceId")));
+        appendField(b, "UTM medium", lead.get("utmMedium"));
+        appendField(b, "UTM campaign", lead.get("utmCampaign"));
+        appendField(b, "Has phone on file", isBlank(lead.get("parentPhone")) ? null : "yes");
+        appendField(b, "Has email on file", isBlank(lead.get("parentEmail")) ? null : "yes");
+        Long days = daysSince(lead.get("createdAt"));
+        if (days != null) appendField(b, "Days since created", days);
+        appendField(b, "Contacted before", lead.get("firstContactedAt") != null ? "yes" : "no");
+        if (!isBlank(lead.get("notes"))) appendField(b, "Notes", truncate(lead.get("notes").toString(), 500));
+        return b.length() == 0 ? "(no data provided)" : b.toString();
+    }
+
+    private void appendField(StringBuilder b, String label, Object v) {
+        if (isBlank(v)) return;
+        b.append("- ").append(label).append(": ").append(v).append('\n');
+    }
+    private static boolean isBlank(Object v) { return v == null || v.toString().isBlank(); }
+    private static Object firstNonNull(Object... vs) { for (Object v : vs) if (!isBlank(v)) return v; return null; }
+    private static String truncate(String s, int n) { return s.length() <= n ? s : s.substring(0, n) + "…"; }
+
+    private Long daysSince(Object iso) {
+        if (isBlank(iso)) return null;
+        try {
+            String s = iso.toString();
+            java.time.LocalDate d = java.time.LocalDate.parse(s.length() >= 10 ? s.substring(0, 10) : s);
+            long days = java.time.temporal.ChronoUnit.DAYS.between(d, java.time.LocalDate.now());
+            return days < 0 ? 0 : days;
+        } catch (Exception e) { return null; }
+    }
+
+    /** Validate/clamp the model's JSON; fill any missing field from the deterministic heuristic. */
+    private Map<String, Object> normalizeAssessment(Map<String, Object> parsed, Map<String, Object> lead) {
+        Map<String, Object> out = new HashMap<>(heuristicScore(lead)); // defaults; overwritten by valid model values
+        if (parsed == null) return out;
+        Integer like = asInt(parsed.get("conversionLikelihood"));
+        if (like != null) {
+            out.put("conversionLikelihood", Math.max(0, Math.min(100, like)));
+            out.put("source", "ai"); // only trust the model's verdict when it returned a usable likelihood
+        }
+        String temp = asEnum(parsed.get("temperature"), "HOT", "WARM", "COLD");
+        if (temp != null) out.put("temperature", temp);
+        String urg = asEnum(parsed.get("urgency"), "HIGH", "MEDIUM", "LOW");
+        if (urg != null) out.put("urgency", urg);
+        String ch = asEnum(parsed.get("channel"), "PHONE", "ZALO", "EMAIL", "SMS", "MEETING");
+        if (ch != null) out.put("channel", ch);
+        if (!isBlank(parsed.get("nextAction"))) out.put("nextAction", parsed.get("nextAction").toString().trim());
+        if (!isBlank(parsed.get("reasoning"))) out.put("reasoning", parsed.get("reasoning").toString().trim());
+        return out;
+    }
+
+    private static Integer asInt(Object v) {
+        if (v instanceof Number n) return n.intValue();
+        if (v == null) return null;
+        try { return (int) Math.round(Double.parseDouble(v.toString().replaceAll("[^0-9.\\-]", ""))); }
+        catch (Exception e) { return null; }
+    }
+    private static String asEnum(Object v, String... allowed) {
+        if (v == null) return null;
+        String u = v.toString().trim().toUpperCase();
+        for (String a : allowed) if (a.equals(u)) return a;
+        return null;
+    }
+
+    /**
+     * Deterministic fallback score from status + existing rule-based score + recency. Guarantees the
+     * CRM always gets a usable assessment even with no API key configured or on a model failure.
+     */
+    private Map<String, Object> heuristicScore(Map<String, Object> lead) {
+        String status = String.valueOf(lead.getOrDefault("status", "NEW")).toUpperCase();
+        int base = switch (status) {
+            case "CONVERTED" -> 100;
+            case "TRIAL_ATTENDED" -> 80;
+            case "TRIAL_BOOKED" -> 70;
+            case "QUALIFIED" -> 55;
+            case "CONTACTED" -> 35;
+            case "NO_SHOW" -> 25;
+            case "LOST" -> 3;
+            default -> 20; // NEW / unknown
+        };
+        Integer existing = asInt(lead.get("score"));
+        int likelihood = existing != null
+            ? (int) Math.round(base * 0.6 + Math.max(0, Math.min(100, existing)) * 0.4)
+            : base;
+
+        // Staleness penalty: an untouched lead sitting for weeks cools off.
+        Long days = daysSince(lead.get("createdAt"));
+        boolean contacted = lead.get("firstContactedAt") != null;
+        if (days != null && days > 14 && !contacted && likelihood > 10) likelihood = Math.max(10, likelihood - 15);
+
+        String temp = likelihood >= 65 ? "HOT" : likelihood >= 40 ? "WARM" : "COLD";
+        String channel = !isBlank(lead.get("parentPhone")) ? "PHONE" : !isBlank(lead.get("parentEmail")) ? "EMAIL" : "PHONE";
+        String urgency = "HOT".equals(temp) ? "HIGH" : "WARM".equals(temp) ? "MEDIUM" : "LOW";
+        String nextAction = switch (status) {
+            case "CONTACTED" -> "Follow up to book a free trial class.";
+            case "QUALIFIED" -> "Book a trial class and confirm the schedule.";
+            case "TRIAL_BOOKED" -> "Send a reminder and confirm attendance for the trial.";
+            case "TRIAL_ATTENDED" -> "Call to close: present the enrollment package and pricing.";
+            case "NO_SHOW" -> "Re-engage and reschedule the missed trial.";
+            case "CONVERTED" -> "Onboard the student and set up the renewal cadence.";
+            case "LOST" -> "Add to a long-term nurture list; revisit next term.";
+            default -> "Call within 24h to introduce the academy and qualify interest."; // NEW / unknown
+        };
+
+        Map<String, Object> m = new HashMap<>();
+        m.put("conversionLikelihood", likelihood);
+        m.put("temperature", temp);
+        m.put("urgency", urgency);
+        m.put("channel", channel);
+        m.put("nextAction", nextAction);
+        m.put("reasoning", "Heuristic estimate from lead status (" + status + ")"
+            + (existing != null ? ", existing score " + existing : "")
+            + (days != null ? ", " + days + "d old" : "") + ".");
+        m.put("source", "heuristic");
+        return m;
+    }
+
+    /**
      * Generate an interactive multiple-choice GAME from a lesson topic/plan (Teacher AI Studio).
      * Returns structured JSON the frontend renders as a playable quiz; falls back to a real
      * sample game (so the feature works) if no API key is set or the model returns prose.

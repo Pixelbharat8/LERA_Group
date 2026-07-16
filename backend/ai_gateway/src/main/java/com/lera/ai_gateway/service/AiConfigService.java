@@ -26,7 +26,7 @@ public class AiConfigService {
     // Anthropic (Claude) defaults
     @Value("${anthropic.api-key:${ANTHROPIC_API_KEY:}}")
     private String envAnthropicKey;
-    @Value("${anthropic.model:claude-3-5-sonnet-20241022}")
+    @Value("${anthropic.model:claude-sonnet-5}")
     private String envAnthropicModel;
     @Value("${anthropic.base-url:https://api.anthropic.com/v1/messages}")
     private String anthropicBaseUrl;
