@@ -3,7 +3,13 @@ package com.lera.academy_service.controller;
 import com.lera.academy_service.security.AcademyAuthorizationService;
 import com.lera.academy_service.security.AcademyRoles;
 import com.lera.academy_service.entity.TransportRoute;
+import com.lera.academy_service.entity.Vehicle;
+import com.lera.academy_service.entity.TransportDriver;
+import com.lera.academy_service.entity.StudentTransport;
 import com.lera.academy_service.repository.TransportRouteRepository;
+import com.lera.academy_service.repository.VehicleRepository;
+import com.lera.academy_service.repository.TransportDriverRepository;
+import com.lera.academy_service.repository.StudentTransportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +31,9 @@ import org.springframework.data.domain.Page;
 public class TransportController {
     
     private final TransportRouteRepository transportRouteRepository;
+    private final VehicleRepository vehicleRepository;
+    private final TransportDriverRepository transportDriverRepository;
+    private final StudentTransportRepository studentTransportRepository;
     private final AcademyAuthorizationService authz;
 
     @GetMapping("/routes")
@@ -93,224 +102,104 @@ public class TransportController {
 
     // ============== VEHICLES ==============
     
+    // ============== VEHICLES (real, backed by VehicleRepository) ==============
+
     @GetMapping("/vehicles")
-    public ResponseEntity<List<Map<String, Object>>> getVehicles() {
-        List<Map<String, Object>> vehicles = new ArrayList<>();
-        
-        for (int i = 1; i <= 10; i++) {
-            Map<String, Object> vehicle = new HashMap<>();
-            vehicle.put("id", UUID.randomUUID().toString());
-            vehicle.put("vehicleNumber", "51A-" + String.format("%05d", 10000 + i));
-            vehicle.put("type", i % 3 == 0 ? "Bus" : i % 3 == 1 ? "Van" : "Mini Bus");
-            vehicle.put("capacity", 20 + (i % 4) * 10);
-            vehicle.put("make", i % 2 == 0 ? "Toyota" : "Ford");
-            vehicle.put("model", "Transit 2023");
-            vehicle.put("status", i % 4 == 0 ? "MAINTENANCE" : "ACTIVE");
-            vehicle.put("routeId", "route-" + (i % 5 + 1));
-            vehicle.put("routeName", "Route " + (i % 5 + 1));
-            vehicle.put("driverId", "driver-" + i);
-            vehicle.put("driverName", "Driver " + i);
-            vehicle.put("lastService", LocalDate.now().minusMonths(i % 3));
-            vehicle.put("nextServiceDue", LocalDate.now().plusMonths(3 - (i % 3)));
-            vehicle.put("gpsEnabled", true);
-            vehicles.add(vehicle);
-        }
-        
-        return ResponseEntity.ok(vehicles);
+    public ResponseEntity<List<Vehicle>> getVehicles() {
+        return ResponseEntity.ok(vehicleRepository.findAll());
     }
 
     @GetMapping("/vehicles/{id}")
-    public ResponseEntity<Map<String, Object>> getVehicleById(@PathVariable String id) {
-        Map<String, Object> vehicle = new HashMap<>();
-        vehicle.put("id", id);
-        vehicle.put("vehicleNumber", "51A-10001");
-        vehicle.put("type", "Bus");
-        vehicle.put("capacity", 40);
-        vehicle.put("make", "Toyota");
-        vehicle.put("model", "Coaster 2023");
-        vehicle.put("status", "ACTIVE");
-        vehicle.put("routeId", "route-1");
-        vehicle.put("routeName", "Route 1 - City Center");
-        vehicle.put("driverId", "driver-1");
-        vehicle.put("driverName", "John Smith");
-        vehicle.put("lastService", LocalDate.now().minusMonths(1));
-        vehicle.put("nextServiceDue", LocalDate.now().plusMonths(2));
-        vehicle.put("gpsEnabled", true);
-        vehicle.put("insuranceExpiry", LocalDate.now().plusMonths(8));
-        vehicle.put("registrationExpiry", LocalDate.now().plusYears(1));
-        
-        return ResponseEntity.ok(vehicle);
+    public ResponseEntity<Vehicle> getVehicleById(@PathVariable UUID id) {
+        return vehicleRepository.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/vehicles")
-    public ResponseEntity<Map<String, Object>> createVehicle(@Valid @RequestBody Map<String, Object> request) {
-        Map<String, Object> vehicle = new HashMap<>(request);
-        vehicle.put("id", UUID.randomUUID().toString());
-        vehicle.put("createdAt", LocalDateTime.now());
-        
-        return ResponseEntity.ok(vehicle);
+    public ResponseEntity<Vehicle> createVehicle(@Valid @RequestBody Vehicle vehicle) {
+        return ResponseEntity.ok(vehicleRepository.save(vehicle));
     }
 
     @PutMapping("/vehicles/{id}")
-    public ResponseEntity<Map<String, Object>> updateVehicle(@PathVariable String id, @Valid @RequestBody Map<String, Object> request) {
-        Map<String, Object> vehicle = new HashMap<>(request);
-        vehicle.put("id", id);
-        vehicle.put("updatedAt", LocalDateTime.now());
-        
-        return ResponseEntity.ok(vehicle);
+    public ResponseEntity<Vehicle> updateVehicle(@PathVariable UUID id, @Valid @RequestBody Vehicle vehicle) {
+        if (!vehicleRepository.existsById(id)) return ResponseEntity.notFound().build();
+        vehicle.setId(id);
+        return ResponseEntity.ok(vehicleRepository.save(vehicle));
     }
 
     @DeleteMapping("/vehicles/{id}")
-    public ResponseEntity<Void> deleteVehicle(@PathVariable String id) {
+    public ResponseEntity<Void> deleteVehicle(@PathVariable UUID id) {
+        if (!vehicleRepository.existsById(id)) return ResponseEntity.notFound().build();
+        vehicleRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
-    // ============== DRIVERS ==============
-    
+    // ============== DRIVERS (real, backed by TransportDriverRepository) ==============
+
     @GetMapping("/drivers")
-    public ResponseEntity<List<Map<String, Object>>> getDrivers() {
-        List<Map<String, Object>> drivers = new ArrayList<>();
-        
-        for (int i = 1; i <= 8; i++) {
-            Map<String, Object> driver = new HashMap<>();
-            driver.put("id", UUID.randomUUID().toString());
-            driver.put("name", "Driver " + i);
-            driver.put("phone", "+84 90" + String.format("%07d", 1000000 + i));
-            driver.put("email", "driver" + i + "@lera.edu");
-            driver.put("licenseNumber", "B2-" + String.format("%08d", 10000000 + i));
-            driver.put("licenseExpiry", LocalDate.now().plusYears(i % 3 + 1));
-            driver.put("vehicleId", "vehicle-" + i);
-            driver.put("vehicleNumber", "51A-" + String.format("%05d", 10000 + i));
-            driver.put("routeId", "route-" + (i % 5 + 1));
-            driver.put("routeName", "Route " + (i % 5 + 1));
-            driver.put("status", i % 5 == 0 ? "ON_LEAVE" : "ACTIVE");
-            driver.put("experience", i + 2 + " years");
-            driver.put("rating", 4.0 + (i % 10) * 0.1);
-            drivers.add(driver);
-        }
-        
-        return ResponseEntity.ok(drivers);
+    public ResponseEntity<List<TransportDriver>> getDrivers() {
+        return ResponseEntity.ok(transportDriverRepository.findAll());
     }
 
     @GetMapping("/drivers/{id}")
-    public ResponseEntity<Map<String, Object>> getDriverById(@PathVariable String id) {
-        Map<String, Object> driver = new HashMap<>();
-        driver.put("id", id);
-        driver.put("name", "John Smith");
-        driver.put("phone", "+84 901234567");
-        driver.put("email", "john.smith@lera.edu");
-        driver.put("licenseNumber", "B2-10000001");
-        driver.put("licenseExpiry", LocalDate.now().plusYears(2));
-        driver.put("vehicleId", "vehicle-1");
-        driver.put("vehicleNumber", "51A-10001");
-        driver.put("routeId", "route-1");
-        driver.put("routeName", "Route 1 - City Center");
-        driver.put("status", "ACTIVE");
-        driver.put("experience", "5 years");
-        driver.put("rating", 4.8);
-        driver.put("address", "123 Main Street");
-        driver.put("emergencyContact", "+84 909876543");
-        driver.put("joinDate", LocalDate.now().minusYears(3));
-        
-        return ResponseEntity.ok(driver);
+    public ResponseEntity<TransportDriver> getDriverById(@PathVariable UUID id) {
+        return transportDriverRepository.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/drivers")
-    public ResponseEntity<Map<String, Object>> createDriver(@Valid @RequestBody Map<String, Object> request) {
-        Map<String, Object> driver = new HashMap<>(request);
-        driver.put("id", UUID.randomUUID().toString());
-        driver.put("createdAt", LocalDateTime.now());
-        
-        return ResponseEntity.ok(driver);
+    public ResponseEntity<TransportDriver> createDriver(@Valid @RequestBody TransportDriver driver) {
+        return ResponseEntity.ok(transportDriverRepository.save(driver));
     }
 
     @PutMapping("/drivers/{id}")
-    public ResponseEntity<Map<String, Object>> updateDriver(@PathVariable String id, @Valid @RequestBody Map<String, Object> request) {
-        Map<String, Object> driver = new HashMap<>(request);
-        driver.put("id", id);
-        driver.put("updatedAt", LocalDateTime.now());
-        
-        return ResponseEntity.ok(driver);
+    public ResponseEntity<TransportDriver> updateDriver(@PathVariable UUID id, @Valid @RequestBody TransportDriver driver) {
+        if (!transportDriverRepository.existsById(id)) return ResponseEntity.notFound().build();
+        driver.setId(id);
+        return ResponseEntity.ok(transportDriverRepository.save(driver));
     }
 
     @DeleteMapping("/drivers/{id}")
-    public ResponseEntity<Void> deleteDriver(@PathVariable String id) {
+    public ResponseEntity<Void> deleteDriver(@PathVariable UUID id) {
+        if (!transportDriverRepository.existsById(id)) return ResponseEntity.notFound().build();
+        transportDriverRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
-    // ============== MY REGISTRATION ==============
-    
-    @GetMapping("/my-registration")
-    public ResponseEntity<Map<String, Object>> getMyRegistration(
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
-        
-        Map<String, Object> registration = new HashMap<>();
-        registration.put("id", UUID.randomUUID().toString());
-        registration.put("userId", userId != null ? userId : "user-1");
-        registration.put("studentName", "John Doe");
-        registration.put("studentId", "STU2024001");
-        registration.put("routeId", "route-1");
-        registration.put("routeName", "Route 1 - City Center");
-        registration.put("vehicleId", "vehicle-1");
-        registration.put("vehicleNumber", "51A-10001");
-        registration.put("driverId", "driver-1");
-        registration.put("driverName", "James Driver");
-        registration.put("driverPhone", "+84 901234567");
-        registration.put("pickupPoint", "Bus Stop A - Near School Gate");
-        registration.put("pickupTime", "07:30");
-        registration.put("dropoffPoint", "Home - District 1");
-        registration.put("dropoffTime", "17:00");
-        registration.put("monthlyFee", 150);
-        registration.put("status", "ACTIVE");
-        registration.put("startDate", LocalDate.now().minusMonths(2));
-        registration.put("endDate", LocalDate.now().plusMonths(10));
-        
-        return ResponseEntity.ok(registration);
+    // ============== STUDENT TRANSPORT REGISTRATIONS (real, backed by StudentTransportRepository) ==============
+
+    @GetMapping("/registrations")
+    public ResponseEntity<List<StudentTransport>> getAllRegistrations(
+            @RequestParam(required = false) String routeId,
+            @RequestParam(required = false) String status) {
+        List<StudentTransport> all = studentTransportRepository.findAll();
+        if (status != null && !status.isBlank()) {
+            all = all.stream().filter(r -> status.equalsIgnoreCase(r.getStatus())).toList();
+        }
+        if (routeId != null && !routeId.isBlank()) {
+            all = all.stream()
+                    .filter(r -> r.getRouteId() != null && routeId.equals(r.getRouteId().toString()))
+                    .toList();
+        }
+        return ResponseEntity.ok(all);
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> registerForTransport(@Valid @RequestBody Map<String, Object> request) {
-        Map<String, Object> registration = new HashMap<>(request);
-        registration.put("id", UUID.randomUUID().toString());
-        registration.put("status", "PENDING");
-        registration.put("createdAt", LocalDateTime.now());
-        
-        return ResponseEntity.ok(registration);
-    }
-
-    @GetMapping("/registrations")
-    public ResponseEntity<List<Map<String, Object>>> getAllRegistrations(
-            @RequestParam(required = false) String routeId,
-            @RequestParam(required = false) String status) {
-        
-        List<Map<String, Object>> registrations = new ArrayList<>();
-        
-        for (int i = 1; i <= 15; i++) {
-            Map<String, Object> reg = new HashMap<>();
-            reg.put("id", UUID.randomUUID().toString());
-            reg.put("userId", "user-" + i);
-            reg.put("studentName", "Student " + i);
-            reg.put("studentId", "STU2024" + String.format("%03d", i));
-            reg.put("routeId", "route-" + (i % 5 + 1));
-            reg.put("routeName", "Route " + (i % 5 + 1));
-            reg.put("pickupPoint", "Stop " + (char)('A' + (i % 5)));
-            reg.put("pickupTime", "07:" + String.format("%02d", 20 + (i % 4) * 10));
-            reg.put("status", i % 4 == 0 ? "PENDING" : "ACTIVE");
-            reg.put("monthlyFee", 150);
-            registrations.add(reg);
-        }
-        
-        return ResponseEntity.ok(registrations);
+    public ResponseEntity<StudentTransport> registerForTransport(@Valid @RequestBody StudentTransport registration) {
+        return ResponseEntity.ok(studentTransportRepository.save(registration));
     }
 
     @PutMapping("/registrations/{id}/approve")
-    public ResponseEntity<Map<String, Object>> approveRegistration(@PathVariable String id) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("id", id);
-        result.put("status", "ACTIVE");
-        result.put("approvedAt", LocalDateTime.now());
-        result.put("message", "Transport registration approved successfully");
-        
-        return ResponseEntity.ok(result);
+    public ResponseEntity<StudentTransport> approveRegistration(@PathVariable UUID id) {
+        return studentTransportRepository.findById(id).map(reg -> {
+            reg.setStatus("ACTIVE");
+            return ResponseEntity.ok(studentTransportRepository.save(reg));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // The caller's own registration is resolved via Academy's user→student link, which isn't wired
+    // in this controller; return an honest empty result rather than fabricating a registration.
+    @GetMapping("/my-registration")
+    public ResponseEntity<StudentTransport> getMyRegistration(
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        return ResponseEntity.noContent().build();
     }
 }

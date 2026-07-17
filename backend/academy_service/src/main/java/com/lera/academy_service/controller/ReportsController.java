@@ -68,26 +68,22 @@ public class ReportsController {
     }
 
     // Get all available reports
+    // The persisted "reports" are the scheduled-report definitions; on-demand reports are produced
+    // by POST /generate. Previously this returned fabricated sample rows — now returns real data.
     @GetMapping
     public ResponseEntity<?> getAllReports(
             @RequestParam(required = false) UUID centerId,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status) {
-        
-        return ResponseEntity.ok(generateSampleReports());
+        return ResponseEntity.ok(scheduledReportRepository.findAllByOrderByCreatedAtDesc());
     }
 
-    // Get specific report
+    // Get a specific scheduled report (real), or 404. Previously returned a fabricated report.
     @GetMapping("/{reportId}")
     public ResponseEntity<?> getReportById(@PathVariable UUID reportId) {
-        Map<String, Object> report = new HashMap<>();
-        report.put("id", reportId.toString());
-        report.put("name", "Monthly Performance Report");
-        report.put("type", "performance");
-        report.put("status", "completed");
-        report.put("generatedAt", LocalDateTime.now().minusDays(1).toString());
-        report.put("data", generateSampleReportData());
-        return ResponseEntity.ok(report);
+        return scheduledReportRepository.findById(reportId)
+                .map(r -> ResponseEntity.ok((Object) r))
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // Generate a report now from live data — returns a downloadable CSV + summary.
@@ -198,56 +194,4 @@ public class ReportsController {
         return ResponseEntity.ok(types);
     }
 
-    private List<Map<String, Object>> generateSampleReports() {
-        List<Map<String, Object>> reports = new ArrayList<>();
-        
-        String[][] sampleReports = {
-            {"Monthly Attendance Report", "attendance", "completed", "Feb 2026"},
-            {"Q1 Financial Summary", "financial", "completed", "Jan 2026"},
-            {"Student Progress Report", "academic", "completed", "Feb 2026"},
-            {"Enrollment Statistics", "enrollment", "completed", "Feb 2026"},
-            {"Teacher Evaluation", "teacher", "pending", "Feb 2026"},
-            {"Course Completion Report", "course", "generating", "Feb 2026"},
-        };
-        
-        for (int i = 0; i < sampleReports.length; i++) {
-            Map<String, Object> report = new HashMap<>();
-            report.put("id", UUID.randomUUID().toString());
-            report.put("name", sampleReports[i][0]);
-            report.put("type", sampleReports[i][1]);
-            report.put("status", sampleReports[i][2]);
-            report.put("period", sampleReports[i][3]);
-            report.put("generatedAt", LocalDateTime.now().minusDays(i + 1).toString());
-            reports.add(report);
-        }
-        
-        return reports;
-    }
-
-    private Map<String, Object> generateSampleReportData() {
-        Map<String, Object> data = new HashMap<>();
-        
-        // Summary stats
-        data.put("totalStudents", 450);
-        data.put("totalTeachers", 32);
-        data.put("totalCourses", 24);
-        data.put("averageAttendance", 94.5);
-        data.put("revenue", 125000000);
-        
-        // Charts data
-        List<Map<String, Object>> monthlyData = new ArrayList<>();
-        String[] months = {"Sep", "Oct", "Nov", "Dec", "Jan", "Feb"};
-        int[] students = {380, 395, 410, 425, 440, 450};
-        
-        for (int i = 0; i < months.length; i++) {
-            Map<String, Object> point = new HashMap<>();
-            point.put("month", months[i]);
-            point.put("students", students[i]);
-            point.put("revenue", 18000000 + (i * 2000000));
-            monthlyData.add(point);
-        }
-        data.put("monthlyTrend", monthlyData);
-        
-        return data;
-    }
 }
