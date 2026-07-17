@@ -22,6 +22,8 @@ export default function ReportsPage() {
   const [selectedType, setSelectedType] = useState<string>("all");
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [centreSummary, setCentreSummary] = useState<Record<string, unknown> | null>(null);
+  const [genType, setGenType] = useState<string>("academic");
+  const [genBusy, setGenBusy] = useState(false);
 
   useEffect(() => {
     fetchReports();
@@ -53,6 +55,37 @@ export default function ReportsPage() {
       setReports([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Generate a report now via the real backend endpoint and download the returned CSV.
+  const handleGenerate = async () => {
+    setGenBusy(true);
+    try {
+      let centerId: string | undefined;
+      try {
+        const raw = Cookies.get("userData");
+        if (raw) centerId = JSON.parse(decodeURIComponent(raw)).centerId;
+      } catch {}
+      const res = (await apiFetch("/api/reports/generate", {
+        method: "POST",
+        body: JSON.stringify({ reportType: genType, centerId: centerId || null }),
+      })) as { filename?: string; csv?: string };
+      if (res?.csv) {
+        const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = res.filename || `${genType}-report.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      setShowGenerateModal(false);
+      fetchReports();
+    } catch (e: any) {
+      alert(e?.message || "Could not generate the report.");
+    } finally {
+      setGenBusy(false);
     }
   };
 
@@ -302,7 +335,7 @@ export default function ReportsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t("reportType")}
                 </label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select value={genType} onChange={(e) => setGenType(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="academic">{t("academicReport")}</option>
                   <option value="attendance">{t("attendanceReport")}</option>
                   <option value="financial">{t("financialReport")}</option>
@@ -347,8 +380,8 @@ export default function ReportsPage() {
                 >
                   {t("cancel")}
                 </button>
-                <button disabled title="Coming soon" className="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed">
-                  {t("generate")}
+                <button onClick={handleGenerate} disabled={genBusy} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                  {genBusy ? `${t("generating")}…` : t("generate")}
                 </button>
               </div>
             </div>
