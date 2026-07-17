@@ -66,4 +66,11 @@ public class LeadActivity {
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (this.activityDate == null) this.activityDate = now; // NOT NULL; @Builder.Default initializer bypassed on request-body inserts
+        if (this.createdAt == null) this.createdAt = now;
+    }
 }

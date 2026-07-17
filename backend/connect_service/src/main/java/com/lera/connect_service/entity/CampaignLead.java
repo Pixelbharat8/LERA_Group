@@ -54,4 +54,9 @@ public class CampaignLead {
 
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.addedAt == null) this.addedAt = LocalDateTime.now(); // NOT NULL; @Builder.Default initializer bypassed on request-body inserts
+    }
 }

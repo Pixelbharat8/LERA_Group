@@ -109,6 +109,7 @@ public class StudentScholarship {
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
+        if (this.applicationDate == null) this.applicationDate = java.time.LocalDate.now(); // NOT NULL; @Builder.Default initializer bypassed on request-body inserts
         if (this.createdAt == null) this.createdAt = now;
         if (this.updatedAt == null) this.updatedAt = now;
     }
