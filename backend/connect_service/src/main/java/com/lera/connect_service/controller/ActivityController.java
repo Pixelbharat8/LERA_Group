@@ -3,20 +3,47 @@ package com.lera.connect_service.controller;
 import com.lera.connect_service.security.AuthUser;
 import com.lera.connect_service.security.ConnectSecurity;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
-import java.time.LocalDateTime;
 import java.util.*;
 
+/**
+ * Activity feed backed by the REAL {@code audit_logs} table (written by every service via
+ * JdbcAuditWriter). Previously this controller fabricated activities and hardcoded stats
+ * (totalActivities=1250, Math.random trend) — all removed. Read-only over the audit trail;
+ * activities are recorded automatically, so there is no manual "log activity" write.
+ */
 @RestController
 @RequestMapping("/api/activities")
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
 public class ActivityController {
+
+    private final JdbcTemplate jdbc;
+
+    private Map<String, Object> toActivity(Map<String, Object> row) {
+        Map<String, Object> a = new HashMap<>();
+        a.put("id", str(row.get("id")));
+        a.put("type", row.get("action"));
+        a.put("title", row.get("action"));
+        a.put("entityType", row.get("entity_type"));
+        a.put("entityId", str(row.get("entity_id")));
+        a.put("userId", str(row.get("user_id")));
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("ip", row.get("ip_address"));
+        metadata.put("userAgent", row.get("user_agent"));
+        a.put("metadata", metadata);
+        a.put("createdAt", row.get("created_at"));
+        return a;
+    }
+
+    private static String str(Object o) { return o == null ? null : o.toString(); }
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getActivities(
@@ -27,64 +54,26 @@ public class ActivityController {
             @AuthenticationPrincipal AuthUser authUser) {
         ConnectSecurity.assertStaffOrSelfUserQuery(authUser, userId);
 
-        List<Map<String, Object>> activities = new ArrayList<>();
-
-        String[] types = {
-            "USER_LOGIN", "USER_LOGOUT", "LEAD_CREATED", "LEAD_UPDATED",
-            "STUDENT_ENROLLED", "PAYMENT_RECEIVED", "ASSIGNMENT_SUBMITTED",
-            "EXAM_COMPLETED", "MESSAGE_SENT", "NOTIFICATION_SENT"
-        };
-
-        String[] titles = {
-            "User Login", "User Logout", "New Lead Created", "Lead Updated",
-            "Student Enrolled", "Payment Received", "Assignment Submitted",
-            "Exam Completed", "Message Sent", "Notification Sent"
-        };
-
-        String[] descriptions = {
-            "User logged in successfully",
-            "User logged out",
-            "New lead added to CRM",
-            "Lead information updated",
-            "New student enrolled in course",
-            "Payment processed successfully",
-            "Student submitted assignment",
-            "Student completed exam",
-            "New message sent",
-            "System notification sent"
-        };
-
-        String[] userNames = {"Admin User", "Teacher John", "Student Jane", "Staff Mike", "Manager Sarah"};
-
-        int count = limit != null ? Math.min(limit, 30) : 20;
-
-        for (int i = 0; i < count; i++) {
-            Map<String, Object> activity = new HashMap<>();
-            int typeIndex = i % types.length;
-
-            if (type != null && !type.equals("all") && !types[typeIndex].equals(type)) {
-                continue;
-            }
-
-            activity.put("id", UUID.randomUUID().toString());
-            activity.put("type", types[typeIndex]);
-            activity.put("title", titles[typeIndex]);
-            activity.put("description", descriptions[typeIndex]);
-            activity.put("userId", userId != null ? userId : "user-" + (i % 10 + 1));
-            activity.put("userName", userNames[i % userNames.length]);
-            activity.put("entityType", i % 2 == 0 ? "USER" : "LEAD");
-            activity.put("entityId", "entity-" + (i + 1));
-
-            Map<String, String> metadata = new HashMap<>();
-            metadata.put("ip", "192.168.1." + (i % 256));
-            metadata.put("browser", i % 2 == 0 ? "Chrome" : "Firefox");
-            activity.put("metadata", metadata);
-
-            activity.put("createdAt", LocalDateTime.now().minusMinutes(i * 15));
-            activities.add(activity);
+        StringBuilder sql = new StringBuilder(
+                "SELECT id, action, entity_type, entity_id, user_id, ip_address, user_agent, created_at "
+                + "FROM audit_logs WHERE 1=1");
+        List<Object> args = new ArrayList<>();
+        if (type != null && !type.isBlank() && !"all".equalsIgnoreCase(type)) {
+            sql.append(" AND action = ?"); args.add(type);
         }
+        if (userId != null && !userId.isBlank()) {
+            sql.append(" AND user_id = ?::uuid"); args.add(userId);
+        }
+        if (entityType != null && !entityType.isBlank()) {
+            sql.append(" AND entity_type = ?"); args.add(entityType);
+        }
+        int cap = limit != null ? Math.min(Math.max(limit, 1), 200) : 50;
+        sql.append(" ORDER BY created_at DESC LIMIT ").append(cap);
 
-        return ResponseEntity.ok(activities);
+        List<Map<String, Object>> rows = jdbc.queryForList(sql.toString(), args.toArray());
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map<String, Object> r : rows) out.add(toActivity(r));
+        return ResponseEntity.ok(out);
     }
 
     @GetMapping("/{id}")
@@ -92,40 +81,21 @@ public class ActivityController {
             @PathVariable String id,
             @AuthenticationPrincipal AuthUser authUser) {
         ConnectSecurity.assertStaffOrSelfUserQuery(authUser, null);
-
-        Map<String, Object> activity = new HashMap<>();
-        activity.put("id", id);
-        activity.put("type", "USER_LOGIN");
-        activity.put("title", "User Login");
-        activity.put("description", "User logged in successfully from Chrome browser");
-        activity.put("userId", "user-1");
-        activity.put("userName", "Admin User");
-        activity.put("entityType", "USER");
-        activity.put("entityId", "user-1");
-
-        Map<String, String> metadata = new HashMap<>();
-        metadata.put("ip", "192.168.1.100");
-        metadata.put("browser", "Chrome");
-        metadata.put("device", "Desktop");
-        metadata.put("location", "Ho Chi Minh City");
-        activity.put("metadata", metadata);
-
-        activity.put("createdAt", LocalDateTime.now().minusHours(1));
-
-        return ResponseEntity.ok(activity);
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT id, action, entity_type, entity_id, user_id, ip_address, user_agent, created_at "
+                + "FROM audit_logs WHERE id = ?::uuid LIMIT 1", id);
+        if (rows.isEmpty()) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(toActivity(rows.get(0)));
     }
 
+    // Activities are recorded automatically in the audit trail — there is no manual logging path.
     @PostMapping
     public ResponseEntity<Map<String, Object>> logActivity(
             @Valid @RequestBody Map<String, Object> request,
             @AuthenticationPrincipal AuthUser authUser) {
         ConnectSecurity.assertOrgWideMutation(authUser);
-
-        Map<String, Object> activity = new HashMap<>(request);
-        activity.put("id", UUID.randomUUID().toString());
-        activity.put("createdAt", LocalDateTime.now());
-
-        return ResponseEntity.ok(activity);
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(Map.of(
+                "error", "Activities are captured automatically in the audit trail; manual logging is not supported."));
     }
 
     @GetMapping("/user/{userId}")
@@ -133,27 +103,12 @@ public class ActivityController {
             @PathVariable String userId,
             @AuthenticationPrincipal AuthUser authUser) {
         ConnectSecurity.assertStaffOrSelfUserQuery(authUser, userId);
-
-        List<Map<String, Object>> activities = new ArrayList<>();
-
-        String[] types = {"USER_LOGIN", "MESSAGE_SENT", "NOTIFICATION_SENT"};
-        String[] titles = {"User Login", "Message Sent", "Notification Sent"};
-
-        for (int i = 0; i < 10; i++) {
-            Map<String, Object> activity = new HashMap<>();
-            int typeIndex = i % types.length;
-
-            activity.put("id", UUID.randomUUID().toString());
-            activity.put("type", types[typeIndex]);
-            activity.put("title", titles[typeIndex]);
-            activity.put("description", "Activity description " + (i + 1));
-            activity.put("userId", userId);
-            activity.put("userName", "User Name");
-            activity.put("createdAt", LocalDateTime.now().minusMinutes(i * 30));
-            activities.add(activity);
-        }
-
-        return ResponseEntity.ok(activities);
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT id, action, entity_type, entity_id, user_id, ip_address, user_agent, created_at "
+                + "FROM audit_logs WHERE user_id = ?::uuid ORDER BY created_at DESC LIMIT 50", userId);
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map<String, Object> r : rows) out.add(toActivity(r));
+        return ResponseEntity.ok(out);
     }
 
     @GetMapping("/stats")
@@ -162,24 +117,30 @@ public class ActivityController {
         ConnectSecurity.assertStaffOrSelfUserQuery(authUser, null);
 
         Map<String, Object> stats = new HashMap<>();
+        stats.put("totalActivities", jdbc.queryForObject("SELECT count(*) FROM audit_logs", Long.class));
+        stats.put("todayActivities", jdbc.queryForObject(
+                "SELECT count(*) FROM audit_logs WHERE created_at >= current_date", Long.class));
+        stats.put("activeUsers", jdbc.queryForObject(
+                "SELECT count(DISTINCT user_id) FROM audit_logs WHERE created_at >= current_date", Long.class));
 
-        stats.put("totalActivities", 1250);
-        stats.put("todayActivities", 85);
-        stats.put("activeUsers", 42);
-
-        Map<String, Integer> byType = new HashMap<>();
-        byType.put("USER_LOGIN", 450);
-        byType.put("LEAD_CREATED", 120);
-        byType.put("STUDENT_ENROLLED", 85);
-        byType.put("PAYMENT_RECEIVED", 230);
-        byType.put("MESSAGE_SENT", 365);
+        Map<String, Object> byType = new LinkedHashMap<>();
+        for (Map<String, Object> r : jdbc.queryForList(
+                "SELECT action, count(*) AS c FROM audit_logs GROUP BY action ORDER BY c DESC LIMIT 10")) {
+            byType.put(String.valueOf(r.get("action")), r.get("c"));
+        }
         stats.put("byType", byType);
 
         List<Map<String, Object>> hourlyTrend = new ArrayList<>();
+        Map<Integer, Long> byHour = new HashMap<>();
+        for (Map<String, Object> r : jdbc.queryForList(
+                "SELECT EXTRACT(HOUR FROM created_at)::int AS hour, count(*) AS c "
+                + "FROM audit_logs WHERE created_at >= current_date GROUP BY hour")) {
+            byHour.put(((Number) r.get("hour")).intValue(), ((Number) r.get("c")).longValue());
+        }
         for (int i = 0; i < 24; i++) {
             Map<String, Object> hour = new HashMap<>();
             hour.put("hour", i);
-            hour.put("count", 10 + (int) (Math.random() * 40));
+            hour.put("count", byHour.getOrDefault(i, 0L));
             hourlyTrend.add(hour);
         }
         stats.put("hourlyTrend", hourlyTrend);
@@ -192,25 +153,12 @@ public class ActivityController {
             @RequestParam(defaultValue = "10") int limit,
             @AuthenticationPrincipal AuthUser authUser) {
         ConnectSecurity.assertStaffOrSelfUserQuery(authUser, null);
-
-        List<Map<String, Object>> activities = new ArrayList<>();
-
-        String[] types = {"USER_LOGIN", "LEAD_CREATED", "PAYMENT_RECEIVED", "STUDENT_ENROLLED", "MESSAGE_SENT"};
-        String[] titles = {"User Login", "New Lead", "Payment", "Enrollment", "Message"};
-        String[] userNames = {"Admin", "Teacher", "Staff", "Manager"};
-
-        for (int i = 0; i < Math.min(limit, 20); i++) {
-            Map<String, Object> activity = new HashMap<>();
-            int typeIndex = i % types.length;
-
-            activity.put("id", UUID.randomUUID().toString());
-            activity.put("type", types[typeIndex]);
-            activity.put("title", titles[typeIndex]);
-            activity.put("userName", userNames[i % userNames.length]);
-            activity.put("createdAt", LocalDateTime.now().minusMinutes(i * 5));
-            activities.add(activity);
-        }
-
-        return ResponseEntity.ok(activities);
+        int cap = Math.min(Math.max(limit, 1), 50);
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT id, action, entity_type, entity_id, user_id, ip_address, user_agent, created_at "
+                + "FROM audit_logs ORDER BY created_at DESC LIMIT " + cap);
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map<String, Object> r : rows) out.add(toActivity(r));
+        return ResponseEntity.ok(out);
     }
 }
