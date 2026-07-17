@@ -45,10 +45,13 @@ public class LeaveBalanceController {
         response.put("remaining", balance.getOrDefault("totalAvailable", 0.0));
         response.put("remainingLeave", balance.getOrDefault("totalAvailable", 0.0));
         response.put("pending", 0);
-        response.put("sickLeave", 10);
-        response.put("usedSickLeave", 0);
-        response.put("casualLeave", 5);
-        response.put("usedCasualLeave", 0);
+        // Sick/casual leave are not tracked by the accrual system — report null (not tracked)
+        // rather than fabricating fixed 10/5 allowances.
+        response.put("sickLeave", null);
+        response.put("usedSickLeave", null);
+        response.put("casualLeave", null);
+        response.put("usedCasualLeave", null);
+        response.put("sickCasualTracked", false);
         return response;
     }
 
@@ -67,20 +70,10 @@ public class LeaveBalanceController {
             return ResponseEntity.ok(buildBalanceResponse(userId, balance));
         } catch (Exception e) {
             log.error("Error fetching leave balance for user: {}", userId, e);
-            Map<String, Object> defaultResponse = new HashMap<>();
-            defaultResponse.put("userId", userId);
-            defaultResponse.put("totalAllowed", 12);
-            defaultResponse.put("annualLeave", 12);
-            defaultResponse.put("used", 0);
-            defaultResponse.put("usedLeave", 0);
-            defaultResponse.put("remaining", 12);
-            defaultResponse.put("remainingLeave", 12);
-            defaultResponse.put("pending", 0);
-            defaultResponse.put("sickLeave", 10);
-            defaultResponse.put("usedSickLeave", 0);
-            defaultResponse.put("casualLeave", 5);
-            defaultResponse.put("usedCasualLeave", 0);
-            return ResponseEntity.ok(defaultResponse);
+            // Do NOT mask the failure behind a fabricated healthy 12-day balance — surface it,
+            // otherwise a real service fault silently reports a full, incorrect balance.
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Could not compute leave balance");
         }
     }
 
