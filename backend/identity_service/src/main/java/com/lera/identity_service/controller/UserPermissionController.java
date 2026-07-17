@@ -129,6 +129,7 @@ public class UserPermissionController {
         if (permissions.containsKey("ai_assistant")) permission.setAiAssistant((Boolean) permissions.get("ai_assistant"));
         if (permissions.containsKey("communication")) permission.setCommunication((Boolean) permissions.get("communication"));
         if (permissions.containsKey("documents")) permission.setDocuments((Boolean) permissions.get("documents"));
+        if (permissions.containsKey("socialMedia")) permission.setSocialMedia((Boolean) permissions.get("socialMedia"));
         if (permissions.containsKey("academyServiceEnabled")) permission.setAcademyServiceEnabled((Boolean) permissions.get("academyServiceEnabled"));
         if (permissions.containsKey("paymentServiceEnabled")) permission.setPaymentServiceEnabled((Boolean) permissions.get("paymentServiceEnabled"));
         if (permissions.containsKey("attendanceServiceEnabled")) permission.setAttendanceServiceEnabled((Boolean) permissions.get("attendanceServiceEnabled"));
@@ -195,6 +196,7 @@ public class UserPermissionController {
         dto.setAiAssistant(entity.getAiAssistant());
         dto.setCommunication(entity.getCommunication());
         dto.setDocuments(entity.getDocuments());
+        dto.setSocialMedia(entity.getSocialMedia());
         dto.setAcademyServiceEnabled(entity.getAcademyServiceEnabled());
         dto.setPaymentServiceEnabled(entity.getPaymentServiceEnabled());
         dto.setAttendanceServiceEnabled(entity.getAttendanceServiceEnabled());
