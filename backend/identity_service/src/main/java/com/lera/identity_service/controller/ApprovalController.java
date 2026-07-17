@@ -13,56 +13,12 @@ import java.util.*;
 @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF','STUDENT','PARENT')")
 public class ApprovalController {
 
-    // In-memory storage for demo (replace with proper service/repository in production)
-    private final Map<String, Map<String, Object>> approvalRequests = new HashMap<>();
-    
-    public ApprovalController() {
-        // Add some sample data
-        initSampleData();
-    }
-
-    private void initSampleData() {
-        Map<String, Object> request1 = new HashMap<>();
-        request1.put("id", "apr-001");
-        request1.put("type", "LEAVE_REQUEST");
-        request1.put("title", "Annual Leave Request");
-        request1.put("description", "Request for 5 days annual leave");
-        request1.put("requesterId", "user-001");
-        request1.put("requesterName", "John Teacher");
-        request1.put("status", "PENDING");
-        request1.put("priority", "NORMAL");
-        request1.put("createdAt", LocalDateTime.now().minusDays(2));
-        request1.put("comments", new ArrayList<>());
-        approvalRequests.put("apr-001", request1);
-
-        Map<String, Object> request2 = new HashMap<>();
-        request2.put("id", "apr-002");
-        request2.put("type", "EXPENSE_CLAIM");
-        request2.put("title", "Training Materials Expense");
-        request2.put("description", "Purchase of teaching materials - $150");
-        request2.put("requesterId", "user-002");
-        request2.put("requesterName", "Sarah Staff");
-        request2.put("status", "PENDING");
-        request2.put("priority", "HIGH");
-        request2.put("createdAt", LocalDateTime.now().minusDays(1));
-        request2.put("comments", new ArrayList<>());
-        approvalRequests.put("apr-002", request2);
-
-        Map<String, Object> request3 = new HashMap<>();
-        request3.put("id", "apr-003");
-        request3.put("type", "NEW_STUDENT");
-        request3.put("title", "New Student Registration");
-        request3.put("description", "New student enrollment for LERA Starters program");
-        request3.put("requesterId", "user-003");
-        request3.put("requesterName", "Reception Staff");
-        request3.put("status", "APPROVED");
-        request3.put("priority", "NORMAL");
-        request3.put("createdAt", LocalDateTime.now().minusDays(5));
-        request3.put("approvedAt", LocalDateTime.now().minusDays(4));
-        request3.put("approvedBy", "Manager");
-        request3.put("comments", new ArrayList<>());
-        approvalRequests.put("apr-003", request3);
-    }
+    // In-memory approval store. NOTE: this is process-local and NOT persisted across restarts —
+    // a real ApprovalRequest entity/repository is still needed for production durability. It no
+    // longer seeds fabricated sample approvals (previously "John Teacher"/"Sarah Staff" demo rows,
+    // which violated the no-fake-data rule); it starts empty and only holds requests created at
+    // runtime via POST /api/approvals.
+    private final Map<String, Map<String, Object>> approvalRequests = new java.util.concurrent.ConcurrentHashMap<>();
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getAllApprovals() {

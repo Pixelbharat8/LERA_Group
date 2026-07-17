@@ -52,7 +52,7 @@ export default function ChairmanDashboard() {
     setLoading(true);
     try {
       // Fetch all data in parallel
-      const [usersRes, centersRes, deptsRes, coursesRes, settingsRes, rolesRes, studentsRes, enrollmentsRes, paymentsRes, activityRes] = await Promise.all([
+      const [usersRes, centersRes, deptsRes, coursesRes, settingsRes, rolesRes, studentsRes, enrollmentsRes, paymentsRes, activityRes, approvalsRes] = await Promise.all([
         apiFetch("/api/users").catch(() => null),
         apiFetch("/api/centers").catch(() => null),
         apiFetch("/api/departments").catch(() => null),
@@ -63,6 +63,7 @@ export default function ChairmanDashboard() {
         apiFetch("/api/enrollments").catch(() => null),
         apiFetch("/api/payments").catch(() => null),
         apiFetch("/api/activity-logs/date-range?start=" + new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() + "&end=" + new Date().toISOString()).catch(() => null),
+        apiFetch("/api/approvals/pending").catch(() => null),
       ]);
 
       let usersData: any[] = [];
@@ -90,6 +91,7 @@ export default function ChairmanDashboard() {
       const enrollmentsData = parseList(enrollmentsRes); setEnrollments(enrollmentsData);
       const paymentsData = parseList(paymentsRes); setPayments(paymentsData);
       const activityData = parseList(activityRes); setActivityLogs(activityData);
+      const approvalsData = parseList(approvalsRes); setPendingApprovals(approvalsData);
 
       // Calculate stats from fetched data (not from state)
       const totalRevenue = paymentsData
@@ -104,7 +106,7 @@ export default function ChairmanDashboard() {
         totalStudents: studentsData.length,
         totalEnrollments: enrollmentsData.length,
         totalRevenue,
-        pendingApprovals: pendingApprovals.length,
+        pendingApprovals: approvalsData.length,
       });
 
     } catch (error) {
@@ -184,15 +186,28 @@ export default function ChairmanDashboard() {
   };
 
   const handleApprove = async (id: string) => {
-    // Implement approval logic
-    alert("Approved!");
-    fetchData();
+    try {
+      await apiFetch(`/api/approvals/${id}/approve`, {
+        method: "POST",
+        body: JSON.stringify({ approvedBy: "Chairman" }),
+      });
+      fetchData();
+    } catch (e: any) {
+      alert(e?.message || "Could not approve the request.");
+    }
   };
 
   const handleReject = async (id: string) => {
-    // Implement rejection logic
-    alert("Rejected!");
-    fetchData();
+    const reason = prompt("Reason for rejection?") || "";
+    try {
+      await apiFetch(`/api/approvals/${id}/reject`, {
+        method: "POST",
+        body: JSON.stringify({ rejectedBy: "Chairman", reason }),
+      });
+      fetchData();
+    } catch (e: any) {
+      alert(e?.message || "Could not reject the request.");
+    }
   };
 
   const formatCurrency = (amount: number) => {
