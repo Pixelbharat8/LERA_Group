@@ -41,9 +41,9 @@ public interface DepartmentRepository extends JpaRepository<Department, UUID> {
     @Query("SELECT d FROM Department d WHERE d.centerId = :centerId AND d.departmentType = :type AND d.status = 'ACTIVE'")
     List<Department> findByCenterIdAndType(UUID centerId, String type);
     
-    // Count employees in department
-    // NOTE: identity_service User entity doesn't currently have departmentId mapping.
-    // Keep the service bootable by providing a safe count based on centerId for now.
-    @Query("SELECT COUNT(u) FROM User u WHERE u.centerId = :centerId")
-    Long countEmployeesInCenter(UUID centerId);
+    // Count employees actually assigned to a department (User.departmentId exists now, so this is
+    // a real per-department count — the old center-wide count reported the same number for every
+    // department in a center).
+    @Query("SELECT COUNT(u) FROM User u WHERE u.departmentId = :departmentId")
+    Long countEmployeesInDepartment(UUID departmentId);
 }

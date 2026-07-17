@@ -104,12 +104,8 @@ public class DepartmentService {
      * Get employee count in department
      */
     public Long getEmployeeCount(UUID departmentId) {
-        log.info("Counting employees for department (fallback by center) : {}", departmentId);
-        Department department = getDepartmentById(departmentId);
-        if (department.getCenterId() == null) {
-            return 0L;
-        }
-        return departmentRepository.countEmployeesInCenter(department.getCenterId());
+        log.info("Counting employees for department: {}", departmentId);
+        return departmentRepository.countEmployeesInDepartment(departmentId);
     }
     
     /**
