@@ -8,6 +8,7 @@ import AnimatedCounter from "./components/AnimatedCounter";
 import { useReveal } from "./hooks/useReveal";
 import StickyTrialBar from "./components/StickyTrialBar";
 import TrustMark from "./components/TrustMark";
+import SmartImage from "./components/SmartImage";
 import FacebookFeatured from "./components/FacebookFeatured";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -352,14 +353,13 @@ export default function Home() {
       <section className="relative pt-36 pb-20 sm:pt-44 sm:pb-28 overflow-hidden">
         {/* Immersive classroom photo + left-weighted navy scrim (keeps left copy legible) */}
         <div className="absolute inset-0 z-0">
-          <img
+          <SmartImage
             src={heroImage || GALLERY_IMAGES[0].src}
             alt=""
-            aria-hidden
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
-            className="w-full h-full object-cover"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-brand-navy/95 via-brand-navy/80 to-brand-navy/40" />
         </div>
@@ -628,12 +628,12 @@ export default function Home() {
                 className="group block card-premium overflow-hidden"
               >
                 <div className="h-48 relative overflow-hidden">
-                  <img
+                  <SmartImage
                     src={course.image}
                     alt={course.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute bottom-3 left-4 bg-white/95 text-gray-800 text-xs px-3 py-1 rounded-full font-semibold shadow-sm">
                     {t("agesLabel")} {course.age}
@@ -787,11 +787,11 @@ export default function Home() {
               “{displayTestimonials[currentTestimonial % displayTestimonials.length]?.text}”
             </p>
             <div className="mt-8 flex items-center justify-center gap-4">
-              <img
+              <SmartImage
                 src={displayTestimonials[currentTestimonial % displayTestimonials.length]?.image || TESTIMONIAL_FACES[currentTestimonial % TESTIMONIAL_FACES.length]}
                 alt={displayTestimonials[currentTestimonial % displayTestimonials.length]?.name || "Parent"}
-                loading="lazy"
-                decoding="async"
+                width={56}
+                height={56}
                 className="w-14 h-14 rounded-full object-cover border border-gray-100"
               />
               <div className="text-left">
@@ -836,13 +836,13 @@ export default function Home() {
                 return true;
               }).slice(0, 8);
             })().map((img: any) => (
-              <div key={img.id} className="group relative overflow-hidden rounded-2xl border border-gray-100">
-                <img
+              <div key={img.id} className="group relative h-44 overflow-hidden rounded-2xl border border-gray-100">
+                <SmartImage
                   src={img.src}
                   alt={language === "EN" ? img.caption.EN : img.caption.VI}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-500"
+                  fill
+                  sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <p className="absolute bottom-0 left-0 right-0 p-3 text-white text-sm font-medium">
@@ -873,7 +873,7 @@ export default function Home() {
                 <div key={idx} className="card-premium overflow-hidden group">
                   <div className="h-48 relative overflow-hidden bg-gray-100">
                     {a.image ? (
-                      <img src={a.image} alt={a.name} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <SmartImage src={a.image} alt={a.name} fill sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <span className="text-6xl">🎓</span>
