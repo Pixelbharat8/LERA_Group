@@ -180,6 +180,14 @@ public class SocialMediaPostController {
             @AuthenticationPrincipal AuthUser authUser) {
         SocialMediaSecurity.assertOrgWideMutate(authUser);
         return socialMediaPostRepository.findById(id).map(post -> {
+            // Atomically claim so a double-click, or a race with the scheduler,
+            // can't publish the same post twice. 0 => it's already publishing or
+            // published.
+            if (socialMediaPostRepository.claimForManualPublish(id) == 0) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.CONFLICT,
+                        "Post is already publishing or published");
+            }
             // Actually publish to the connected networks (Graph API etc.). force=true so an
             // explicit "Publish now" ignores the per-platform auto-post toggle.
             Map<String, String> results = socialMediaPublisher.publishPost(post, true);

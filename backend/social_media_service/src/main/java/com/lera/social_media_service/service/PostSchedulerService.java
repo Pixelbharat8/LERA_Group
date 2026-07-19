@@ -27,11 +27,16 @@ public class PostSchedulerService {
         List<SocialMediaPost> postsToPublish = socialMediaPostRepository.findPostsReadyToPublish(now);
         
         for (SocialMediaPost post : postsToPublish) {
+            // Atomically claim the post: only the runner that flips
+            // scheduled -> publishing proceeds. Without this, two scheduler
+            // instances (or the scheduler and a manual publish) both see the same
+            // due row and post it twice to the connected networks.
+            if (socialMediaPostRepository.claimScheduledForPublishing(post.getId()) == 0) {
+                continue; // another instance/thread already took it
+            }
             try {
                 log.info("Publishing scheduled post: {}", post.getId());
-                post.setStatus("publishing");
-                socialMediaPostRepository.save(post);
-                
+
                 // Publish to each platform
                 socialMediaPublisher.publishPost(post);
                 
