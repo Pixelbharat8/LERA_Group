@@ -1,7 +1,9 @@
 package com.lera.payment_service.repository;
 
 import com.lera.payment_service.entity.Payment;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -9,11 +11,18 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
-    
+
+    // Row-lock a payment so concurrent refund creations for it serialize (the
+    // refundable-balance check is otherwise a check-then-insert TOCTOU).
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Payment p WHERE p.id = :id")
+    Optional<Payment> findByIdForUpdate(@Param("id") UUID id);
+
     List<Payment> findByInvoiceId(UUID invoiceId);
     
     List<Payment> findByStatus(String status);

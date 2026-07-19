@@ -51,7 +51,9 @@ public class RefundService {
         if (refund.getPaymentId() == null) {
             throw new IllegalArgumentException("paymentId is required");
         }
-        Payment payment = paymentRepository.findById(refund.getPaymentId())
+        // Row-lock the payment so two concurrent refunds can't both read the same
+        // "already refunded" sum and both pass the cap (over-refund TOCTOU).
+        Payment payment = paymentRepository.findByIdForUpdate(refund.getPaymentId())
                 .orElseThrow(() -> new IllegalArgumentException("Payment not found: " + refund.getPaymentId()));
         // (b) positive amount + (c) total refunds must not exceed the paid amount.
         assertWithinRefundableBalance(payment, refund.getAmount(), null);
