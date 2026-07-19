@@ -42,18 +42,16 @@ public class AttendanceRecord {
     @Column(name = "marked_by")
     private UUID markedBy;
     
-    @Column(name = "created_at")
+    // Immutable: created_at is the field reports bucket by (year/month/day), so it
+    // must never move. updatable=false keeps it out of every UPDATE, and there is
+    // deliberately no @PreUpdate rewriting it (that corrupted report dates on edit).
+    @Column(name = "created_at", updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
-    
+
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
         if (this.createdAt == null) this.createdAt = now;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        createdAt = LocalDateTime.now();
     }
 }
