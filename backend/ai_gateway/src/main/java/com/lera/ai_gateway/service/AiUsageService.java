@@ -65,20 +65,19 @@ public class AiUsageService {
         return b == 0 || used(userId) < b;
     }
 
-    /** Add consumed tokens to the user's running monthly total. */
+    /** Add consumed tokens to the user's running monthly total.
+     *  Atomic upsert-increment: the old find-modify-save lost increments when two
+     *  calls for the same user raced (both read the same total, last write won),
+     *  and two concurrent first-writes could both insert. This does it in one
+     *  statement, relying on uk_ai_usage_user_period. */
     @Transactional
     public void record(UUID userId, long tokens) {
         if (userId == null || tokens <= 0) return;
-        String p = period();
-        AiUsage row = repo.findByUserIdAndPeriod(userId, p).orElseGet(() -> {
-            AiUsage u = new AiUsage();
-            u.setUserId(userId);
-            u.setPeriod(p);
-            return u;
-        });
-        row.setTokensUsed(row.getTokensUsed() + tokens);
-        row.setUpdatedAt(java.time.LocalDateTime.now());
-        repo.save(row);
+        jdbc.update(
+                "INSERT INTO ai_usage (user_id, period, tokens_used, updated_at) VALUES (?, ?, ?, now()) " +
+                "ON CONFLICT ON CONSTRAINT uk_ai_usage_user_period " +
+                "DO UPDATE SET tokens_used = ai_usage.tokens_used + EXCLUDED.tokens_used, updated_at = now()",
+                userId, period(), tokens);
     }
 
     /** Set a user's monthly budget (null userId sets the global default). Persisted to system_settings. */
