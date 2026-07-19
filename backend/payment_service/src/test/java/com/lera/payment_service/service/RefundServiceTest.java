@@ -38,7 +38,10 @@ class RefundServiceTest {
         Payment p = new Payment();
         p.setId(id);
         p.setAmount(new BigDecimal(amount));
-        when(paymentRepository.findById(id)).thenReturn(Optional.of(p));
+        // createRefund locks via findByIdForUpdate; updateRefund uses findById.
+        // Stub both leniently so either path resolves the payment.
+        lenient().when(paymentRepository.findById(id)).thenReturn(Optional.of(p));
+        lenient().when(paymentRepository.findByIdForUpdate(id)).thenReturn(Optional.of(p));
         return p;
     }
 
@@ -52,7 +55,7 @@ class RefundServiceTest {
     @Test
     void createRefund_failsWhenPaymentMissing() {
         UUID pid = UUID.randomUUID();
-        when(paymentRepository.findById(pid)).thenReturn(Optional.empty());
+        when(paymentRepository.findByIdForUpdate(pid)).thenReturn(Optional.empty());
         assertThrows(IllegalArgumentException.class, () -> service.createRefund(refund(pid, "10", "PENDING")));
     }
 
