@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -41,8 +42,11 @@ public class DeviceTokenController {
 
     private final DeviceTokenRepository repo;
 
+    // Deliberately NOT @Transactional: register is an idempotent upsert on the
+    // unique token, and on a concurrent first-write collision we catch the unique
+    // violation and re-fetch. A method-level transaction would be marked
+    // rollback-only by the failed insert, so the recovery save couldn't run.
     @PostMapping
-    @Transactional
     public ResponseEntity<DeviceToken> register(@Valid @RequestBody Map<String, Object> body) {
         UUID callerId = CurrentUser.id().orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
@@ -70,7 +74,18 @@ public class DeviceTokenController {
         row.setToken(token);
         row.setDeviceName(deviceName);
         row.setLastSeenAt(LocalDateTime.now());
-        return ResponseEntity.ok(repo.save(row));
+        try {
+            return ResponseEntity.ok(repo.save(row));
+        } catch (DataIntegrityViolationException e) {
+            // A concurrent first-registration of this same (new) token won the
+            // unique index; update the winner's row instead of 500-ing.
+            DeviceToken existing = repo.findByToken(token).orElseThrow(() -> e);
+            existing.setUserId(userId);
+            existing.setPlatform(platform);
+            existing.setDeviceName(deviceName);
+            existing.setLastSeenAt(LocalDateTime.now());
+            return ResponseEntity.ok(repo.save(existing));
+        }
     }
 
     /** The caller's own tokens — preferred client endpoint. */
