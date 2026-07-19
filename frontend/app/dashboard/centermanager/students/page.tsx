@@ -91,7 +91,9 @@ export default function CenterManagerStudentsPage() {
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-orange-500">
           <h3 className="text-gray-500 text-sm">New This Month</h3>
-          <p className="text-2xl font-bold">0</p>
+          {/* No enrolment date on this list endpoint, so this can't be computed
+              here — show "not available" rather than a fabricated 0. */}
+          <p className="text-2xl font-bold text-gray-400">—</p>
         </div>
       </div>
 

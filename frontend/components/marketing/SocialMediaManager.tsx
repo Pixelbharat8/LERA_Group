@@ -35,14 +35,17 @@ export default function SocialMediaManager({ backHref = "/dashboard/chairman/mar
   const [connectForm, setConnectForm] = useState<{ id: string; pageId: string; token: string } | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
 
+  // Followers/engagement start as "—" (no data): followers are filled from the
+  // backend's real followerCount in fetchSettings; engagement has no backend
+  // source yet, so it stays "—" rather than showing a fabricated percentage.
   const [platforms, setPlatforms] = useState<SocialPlatform[]>([
-    { id: "facebook", name: "Facebook", icon: "📘", color: "#1877F2", url: "", enabled: true, followers: "12.5K", engagement: "4.2%" },
-    { id: "instagram", name: "Instagram", icon: "📸", color: "#E4405F", url: "", enabled: true, followers: "8.3K", engagement: "6.8%" },
-    { id: "tiktok", name: "TikTok", icon: "🎵", color: "#000000", url: "", enabled: true, followers: "5.1K", engagement: "12.4%" },
-    { id: "youtube", name: "YouTube", icon: "▶️", color: "#FF0000", url: "", enabled: false, followers: "2.1K", engagement: "3.1%" },
-    { id: "linkedin", name: "LinkedIn", icon: "💼", color: "#0A66C2", url: "", enabled: false, followers: "1.8K", engagement: "2.5%" },
-    { id: "twitter", name: "X (Twitter)", icon: "🐦", color: "#1DA1F2", url: "", enabled: false, followers: "956", engagement: "1.8%" },
-    { id: "zalo", name: "Zalo", icon: "💬", color: "#0068FF", url: "", enabled: true, followers: "3.2K", engagement: "8.5%" },
+    { id: "facebook", name: "Facebook", icon: "📘", color: "#1877F2", url: "", enabled: true, followers: "—", engagement: "—" },
+    { id: "instagram", name: "Instagram", icon: "📸", color: "#E4405F", url: "", enabled: true, followers: "—", engagement: "—" },
+    { id: "tiktok", name: "TikTok", icon: "🎵", color: "#000000", url: "", enabled: true, followers: "—", engagement: "—" },
+    { id: "youtube", name: "YouTube", icon: "▶️", color: "#FF0000", url: "", enabled: false, followers: "—", engagement: "—" },
+    { id: "linkedin", name: "LinkedIn", icon: "💼", color: "#0A66C2", url: "", enabled: false, followers: "—", engagement: "—" },
+    { id: "twitter", name: "X (Twitter)", icon: "🐦", color: "#1DA1F2", url: "", enabled: false, followers: "—", engagement: "—" },
+    { id: "zalo", name: "Zalo", icon: "💬", color: "#0068FF", url: "", enabled: true, followers: "—", engagement: "—" },
   ]);
 
   const [pixels, setPixels] = useState<SocialPixel[]>([

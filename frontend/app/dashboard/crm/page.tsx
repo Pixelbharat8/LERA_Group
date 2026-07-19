@@ -31,6 +31,7 @@ export default function CRMDashboard() {
     needsContact: 0,
   });
   const [recentLeads, setRecentLeads] = useState<any[]>([]);
+  const [pipeline, setPipeline] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -67,6 +68,13 @@ export default function CRMDashboard() {
       });
 
       setRecentLeads(leadsArray.slice(0, 5));
+
+      // Pipeline stage counts over ALL leads (not just the 5 most recent).
+      const pipelineCounts: Record<string, number> = {};
+      ["NEW", "CONTACTED", "QUALIFIED", "NEGOTIATION", "CONVERTED"].forEach((stage) => {
+        pipelineCounts[stage] = leadsArray.filter((l: any) => l.status === stage).length;
+      });
+      setPipeline(pipelineCounts);
     } catch (err) {
       console.error("Failed to fetch CRM data:", err);
     } finally {
@@ -241,7 +249,7 @@ export default function CRMDashboard() {
         <h2 className="text-xl font-bold mb-4">📈 Lead Pipeline</h2>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {["NEW", "CONTACTED", "QUALIFIED", "NEGOTIATION", "CONVERTED"].map((stage, index) => {
-            const count = recentLeads.filter(l => l.status === stage).length;
+            const count = pipeline[stage] || 0;
             const colors = ["bg-blue-100", "bg-yellow-100", "bg-purple-100", "bg-orange-100", "bg-green-100"];
             return (
               <div key={stage} className={`flex-shrink-0 w-48 p-4 ${colors[index]} rounded-lg`}>

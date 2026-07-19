@@ -253,7 +253,7 @@ export default function AttendanceApprovalsPage() {
       r.status === "APPROVED" && 
       new Date(r.appliedAt).toDateString() === new Date().toDateString()
     ).length,
-    totalStaff: staffMembers.length || 15
+    totalStaff: staffMembers.length
   };
 
   const getLeaveTypeColor = (type: string) => {

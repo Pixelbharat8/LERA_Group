@@ -56,12 +56,27 @@ export default function CenterAdminAttendance() {
   };
 
   const updateStatus = async (id: string, newStatus: AttendanceRecord["status"]) => {
-    setAttendance(prev => 
-      prev.map(record => 
+    const prevStatus = attendance.find(r => r.id === id)?.status;
+    // Optimistic update, then persist to the real endpoint; revert on failure.
+    setAttendance(prev =>
+      prev.map(record =>
         record.id === id ? { ...record, status: newStatus } : record
       )
     );
-    // API call would go here
+    try {
+      await apiFetch(`/api/attendance/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: newStatus }),
+      });
+    } catch (err: any) {
+      // Roll back the optimistic change and surface the error.
+      setAttendance(prev =>
+        prev.map(record =>
+          record.id === id ? { ...record, status: prevStatus ?? record.status } : record
+        )
+      );
+      alert(err?.message || "Failed to update attendance status");
+    }
   };
 
   const filteredAttendance = attendance.filter(record =>

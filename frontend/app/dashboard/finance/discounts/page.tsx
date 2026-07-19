@@ -479,7 +479,7 @@ export default function DiscountsPage() {
                         {sd.discountName}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-medium">{sd.discountValue}%</td>
+                    <td className="px-6 py-4 font-medium">{sd.discountType === "FIXED" ? formatCurrency(sd.discountValue) : `${sd.discountValue}%`}</td>
                     <td className="px-6 py-4 text-gray-600">{sd.startDate}</td>
                     <td className="px-6 py-4 text-gray-600">{sd.endDate || "No end date"}</td>
                     <td className="px-6 py-4">
