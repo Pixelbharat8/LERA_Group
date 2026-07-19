@@ -3,9 +3,13 @@ package com.lera.identity_service.controller;
 import com.lera.identity_service.dto.UserPermissionDTO;
 import com.lera.identity_service.entity.UserPermission;
 import com.lera.identity_service.repository.UserPermissionRepository;
+import com.lera.identity_service.security.AuthUser;
+import com.lera.identity_service.security.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -23,7 +27,17 @@ public class UserPermissionController {
     private UserPermissionRepository userPermissionRepository;
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<UserPermissionDTO> getUserPermissions(@PathVariable UUID userId) {
+    public ResponseEntity<UserPermissionDTO> getUserPermissions(@PathVariable UUID userId,
+            @AuthenticationPrincipal AuthUser authUser) {
+        // A user may read their OWN permission flags; reading anyone else's is
+        // limited to org-wide admins (the permission editor's audience). Without
+        // this, any authenticated user — including STUDENT/PARENT — could
+        // enumerate any user's module-access configuration.
+        boolean isSelf = authUser != null && authUser.getUserId() != null
+                && authUser.getUserId().equals(userId);
+        if (!isSelf && !SecurityUtils.isOrgWide(authUser)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         Optional<UserPermission> permission = userPermissionRepository.findByUserId(userId);
         
         if (permission.isPresent()) {

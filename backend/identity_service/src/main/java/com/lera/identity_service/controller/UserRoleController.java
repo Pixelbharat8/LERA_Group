@@ -44,7 +44,9 @@ public class UserRoleController {
         }
     }
 
-    /** All user→role assignments (admin RBAC overview). */
+    /** All user→role assignments (admin RBAC overview) — management roles only;
+     *  TEACHER/STAFF should not enumerate the org-wide role map. */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<UserRole>>> getAllUserRoles() {
         return ResponseEntity.ok(ApiResponse.success(userRoleService.getAllUserRoles()));
@@ -56,6 +58,8 @@ public class UserRoleController {
         return ResponseEntity.ok(ApiResponse.success(roles));
     }
 
+    /** Everyone holding a role — management roles only (RBAC enumeration). */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER')")
     @GetMapping("/role/{roleId}")
     public ResponseEntity<ApiResponse<List<UserRole>>> getRoleUsers(@PathVariable UUID roleId) {
         List<UserRole> users = userRoleService.getRoleUsers(roleId);
