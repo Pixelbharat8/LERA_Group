@@ -609,19 +609,23 @@ public class AiController {
             
             double score = calculateAnswerScore(answer, correctAnswer);
             String feedback = generateFeedback(answer, correctAnswer, score);
-            
-            return ResponseEntity.ok(Map.of(
-                "score", score,
-                "percentage", Math.round(score * 100) + "%",
-                "feedback", feedback,
-                "isCorrect", score >= 0.8,
-                "suggestions", generateImprovementSuggestions(answer, subject),
-                "detailedAnalysis", Map.of(
-                    "accuracy", score > 0.8 ? "High" : score > 0.5 ? "Medium" : "Low",
-                    "completeness", score > 0.7 ? "Complete" : "Partial",
-                    "clarity", "Good"
-                )
-            ));
+
+            // Heuristic (word-overlap) scoring — not the AI model. accuracy and
+            // completeness are derived from the real score; the old hardcoded
+            // "clarity":"Good" was fabricated and is dropped. Flagged usingRealAI=false.
+            Map<String, Object> analysis = new HashMap<>();
+            analysis.put("accuracy", score > 0.8 ? "High" : score > 0.5 ? "Medium" : "Low");
+            analysis.put("completeness", score > 0.7 ? "Complete" : "Partial");
+
+            Map<String, Object> out = new HashMap<>();
+            out.put("score", score);
+            out.put("percentage", Math.round(score * 100) + "%");
+            out.put("feedback", feedback);
+            out.put("isCorrect", score >= 0.8);
+            out.put("suggestions", generateImprovementSuggestions(answer, subject));
+            out.put("detailedAnalysis", analysis);
+            out.put("usingRealAI", false);
+            return ResponseEntity.ok(out);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "An unexpected error occurred"));
         }
@@ -629,22 +633,43 @@ public class AiController {
 
     // AI Learning Path generator
     @PostMapping("/learning-path")
-    public ResponseEntity<?> generateLearningPath(@Valid @RequestBody Map<String, Object> request) {
+    public ResponseEntity<?> generateLearningPath(@Valid @RequestBody Map<String, Object> request,
+                                                  @AuthenticationPrincipal AuthUser authUser) {
         try {
             String subject = (String) request.getOrDefault("subject", "English");
             String currentLevel = (String) request.getOrDefault("currentLevel", "beginner");
             String targetLevel = (String) request.getOrDefault("targetLevel", "advanced");
-            
-            List<Map<String, Object>> path = createLearningPath(subject, currentLevel, targetLevel);
-            
-            return ResponseEntity.ok(Map.of(
-                "subject", subject,
-                "currentLevel", currentLevel,
-                "targetLevel", targetLevel,
-                "estimatedDuration", "12 weeks",
-                "totalHours", 60,
-                "path", path
-            ));
+            java.util.UUID me = uid(authUser);
+
+            Map<String, Object> out = new HashMap<>();
+            out.put("subject", subject);
+            out.put("currentLevel", currentLevel);
+            out.put("targetLevel", targetLevel);
+
+            Map<String, Object> parsed = null;
+            boolean realAI = false;
+            if (aiUsage.canUse(me)) {
+                String system = "You are an English curriculum designer. Reply with ONLY valid JSON, no prose, no fences.";
+                String prompt = "Design a learning path from " + currentLevel + " to " + targetLevel + " in " + subject
+                        + ". JSON shape: {\"estimatedDuration\": string, \"totalHours\": number, "
+                        + "\"path\": [{\"step\": number, \"title\": string, \"focus\": string}]}.";
+                Map<String, Object> r = openAIService.chat(prompt, system, null);
+                if (Boolean.TRUE.equals(r.get("success"))) aiUsage.record(me, tokensOf(r));
+                Map<String, Object> p = extractJson(r.get("message"));
+                if (p != null && p.get("path") instanceof List) { parsed = p; realAI = Boolean.TRUE.equals(r.get("success")); }
+            }
+            if (parsed != null) {
+                out.put("estimatedDuration", parsed.getOrDefault("estimatedDuration", "varies"));
+                out.put("totalHours", parsed.getOrDefault("totalHours", null));
+                out.put("path", parsed.get("path"));
+            } else {
+                // Honest generic template — flagged as not AI, no fabricated duration.
+                out.put("estimatedDuration", "varies by pace");
+                out.put("path", createLearningPath(subject, currentLevel, targetLevel));
+            }
+            out.put("usingRealAI", realAI);
+            out.put("usage", aiUsage.status(me));
+            return ResponseEntity.ok(out);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "An unexpected error occurred"));
         }
@@ -663,54 +688,91 @@ public class AiController {
             AiGatewaySecurity.assertStaff(authUser);
         }
 
+        // Try real AI first. On success return its recommendations; otherwise fall
+        // back to honest GENERIC suggestions — not fabricated "based on your
+        // performance" text with made-up confidence scores (nothing here reads the
+        // student's actual performance).
+        java.util.UUID me = uid(authUser);
+        if (aiUsage.canUse(me)) {
+            String system = "You are an academic advisor. Reply with ONLY valid JSON, no prose, no fences.";
+            String prompt = "Suggest 3 next learning steps" + (subject != null && !subject.isBlank() ? " for " + subject : "")
+                    + ". JSON shape: {\"recommendations\": [{\"type\": string, \"title\": string, "
+                    + "\"description\": string, \"priority\": string}]}.";
+            Map<String, Object> r = openAIService.chat(prompt, system, null);
+            if (Boolean.TRUE.equals(r.get("success"))) {
+                aiUsage.record(me, tokensOf(r));
+                Map<String, Object> parsed = extractJson(r.get("message"));
+                if (parsed != null && parsed.get("recommendations") instanceof List) {
+                    return ResponseEntity.ok(parsed.get("recommendations"));
+                }
+            }
+        }
+
         List<Map<String, Object>> recommendations = new ArrayList<>();
-        
-        recommendations.add(Map.of(
+        recommendations.add(new HashMap<>(Map.of(
             "id", UUID.randomUUID().toString(),
             "type", "COURSE",
             "title", "Advanced Grammar Course",
-            "description", "Based on your performance, we recommend strengthening grammar skills",
-            "priority", "HIGH",
-            "confidence", 0.92
-        ));
-        
-        recommendations.add(Map.of(
+            "description", "A strong next step for most learners building accuracy",
+            "priority", "HIGH"
+        )));
+        recommendations.add(new HashMap<>(Map.of(
             "id", UUID.randomUUID().toString(),
             "type", "PRACTICE",
             "title", "Vocabulary Practice Session",
-            "description", "Daily vocabulary practice will help expand your word bank",
-            "priority", "MEDIUM",
-            "confidence", 0.85
-        ));
-        
-        recommendations.add(Map.of(
+            "description", "Daily vocabulary practice steadily expands your word bank",
+            "priority", "MEDIUM"
+        )));
+        recommendations.add(new HashMap<>(Map.of(
             "id", UUID.randomUUID().toString(),
             "type", "ASSESSMENT",
             "title", "Progress Assessment",
-            "description", "Time for a progress check to track your improvement",
-            "priority", "LOW",
-            "confidence", 0.78
-        ));
-        
+            "description", "A progress check to see where you are and plan next steps",
+            "priority", "LOW"
+        )));
         return ResponseEntity.ok(recommendations);
     }
 
     // Generate practice questions
+    @SuppressWarnings("unchecked")
     @PostMapping("/generate-questions")
-    public ResponseEntity<?> generateQuestions(@Valid @RequestBody Map<String, Object> request) {
+    public ResponseEntity<?> generateQuestions(@Valid @RequestBody Map<String, Object> request,
+                                               @AuthenticationPrincipal AuthUser authUser) {
         try {
             String topic = (String) request.getOrDefault("topic", "General English");
             String level = (String) request.getOrDefault("level", "intermediate");
             int count = (int) request.getOrDefault("count", 5);
-            
-            List<Map<String, Object>> questions = generatePracticeQuestions(topic, level, count);
-            
-            return ResponseEntity.ok(Map.of(
-                "topic", topic,
-                "level", level,
-                "totalQuestions", questions.size(),
-                "questions", questions
-            ));
+            java.util.UUID me = uid(authUser);
+
+            List<Map<String, Object>> questions = null;
+            boolean realAI = false;
+            if (aiUsage.canUse(me)) {
+                String system = "You are an English teacher. Reply with ONLY valid JSON, no prose, no markdown fences.";
+                String prompt = "Create " + count + " practice questions on \"" + topic + "\" at " + level
+                        + " level. JSON shape: {\"questions\": [{\"question\": string, \"type\": string, "
+                        + "\"answer\": string, \"explanation\": string}]}.";
+                Map<String, Object> r = openAIService.chat(prompt, system, null);
+                if (Boolean.TRUE.equals(r.get("success"))) aiUsage.record(me, tokensOf(r));
+                Map<String, Object> parsed = extractJson(r.get("message"));
+                if (parsed != null && parsed.get("questions") instanceof List) {
+                    questions = (List<Map<String, Object>>) parsed.get("questions");
+                    realAI = Boolean.TRUE.equals(r.get("success"));
+                }
+            }
+            // Honest fallback: static sample set, clearly flagged as not real AI.
+            if (questions == null || questions.isEmpty()) {
+                questions = generatePracticeQuestions(topic, level, count);
+                realAI = false;
+            }
+
+            Map<String, Object> out = new HashMap<>();
+            out.put("topic", topic);
+            out.put("level", level);
+            out.put("totalQuestions", questions.size());
+            out.put("questions", questions);
+            out.put("usingRealAI", realAI);
+            out.put("usage", aiUsage.status(me));
+            return ResponseEntity.ok(out);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "An unexpected error occurred"));
         }
