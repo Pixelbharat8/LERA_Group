@@ -34,6 +34,14 @@ public interface TeacherStaffLeaveRepository extends JpaRepository<TeacherStaffL
            "((l.leaveDate <= :date AND (l.endDate IS NULL OR l.endDate >= :date)) OR l.leaveDate = :date)")
     List<TeacherStaffLeave> findApprovedLeavesForDate(@Param("userId") UUID userId, @Param("date") LocalDate date);
 
+    // Active (not-yet-resolved) leaves whose date range overlaps [startDate, endDate].
+    // Used to reject a duplicate application for a day already requested/approved.
+    @Query("SELECT l FROM TeacherStaffLeave l WHERE l.userId = :userId " +
+           "AND l.status IN ('PENDING','APPROVED') " +
+           "AND l.leaveDate <= :endDate AND COALESCE(l.endDate, l.leaveDate) >= :startDate")
+    List<TeacherStaffLeave> findActiveLeavesOverlapping(@Param("userId") UUID userId,
+            @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
     // Find leaves in date range
     @Query("SELECT l FROM TeacherStaffLeave l WHERE l.centerId = :centerId AND " +
            "((l.leaveDate BETWEEN :startDate AND :endDate) OR (l.endDate BETWEEN :startDate AND :endDate) OR " +

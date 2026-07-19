@@ -32,7 +32,18 @@ public class TeacherStaffLeaveService {
     @Transactional
     public TeacherStaffLeave applyLeave(TeacherStaffLeave leave) {
         leave.calculateDaysCount();
-        
+
+        // Reject a duplicate application for a day already covered by a PENDING or
+        // APPROVED leave — otherwise two same-date requests can both be approved
+        // and deduct the balance twice.
+        if (leave.getLeaveDate() != null) {
+            java.time.LocalDate start = leave.getLeaveDate();
+            java.time.LocalDate end = leave.getEndDate() != null ? leave.getEndDate() : start;
+            if (!leaveRepository.findActiveLeavesOverlapping(leave.getUserId(), start, end).isEmpty()) {
+                throw new RuntimeException("You already have a pending or approved leave that overlaps these dates.");
+            }
+        }
+
         // Check if employee is permanent - only permanent employees get leave accrual
         String employmentType = leave.getEmploymentType();
         boolean isPermanent = "PERMANENT".equalsIgnoreCase(employmentType) || 
