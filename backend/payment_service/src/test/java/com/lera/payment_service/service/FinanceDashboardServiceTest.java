@@ -1,6 +1,5 @@
 package com.lera.payment_service.service;
 
-import com.lera.payment_service.entity.Refund;
 import com.lera.payment_service.repository.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,13 +29,6 @@ class FinanceDashboardServiceTest {
 
     @InjectMocks private FinanceDashboardService service;
 
-    private static Refund refund(String amount) {
-        Refund r = new Refund();
-        r.setStatus("APPROVED");
-        r.setAmount(new BigDecimal(amount));
-        return r;
-    }
-
     @Test
     void dashboardSummary_aggregatesStatusesAmountsAndBalance() {
         when(paymentRepository.getTotalRevenue()).thenReturn(new BigDecimal("1000"));
@@ -50,15 +42,14 @@ class FinanceDashboardServiceTest {
         when(invoiceRepository.countByStatus("OVERDUE")).thenReturn(1L);
         when(invoiceRepository.countByStatus("CANCELLED")).thenReturn(0L);
         when(invoiceRepository.sumOutstanding()).thenReturn(new BigDecimal("500"));
-        when(refundRepository.findByStatus("APPROVED")).thenReturn(List.of(refund("50"), refund("30")));
-        when(studentFeePlanRepository.findByStatus("ACTIVE")).thenReturn(List.of(
-                new com.lera.payment_service.entity.StudentFeePlan(),
-                new com.lera.payment_service.entity.StudentFeePlan(),
-                new com.lera.payment_service.entity.StudentFeePlan()));
+        when(refundRepository.sumApproved()).thenReturn(new BigDecimal("80"));
+        when(studentFeePlanRepository.countByStatus("ACTIVE")).thenReturn(3L);
         when(ledgerEntryRepository.getTotalCredits()).thenReturn(new BigDecimal("900"));
         when(ledgerEntryRepository.getTotalDebits()).thenReturn(new BigDecimal("400"));
 
-        Map<String, Object> s = service.getDashboardSummary(UUID.randomUUID());
+        // null centerId => org-wide aggregation (the path these org-wide stubs cover;
+        // a non-null centerId now takes the centre-scoped branch, added in 5be024d).
+        Map<String, Object> s = service.getDashboardSummary(null);
 
         assertEquals(new BigDecimal("1000"), s.get("totalRevenue"));
         assertEquals(2L, s.get("pendingPayments"));
@@ -84,14 +75,13 @@ class FinanceDashboardServiceTest {
     @Test
     void dashboardSummary_handlesNullAggregatesAsZero() {
         when(paymentRepository.getTotalRevenue()).thenReturn(null);
-        when(refundRepository.findByStatus("APPROVED")).thenReturn(List.of());
-        when(studentFeePlanRepository.findByStatus("ACTIVE")).thenReturn(List.of());
         when(ledgerEntryRepository.getTotalCredits()).thenReturn(null);
         when(ledgerEntryRepository.getTotalDebits()).thenReturn(null);
-        // count()/countByStatus()/sumOutstanding() left unstubbed -> Mockito returns 0L/null,
-        // which the service must coerce to ZERO.
+        // Everything else (counts, sumOutstanding, sumApproved, countByStatus) is
+        // left unstubbed -> Mockito returns 0L/null, which the service must coerce
+        // to ZERO. Org-wide path (null centerId).
 
-        Map<String, Object> s = service.getDashboardSummary(UUID.randomUUID());
+        Map<String, Object> s = service.getDashboardSummary(null);
 
         assertEquals(BigDecimal.ZERO, s.get("totalRevenue"));
         assertEquals(BigDecimal.ZERO, s.get("totalCredits"));
