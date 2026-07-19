@@ -21,13 +21,16 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Service
 @RequiredArgsConstructor
@@ -154,20 +157,40 @@ public class AttendanceService {
     @CacheEvict(value = "attendance", allEntries = true)
     @Transactional
     public AttendanceRecord createAttendance(AttendanceRecord record) {
-        if (attendanceRepository.existsByStudentIdAndSessionId(record.getStudentId(), record.getSessionId())) {
+        if (record.getSessionId() != null
+                && attendanceRepository.existsByStudentIdAndSessionId(record.getStudentId(), record.getSessionId())) {
             throw new IllegalStateException("Attendance already marked for this student in this session");
         }
         record.setCreatedAt(LocalDateTime.now());
         log.info("Creating attendance record for student: {}", record.getStudentId());
-        return attendanceRepository.save(record);
+        try {
+            return attendanceRepository.save(record);
+        } catch (DataIntegrityViolationException e) {
+            // A concurrent request inserted the same (student, session) first and
+            // the unique index rejected this one — treat it as already-marked
+            // rather than a 500.
+            throw new IllegalStateException("Attendance already marked for this student in this session");
+        }
     }
 
     @CacheEvict(value = "attendance", allEntries = true)
     @Transactional
     public List<AttendanceRecord> createBulkAttendance(List<AttendanceRecord> records) {
-        records.forEach(r -> r.setCreatedAt(LocalDateTime.now()));
-        log.info("Creating {} attendance records in bulk", records.size());
-        return attendanceRepository.saveAll(records);
+        // Skip students already marked for their session — and de-dup within the
+        // submitted roster itself — so a re-submitted/double-tapped roster can't
+        // insert a duplicate set. The DB unique index backstops true concurrency.
+        Set<String> seen = new HashSet<>();
+        List<AttendanceRecord> toSave = records.stream()
+                .filter(r -> {
+                    if (r.getSessionId() == null) return true;
+                    if (!seen.add(r.getStudentId() + ":" + r.getSessionId())) return false;
+                    return !attendanceRepository.existsByStudentIdAndSessionId(r.getStudentId(), r.getSessionId());
+                })
+                .collect(Collectors.toList());
+        toSave.forEach(r -> r.setCreatedAt(LocalDateTime.now()));
+        log.info("Creating {} attendance records in bulk ({} skipped as already marked)",
+                toSave.size(), records.size() - toSave.size());
+        return attendanceRepository.saveAll(toSave);
     }
 
     @CacheEvict(value = "attendance", allEntries = true)
