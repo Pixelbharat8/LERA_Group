@@ -96,7 +96,7 @@ public class LeaveBalanceAccrualService {
         // Get totals for the year
         Double totalAccrued = accrualRepository.getTotalAccruedLeavesByUserAndYear(userId, currentYear);
         Double totalUsed = accrualRepository.getTotalUsedLeavesByUserAndYear(userId, currentYear);
-        Double totalAvailable = accrualRepository.getTotalAvailableLeavesByUserAndYear(userId, currentYear);
+        Double totalAvailable = accrualRepository.getCurrentAvailableLeavesByUserAndYear(userId, currentYear);
 
         Map<String, Object> balance = new HashMap<>();
         balance.put("userId", userId);
@@ -172,7 +172,7 @@ public class LeaveBalanceAccrualService {
      */
     public boolean hasSufficientBalance(UUID userId, Double daysRequired) {
         LocalDate now = LocalDate.now();
-        Double totalAvailable = accrualRepository.getTotalAvailableLeavesByUserAndYear(userId, now.getYear());
+        Double totalAvailable = accrualRepository.getCurrentAvailableLeavesByUserAndYear(userId, now.getYear());
         return totalAvailable != null && totalAvailable >= daysRequired;
     }
 

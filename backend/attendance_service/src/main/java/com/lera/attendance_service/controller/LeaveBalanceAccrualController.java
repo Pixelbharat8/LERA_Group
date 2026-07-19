@@ -106,8 +106,8 @@ public class LeaveBalanceAccrualController {
             @PathVariable Integer year,
             @AuthenticationPrincipal AuthUser authUser) {
         authz.assertCanQueryLeaveBalance(authUser, userId);
-        return ResponseEntity.ok(
-                leaveBalanceAccrualRepository.getTotalAvailableLeavesByUserAndYear(userId, year));
+        Double available = leaveBalanceAccrualRepository.getCurrentAvailableLeavesByUserAndYear(userId, year);
+        return ResponseEntity.ok(available != null ? available : 0.0);
     }
 
     @GetMapping("/center/{centerId}/users")

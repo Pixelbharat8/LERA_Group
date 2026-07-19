@@ -27,10 +27,15 @@ public interface LeaveBalanceAccrualRepository extends JpaRepository<LeaveBalanc
     @Query("SELECT DISTINCT lba.userId FROM LeaveBalanceAccrual lba WHERE lba.centerId = :centerId")
     List<UUID> findDistinctUserIdsByCenterId(UUID centerId);
 
-    // Get total available leaves for a user across all months in current year
-    @Query("SELECT COALESCE(SUM(lba.totalAvailable), 0.0) FROM LeaveBalanceAccrual lba " +
-           "WHERE lba.userId = :userId AND lba.year = :year")
-    Double getTotalAvailableLeavesByUserAndYear(UUID userId, Integer year);
+    // Current available balance for the year: the LATEST month's totalAvailable,
+    // which already carries every prior month forward (carriedForward = previous
+    // month's totalAvailable). Summing totalAvailable across months would compound
+    // the carry-forward (12 months of 1/mo would read 1+2+…+12 = 78 instead of 12).
+    @Query("SELECT lba.totalAvailable FROM LeaveBalanceAccrual lba " +
+           "WHERE lba.userId = :userId AND lba.year = :year " +
+           "AND lba.month = (SELECT MAX(l2.month) FROM LeaveBalanceAccrual l2 " +
+           "WHERE l2.userId = :userId AND l2.year = :year)")
+    Double getCurrentAvailableLeavesByUserAndYear(UUID userId, Integer year);
 
     // Get total used leaves for a user in a specific year
     @Query("SELECT COALESCE(SUM(lba.leavesUsed), 0.0) FROM LeaveBalanceAccrual lba " +
