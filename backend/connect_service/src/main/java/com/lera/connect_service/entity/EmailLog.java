@@ -70,4 +70,10 @@ public class EmailLog {
 
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
+
+    // Backfill NOT NULL sent_at on a @RequestBody insert (null via Jackson) — cf. 12130e9.
+    @PrePersist
+    protected void onCreate() {
+        if (this.sentAt == null) this.sentAt = LocalDateTime.now();
+    }
 }

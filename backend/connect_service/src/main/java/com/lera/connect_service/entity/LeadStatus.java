@@ -67,4 +67,11 @@ public class LeadStatus {
     // DB has created_at with default now()
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    // createdAt has no @Builder.Default, so it's null on every insert path (not
+    // just Jackson) — backfill it here to avoid a guaranteed NOT NULL 500. cf. 12130e9.
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) this.createdAt = LocalDateTime.now();
+    }
 }

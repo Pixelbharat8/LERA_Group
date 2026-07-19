@@ -54,4 +54,10 @@ public class CrmTrigger {
     @Column(name = "retry_count")
     @Builder.Default
     private Integer retryCount = 0;
+
+    // Backfill NOT NULL triggered_at on a @RequestBody insert (null via Jackson) — cf. 12130e9.
+    @PrePersist
+    protected void onCreate() {
+        if (this.triggeredAt == null) this.triggeredAt = LocalDateTime.now();
+    }
 }
