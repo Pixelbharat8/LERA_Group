@@ -292,11 +292,10 @@ public class AnalyticsService {
                 "active", activeCampaigns
         ));
         
-        // Top performing posts (last 7 days)
+        // Posts published in the last 7 days (DB-side count; the old in-memory
+        // allPosts list was removed in the dashboard refactor).
         LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
-        long recentPostsCount = allPosts.stream()
-                .filter(p -> p.getPublishedAt() != null && p.getPublishedAt().isAfter(weekAgo))
-                .count();
+        long recentPostsCount = postRepository.countByPublishedAtAfter(weekAgo);
         dashboard.put("recentPostsCount", recentPostsCount);
         
         return dashboard;

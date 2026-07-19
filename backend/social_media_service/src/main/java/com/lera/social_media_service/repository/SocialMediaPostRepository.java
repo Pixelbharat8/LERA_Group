@@ -47,6 +47,9 @@ public interface SocialMediaPostRepository extends JpaRepository<SocialMediaPost
 
     // Exclusive bounds (publishedAt > start AND < end), and excludes null publishedAt.
     List<SocialMediaPost> findByPublishedAtAfterAndPublishedAtBefore(LocalDateTime start, LocalDateTime end);
+
+    // DB-side count of posts published since {@code start} (null publishedAt excluded).
+    long countByPublishedAtAfter(LocalDateTime start);
     
     @Query("SELECT p FROM SocialMediaPost p WHERE p.status = 'published' ORDER BY p.likes DESC")
     List<SocialMediaPost> findTopByOrderByLikesCountDesc();
