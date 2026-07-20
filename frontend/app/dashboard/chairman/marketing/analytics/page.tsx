@@ -155,14 +155,17 @@ export default function SocialAnalyticsPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* The social overview/stats endpoints return aggregated totals with
+                  no date-range param, so these buttons don't filter. Disabled
+                  honestly until the backend supports a range. */}
               <div className="flex bg-gray-100 rounded-lg p-1">
                 {(["7d", "30d", "90d"] as const).map((range) => (
                   <button
                     key={range}
+                    disabled
+                    title="Date-range filtering coming soon"
                     onClick={() => setDateRange(range)}
-                    className={`px-3 py-1.5 text-sm rounded-md transition ${
-                      dateRange === range ? "bg-white shadow-sm font-medium" : "text-gray-600"
-                    }`}
+                    className="px-3 py-1.5 text-sm rounded-md transition text-gray-400 cursor-not-allowed"
                   >
                     {range === "7d" ? "7 Days" : range === "30d" ? "30 Days" : "90 Days"}
                   </button>

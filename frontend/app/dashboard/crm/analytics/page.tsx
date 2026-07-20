@@ -65,7 +65,13 @@ export default function CRMAnalyticsPage() {
         apiFetch("/api/centers").catch(() => []),
       ]);
 
-      const leads = Array.isArray(leadsData) ? leadsData : [];
+      const allLeads = Array.isArray(leadsData) ? leadsData : [];
+      // Client-side date filter so the dateRange control actually narrows the
+      // stats (it was previously a no-op). Leads carry createdAt.
+      const days = parseInt(dateRange, 10) || 30;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      const leads = allLeads.filter((l: any) => l.createdAt && new Date(l.createdAt) >= cutoff);
       const centersArr = Array.isArray(centersData) ? centersData : [];
       setCenters(centersArr);
 
@@ -102,7 +108,9 @@ export default function CRMAnalyticsPage() {
         monthlyData[key] = { leads: 0, converted: 0 };
       }
       
-      leads.forEach((l: any) => {
+      // Trend uses ALL leads (full 6-month window), independent of the dateRange
+      // filter applied to the stat cards above.
+      allLeads.forEach((l: any) => {
         if (l.createdAt) {
           const d = new Date(l.createdAt);
           const key = `${months[d.getMonth()]} ${d.getFullYear()}`;

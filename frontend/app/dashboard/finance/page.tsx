@@ -191,16 +191,17 @@ export default function FinanceDashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900">💰 {t("financeDashboard")}</h1>
           <p className="text-gray-500">{t("financeOverview")}</p>
         </div>
+        {/* The finance dashboard is aggregated all-time / current-month server-side;
+            these period buttons don't filter it (that needs backend date-range
+            support). Disabled honestly rather than looking active. */}
         <div className="flex gap-2">
           {["week", "month", "quarter", "year"].map(period => (
             <button
               key={period}
+              disabled
+              title="Period filtering coming soon"
               onClick={() => setSelectedPeriod(period as typeof selectedPeriod)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedPeriod === period
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-400 cursor-not-allowed"
             >
               {period.charAt(0).toUpperCase() + period.slice(1)}
             </button>
