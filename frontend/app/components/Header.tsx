@@ -264,7 +264,7 @@ export default function Header() {
             </Link>
 
             {/* Navigation with hover effects */}
-            <nav className="hidden md:flex items-center space-x-8">
+            <nav className="hidden lg:flex items-center space-x-8">
               {menuItems.map((item) => (
                 <Link
                   key={item.id}
@@ -306,7 +306,7 @@ export default function Header() {
               {!loggedInUser && (
                 <Link
                   href="/auth/login"
-                  className="hidden sm:block text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  className="hidden lg:block whitespace-nowrap text-gray-700 hover:text-blue-600 font-medium transition-colors"
                 >
                   {language === "VI" ? "Đăng Nhập" : "Login"}
                 </Link>
@@ -314,7 +314,7 @@ export default function Header() {
 
               <Link
                 href={loggedInUser ? `/dashboard/${loggedInUser.rolePath}` : settings.ctaButtonUrl}
-                className="hidden sm:block px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl"
+                className="hidden sm:block whitespace-nowrap px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl"
               >
                 {loggedInUser ? (language === "VI" ? "Bảng Điều Khiển" : "Dashboard") : ctaText}
               </Link>
@@ -375,7 +375,7 @@ export default function Header() {
 
               {/* Mobile menu button */}
               <button 
-                className="md:hidden p-2"
+                className="lg:hidden p-2"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -391,7 +391,7 @@ export default function Header() {
 
           {/* Mobile Menu */}
           {mobileMenuOpen && (
-            <div className="md:hidden py-4 border-t border-gray-100 animate-fadeIn">
+            <div className="lg:hidden py-4 border-t border-gray-100 animate-fadeIn">
               <nav className="flex flex-col space-y-4">
                 {menuItems.map((item) => (
                   <Link
