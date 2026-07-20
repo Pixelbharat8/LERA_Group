@@ -3,6 +3,8 @@ package com.lera.payroll_service.service;
 import com.lera.payroll_service.dto.GeneratePayrollRequest;
 import com.lera.payroll_service.entity.PayrollRecord;
 import com.lera.payroll_service.entity.TeacherSalaryConfig;
+import com.lera.payroll_service.repository.BonusRepository;
+import com.lera.payroll_service.repository.DeductionRepository;
 import com.lera.payroll_service.repository.PayrollRepository;
 import com.lera.payroll_service.repository.TeacherSalaryConfigRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,8 @@ public class PayrollGenerationService {
 
     private final PayrollRepository payrollRepository;
     private final TeacherSalaryConfigRepository salaryConfigRepository;
+    private final BonusRepository bonusRepository;
+    private final DeductionRepository deductionRepository;
     private final RestTemplate restTemplate;
 
     @Value("${identity.service.url:http://localhost:8081}")
@@ -139,8 +143,17 @@ public class PayrollGenerationService {
             }
 
             BigDecimal teachingAmount = hourlyRate.multiply(teachingHours != null ? teachingHours : BigDecimal.ZERO);
-            BigDecimal bonus = BigDecimal.ZERO;
-            BigDecimal deductions = BigDecimal.ZERO;
+
+            // Approved bonuses and active deductions created within this pay period
+            // flow into the payslip (previously hardcoded to zero, so they were
+            // silently dropped from auto-generated pay). Date-based association on
+            // created_at pays each exactly once per non-overlapping period.
+            java.time.LocalDateTime periodStartDt = periodStart.atStartOfDay();
+            java.time.LocalDateTime periodEndDt = periodEnd.plusDays(1).atStartOfDay();
+            BigDecimal bonus = bonusRepository.sumApprovedForTeacherInRange(staffId, periodStartDt, periodEndDt);
+            if (bonus == null) bonus = BigDecimal.ZERO;
+            BigDecimal deductions = deductionRepository.sumActiveForTeacherInRange(staffId, periodStartDt, periodEndDt);
+            if (deductions == null) deductions = BigDecimal.ZERO;
 
             BigDecimal totalAmount = baseSalary.add(teachingAmount).add(bonus).subtract(deductions);
 

@@ -3,6 +3,8 @@ package com.lera.payroll_service.service;
 import com.lera.payroll_service.dto.GeneratePayrollRequest;
 import com.lera.payroll_service.entity.PayrollRecord;
 import com.lera.payroll_service.entity.TeacherSalaryConfig;
+import com.lera.payroll_service.repository.BonusRepository;
+import com.lera.payroll_service.repository.DeductionRepository;
 import com.lera.payroll_service.repository.PayrollRepository;
 import com.lera.payroll_service.repository.TeacherSalaryConfigRepository;
 import org.junit.jupiter.api.Test;
@@ -32,6 +34,8 @@ class PayrollGenerationServiceTest {
 
     @Mock private PayrollRepository payrollRepository;
     @Mock private TeacherSalaryConfigRepository salaryConfigRepository;
+    @Mock private BonusRepository bonusRepository;
+    @Mock private DeductionRepository deductionRepository;
     @Mock private RestTemplate restTemplate;
     @InjectMocks private PayrollGenerationService service;
 
@@ -55,6 +59,9 @@ class PayrollGenerationServiceTest {
                 });
         // lenient: staff-skipped tests (no salary config) never reach save()
         lenient().when(payrollRepository.save(any(PayrollRecord.class))).thenAnswer(i -> i.getArgument(0));
+        // Default no bonuses/deductions; individual tests override.
+        lenient().when(bonusRepository.sumApprovedForTeacherInRange(any(), any(), any())).thenReturn(BigDecimal.ZERO);
+        lenient().when(deductionRepository.sumActiveForTeacherInRange(any(), any(), any())).thenReturn(BigDecimal.ZERO);
     }
 
     @Test
@@ -82,6 +89,24 @@ class PayrollGenerationServiceTest {
         assertEquals(0, r.getTeachingHours().compareTo(new BigDecimal("10")));
         assertEquals(0, r.getTeachingAmount().compareTo(new BigDecimal("1500000")));
         assertEquals(0, r.getTotalAmount().compareTo(new BigDecimal("9500000")));
+    }
+
+    @Test
+    void includesApprovedBonusAndActiveDeductionInThePayslip() {
+        mockHttp(oneStaff("TEACHER"), "10");
+        TeacherSalaryConfig cfg = TeacherSalaryConfig.builder()
+                .baseSalary(new BigDecimal("8000000")).hourlyRate(new BigDecimal("150000")).build();
+        when(salaryConfigRepository.findByTeacherId(any())).thenReturn(Optional.of(cfg));
+        // Approved bonus + active deduction created within the pay period.
+        when(bonusRepository.sumApprovedForTeacherInRange(any(), any(), any())).thenReturn(new BigDecimal("500000"));
+        when(deductionRepository.sumActiveForTeacherInRange(any(), any(), any())).thenReturn(new BigDecimal("200000"));
+
+        PayrollRecord r = service.generatePayrollForPeriod(req()).get(0);
+
+        // base 8,000,000 + teaching 1,500,000 + bonus 500,000 − deduction 200,000 = 9,800,000
+        assertEquals(0, r.getBonus().compareTo(new BigDecimal("500000")));
+        assertEquals(0, r.getDeductions().compareTo(new BigDecimal("200000")));
+        assertEquals(0, r.getTotalAmount().compareTo(new BigDecimal("9800000")));
     }
 
     @Test
