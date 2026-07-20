@@ -6,6 +6,7 @@ import com.lera.payroll_service.entity.TeacherSalaryConfig;
 import com.lera.payroll_service.repository.BonusRepository;
 import com.lera.payroll_service.repository.DeductionRepository;
 import com.lera.payroll_service.repository.PayrollRepository;
+import com.lera.payroll_service.repository.TeacherOvertimeRepository;
 import com.lera.payroll_service.repository.TeacherSalaryConfigRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +37,7 @@ class PayrollGenerationServiceTest {
     @Mock private TeacherSalaryConfigRepository salaryConfigRepository;
     @Mock private BonusRepository bonusRepository;
     @Mock private DeductionRepository deductionRepository;
+    @Mock private TeacherOvertimeRepository overtimeRepository;
     @Mock private RestTemplate restTemplate;
     @InjectMocks private PayrollGenerationService service;
 
@@ -62,6 +64,7 @@ class PayrollGenerationServiceTest {
         // Default no bonuses/deductions; individual tests override.
         lenient().when(bonusRepository.sumApprovedForTeacherInRange(any(), any(), any())).thenReturn(BigDecimal.ZERO);
         lenient().when(deductionRepository.sumActiveForTeacherInRange(any(), any(), any())).thenReturn(BigDecimal.ZERO);
+        lenient().when(overtimeRepository.sumApprovedForTeacherInRange(any(), any(), any())).thenReturn(BigDecimal.ZERO);
     }
 
     @Test
@@ -92,21 +95,23 @@ class PayrollGenerationServiceTest {
     }
 
     @Test
-    void includesApprovedBonusAndActiveDeductionInThePayslip() {
+    void includesApprovedBonusDeductionAndOvertimeInThePayslip() {
         mockHttp(oneStaff("TEACHER"), "10");
         TeacherSalaryConfig cfg = TeacherSalaryConfig.builder()
                 .baseSalary(new BigDecimal("8000000")).hourlyRate(new BigDecimal("150000")).build();
         when(salaryConfigRepository.findByTeacherId(any())).thenReturn(Optional.of(cfg));
-        // Approved bonus + active deduction created within the pay period.
+        // Approved bonus + active deduction + approved overtime for the pay period.
         when(bonusRepository.sumApprovedForTeacherInRange(any(), any(), any())).thenReturn(new BigDecimal("500000"));
         when(deductionRepository.sumActiveForTeacherInRange(any(), any(), any())).thenReturn(new BigDecimal("200000"));
+        when(overtimeRepository.sumApprovedForTeacherInRange(any(), any(), any())).thenReturn(new BigDecimal("300000"));
 
         PayrollRecord r = service.generatePayrollForPeriod(req()).get(0);
 
-        // base 8,000,000 + teaching 1,500,000 + bonus 500,000 − deduction 200,000 = 9,800,000
+        // base 8,000,000 + teaching 1,500,000 + bonus 500,000 + overtime 300,000 − deduction 200,000 = 10,100,000
         assertEquals(0, r.getBonus().compareTo(new BigDecimal("500000")));
         assertEquals(0, r.getDeductions().compareTo(new BigDecimal("200000")));
-        assertEquals(0, r.getTotalAmount().compareTo(new BigDecimal("9800000")));
+        assertEquals(0, r.getOvertime().compareTo(new BigDecimal("300000")));
+        assertEquals(0, r.getTotalAmount().compareTo(new BigDecimal("10100000")));
     }
 
     @Test

@@ -55,7 +55,12 @@ public class PayrollRecord {
     @Builder.Default
     @PositiveOrZero
     private BigDecimal deductions = BigDecimal.ZERO;
-    
+
+    @Column(precision = 12, scale = 2)
+    @Builder.Default
+    @PositiveOrZero
+    private BigDecimal overtime = BigDecimal.ZERO;
+
     @Column(name = "total_amount", precision = 12, scale = 2)
     @PositiveOrZero
     private BigDecimal totalAmount;
@@ -106,7 +111,8 @@ public class PayrollRecord {
         }
         BigDecimal gross = (baseSalary != null ? baseSalary : BigDecimal.ZERO)
                 .add(teachingAmount != null ? teachingAmount : BigDecimal.ZERO)
-                .add(bonus != null ? bonus : BigDecimal.ZERO);
+                .add(bonus != null ? bonus : BigDecimal.ZERO)
+                .add(overtime != null ? overtime : BigDecimal.ZERO);
         BigDecimal totalDeductions = (deductions != null ? deductions : BigDecimal.ZERO);
         // Clamp to zero: net pay can never be negative. Deductions exceeding gross would
         // otherwise persist a negative "salary owed by employee" and could be paid out as a

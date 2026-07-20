@@ -6,6 +6,7 @@ import com.lera.payroll_service.entity.TeacherSalaryConfig;
 import com.lera.payroll_service.repository.BonusRepository;
 import com.lera.payroll_service.repository.DeductionRepository;
 import com.lera.payroll_service.repository.PayrollRepository;
+import com.lera.payroll_service.repository.TeacherOvertimeRepository;
 import com.lera.payroll_service.repository.TeacherSalaryConfigRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -36,6 +37,7 @@ public class PayrollGenerationService {
     private final TeacherSalaryConfigRepository salaryConfigRepository;
     private final BonusRepository bonusRepository;
     private final DeductionRepository deductionRepository;
+    private final TeacherOvertimeRepository overtimeRepository;
     private final RestTemplate restTemplate;
 
     @Value("${identity.service.url:http://localhost:8081}")
@@ -155,7 +157,11 @@ public class PayrollGenerationService {
             BigDecimal deductions = deductionRepository.sumActiveForTeacherInRange(staffId, periodStartDt, periodEndDt);
             if (deductions == null) deductions = BigDecimal.ZERO;
 
-            BigDecimal totalAmount = baseSalary.add(teachingAmount).add(bonus).subtract(deductions);
+            // Approved overtime worked on dates within the period (by overtime_date).
+            BigDecimal overtime = overtimeRepository.sumApprovedForTeacherInRange(staffId, periodStart, periodEnd);
+            if (overtime == null) overtime = BigDecimal.ZERO;
+
+            BigDecimal totalAmount = baseSalary.add(teachingAmount).add(bonus).add(overtime).subtract(deductions);
 
             // 4. Find-or-create the PayrollRecord — re-running generation for the same period
             //    must UPDATE the existing row, not insert a duplicate.
@@ -181,6 +187,7 @@ public class PayrollGenerationService {
             payroll.setTeachingAmount(teachingAmount);
             payroll.setBonus(bonus);
             payroll.setDeductions(deductions);
+            payroll.setOvertime(overtime);
             payroll.setTotalAmount(totalAmount);
             payroll.setCurrency("VND");
             payroll.setStatus("PENDING");
