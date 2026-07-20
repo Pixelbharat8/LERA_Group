@@ -72,6 +72,35 @@ export default function BlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [subEmail, setSubEmail] = useState("");
+  const [subState, setSubState] = useState<"idle" | "sending" | "done">("idle");
+
+  const subscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = subEmail.trim();
+    if (!email || subState === "sending") return;
+    setSubState("sending");
+    try {
+      // Capture the subscriber as a lead (the same email-only path the contact
+      // form uses); there is no separate newsletter endpoint.
+      await publicFetch("/api/public/leads", {
+        method: "POST",
+        body: JSON.stringify({
+          parentEmail: email,
+          notes: "Newsletter subscription (blog)",
+          utmSource: "website",
+          utmMedium: "newsletter",
+          utmCampaign: "blog",
+        }),
+      });
+      setSubState("done");
+      setSubEmail("");
+    } catch (err) {
+      console.error("Newsletter subscribe failed:", err);
+      setSubState("idle");
+      alert(language === "VI" ? "Đăng ký thất bại. Vui lòng thử lại." : "Subscription failed. Please try again.");
+    }
+  };
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -235,19 +264,31 @@ export default function BlogPage() {
               ? "Nhận mẹo học tiếng Anh và cập nhật mới nhất từ LERA Academy"
               : "Get English learning tips and latest updates from LERA Academy"}
           </p>
-          <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder={language === "VI" ? "Email của bạn" : "Your email"}
-              className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            />
-            <button
-              type="submit"
-              className="px-6 py-3 bg-yellow-400 text-gray-900 font-bold rounded-lg hover:bg-yellow-300 transition-colors"
-            >
-              {language === "VI" ? "Đăng ký" : "Subscribe"}
-            </button>
-          </form>
+          {subState === "done" ? (
+            <p className="text-yellow-300 font-semibold max-w-md mx-auto">
+              {language === "VI" ? "Cảm ơn bạn đã đăng ký! 🎉" : "Thanks for subscribing! 🎉"}
+            </p>
+          ) : (
+            <form onSubmit={subscribe} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+              <input
+                type="email"
+                required
+                value={subEmail}
+                onChange={(e) => setSubEmail(e.target.value)}
+                placeholder={language === "VI" ? "Email của bạn" : "Your email"}
+                className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              />
+              <button
+                type="submit"
+                disabled={subState === "sending"}
+                className="px-6 py-3 bg-yellow-400 text-gray-900 font-bold rounded-lg hover:bg-yellow-300 transition-colors disabled:opacity-60"
+              >
+                {subState === "sending"
+                  ? (language === "VI" ? "Đang gửi…" : "Sending…")
+                  : (language === "VI" ? "Đăng ký" : "Subscribe")}
+              </button>
+            </form>
+          )}
         </div>
       </section>
 

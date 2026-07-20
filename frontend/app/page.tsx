@@ -12,7 +12,7 @@ import SmartImage from "./components/SmartImage";
 import FacebookFeatured from "./components/FacebookFeatured";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { apiUrl, apiFetch } from "../lib/api";
+import { apiUrl, publicFetch } from "../lib/api";
 import { TRIAL_BOOKING_LEAD_CONTEXT } from "../lib/english-centre-vertical-scope";
 import { COURSE_IMAGES, GALLERY_IMAGES, HERO_IMAGES, PLACEHOLDERS, TESTIMONIAL_FACES, TEAM_IMAGES } from "../config/images";
 
@@ -301,11 +301,13 @@ export default function Home() {
         website: formData.website,
       };
       
-      await apiFetch("/api/public/leads", {
+      // Anonymous visitor: use publicFetch so a backend hiccup doesn't 401-bounce
+      // them to /auth/login or fire the global error toast.
+      await publicFetch("/api/public/leads", {
         method: "POST",
         body: JSON.stringify(leadData)
       });
-      
+
       console.log("Lead created successfully");
       setFormSubmitted(true);
       setFormData({ fullName: "", phone: "", course: "", city: "", website: "" });
@@ -571,19 +573,22 @@ export default function Home() {
 
                 if (enabled) {
                   stats.push({
-                    value: value || ["15+", "5,000+", "50+", "1"][i] || "0",
-                    label: language === "VI" ? (labelVI || ["Năm Kinh Nghiệm", "Học Viên Đã Đăng Ký", "Giáo Viên Chuyên Nghiệp", "Trung Tâm Học Tập"][i]) : (labelEN || ["Years Experience", "Students Enrolled", "Expert Teachers", "Learning Center"][i]),
-                    icon: ["🎯", "👨‍🎓", "👩‍🏫", "🏫"][i]
+                    // Honest boutique fallbacks (no fabricated scale) — matches the
+                    // de-fabricated About page. CMS values override when set.
+                    value: value || ["≤12", "100%", "Cambridge", "2.5+"][i] || "",
+                    label: language === "VI" ? (labelVI || ["Sĩ số tối đa", "Giáo viên đạt chuẩn", "Giáo trình", "Độ tuổi từ"][i]) : (labelEN || ["Max class size", "Qualified teachers", "Curriculum", "Ages from"][i]),
+                    icon: ["👥", "🎓", "📚", "🧒"][i]
                   });
                 }
               }
-              // Fallback if no stats in CMS
+              // Fallback if no stats in CMS — honest boutique tiles, not
+              // fabricated scale (mirrors the About page's "no fabricated scale").
               if (stats.length === 0) {
                 stats.push(
-                  { value: "15+", label: t("yearsExperience"), icon: "🎯" },
-                  { value: "5,000+", label: t("studentsEnrolled"), icon: "👨‍🎓" },
-                  { value: "50+", label: t("expertTeachers"), icon: "👩‍🏫" },
-                  { value: "1", label: t("learningCenters"), icon: "🏫" }
+                  { value: "≤12", label: language === "VI" ? "Sĩ số tối đa" : "Max class size", icon: "👥" },
+                  { value: "100%", label: language === "VI" ? "Giáo viên đạt chuẩn" : "Qualified teachers", icon: "🎓" },
+                  { value: "Cambridge", label: language === "VI" ? "Giáo trình" : "Curriculum", icon: "📚" },
+                  { value: "2.5+", label: language === "VI" ? "Độ tuổi từ" : "Ages from", icon: "🧒" }
                 );
               }
               return stats.map((stat, idx) => {
