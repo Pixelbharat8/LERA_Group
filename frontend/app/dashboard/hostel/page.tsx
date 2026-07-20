@@ -206,9 +206,13 @@ export default function HostelPage() {
                 </div>
                 <div className="mt-4 flex items-center justify-between">
                   <span className="font-bold text-lg text-blue-600">{formatCurrency(room.monthlyFee)}</span>
-                  <button 
-                    disabled={!room.available}
-                    className={`px-4 py-2 rounded-lg font-medium ${room.available ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+                  {/* Booking isn't wired to a backend action yet — disable it
+                      honestly ("Coming soon") rather than look clickable and do
+                      nothing (matches the library page's pattern). */}
+                  <button
+                    disabled
+                    title="Coming soon"
+                    className="px-4 py-2 rounded-lg font-medium bg-gray-200 text-gray-500 cursor-not-allowed"
                   >
                     {t.book}
                   </button>

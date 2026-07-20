@@ -129,12 +129,16 @@ export default function CalendarPage() {
         <div className="flex gap-2">
           <div className="flex bg-gray-100 rounded-lg p-1">
             {(["month", "week", "day"] as const).map(v => (
+              // Only the month view is implemented; week/day render nothing, so
+              // disable them ("Coming soon") instead of silently doing nothing.
               <button
                 key={v}
+                disabled={v !== "month"}
+                title={v !== "month" ? "Coming soon" : undefined}
                 onClick={() => setView(v)}
                 className={`px-3 py-1 rounded-md text-sm transition-colors ${
                   view === v ? "bg-white shadow-sm text-gray-900" : "text-gray-600 hover:text-gray-900"
-                }`}
+                } ${v !== "month" ? "opacity-40 cursor-not-allowed" : ""}`}
               >
                 {v === "month" ? (language === "VI" ? "Tháng" : "Month") :
                  v === "week" ? (language === "VI" ? "Tuần" : "Week") :
@@ -142,9 +146,12 @@ export default function CalendarPage() {
               </button>
             ))}
           </div>
+          {/* The add-event modal isn't wired (no create endpoint / unbound
+              inputs), so disable the opener honestly rather than show an inert form. */}
           <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            disabled
+            title="Coming soon"
+            className="px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed"
           >
             {language === "VI" ? "+ Thêm sự kiện" : "+ Add Event"}
           </button>

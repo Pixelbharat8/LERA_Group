@@ -168,9 +168,12 @@ export default function MessagesPage() {
               : `${totalUnread} unread message${totalUnread !== 1 ? 's' : ''}`}
           </p>
         </div>
+        {/* New-message compose modal isn't wired (Send has no handler, inputs
+            unbound) — disable the opener honestly. The main chat below is real. */}
         <button
-          onClick={() => setShowNewChatModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          disabled
+          title="Coming soon"
+          className="px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed"
         >
           {language === "VI" ? "Tin nhắn mới" : "New Message"}
         </button>
@@ -264,14 +267,16 @@ export default function MessagesPage() {
                       </p>
                     </div>
                   </div>
+                  {/* Call / video / info aren't implemented — disable so they
+                      don't look active. */}
                   <div className="flex gap-2">
-                    <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button disabled title="Coming soon" className="p-2 text-gray-300 rounded-lg cursor-not-allowed">
                       📞
                     </button>
-                    <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button disabled title="Coming soon" className="p-2 text-gray-300 rounded-lg cursor-not-allowed">
                       📹
                     </button>
-                    <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button disabled title="Coming soon" className="p-2 text-gray-300 rounded-lg cursor-not-allowed">
                       ℹ️
                     </button>
                   </div>
@@ -318,7 +323,7 @@ export default function MessagesPage() {
                 {/* Input Area */}
                 <div className="p-4 border-t border-gray-200">
                   <div className="flex gap-2 items-end">
-                    <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button disabled title="Coming soon" className="p-2 text-gray-300 rounded-lg cursor-not-allowed">
                       📎
                     </button>
                     <div className="flex-1">
@@ -336,7 +341,7 @@ export default function MessagesPage() {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
-                    <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button disabled title="Coming soon" className="p-2 text-gray-300 rounded-lg cursor-not-allowed">
                       😊
                     </button>
                     <button
