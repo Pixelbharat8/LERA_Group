@@ -86,6 +86,9 @@ export default function BlogPage() {
       await publicFetch("/api/public/leads", {
         method: "POST",
         body: JSON.stringify({
+          // The public leads endpoint requires parentName; a newsletter form only
+          // has an email, so label the lead honestly. The email is the real datum.
+          parentName: "Newsletter subscriber",
           parentEmail: email,
           notes: "Newsletter subscription (blog)",
           utmSource: "website",
