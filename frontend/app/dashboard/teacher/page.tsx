@@ -158,7 +158,7 @@ export default function TeacherDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">{t("teacherDashboard")}</h1>
-          <p className="text-gray-600">{t("welcomeTeacher")}, {user?.firstName || user?.email || "Teacher"}!</p>
+          <p className="text-gray-600">{t("welcomeTeacher")}, {user?.fullname || user?.firstName || user?.email || "Teacher"}!</p>
         </div>
         <div className="text-sm text-gray-500">
           {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}

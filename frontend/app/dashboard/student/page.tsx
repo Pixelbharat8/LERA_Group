@@ -106,7 +106,7 @@ export default function StudentDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">{t("studentDashboard")}</h1>
-          <p className="text-gray-600">{t("welcomeStudent")}, {user?.firstName || "Student"}!</p>
+          <p className="text-gray-600">{t("welcomeStudent")}, {user?.fullname || user?.firstName || "Student"}!</p>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

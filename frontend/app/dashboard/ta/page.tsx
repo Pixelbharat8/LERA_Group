@@ -83,7 +83,7 @@ export default function TADashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <div><h1 className="text-3xl font-bold text-gray-800">{t("taDashboard")}</h1><p className="text-gray-600">{t("welcomeTA")}, {user?.firstName || "TA"}!</p></div>
+      <div><h1 className="text-3xl font-bold text-gray-800">{t("taDashboard")}</h1><p className="text-gray-600">{t("welcomeTA")}, {user?.fullname || user?.firstName || "TA"}!</p></div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((s, i) => (
           <div key={i} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
