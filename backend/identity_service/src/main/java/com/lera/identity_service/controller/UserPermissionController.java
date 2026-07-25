@@ -26,6 +26,10 @@ public class UserPermissionController {
     @Autowired
     private UserPermissionRepository userPermissionRepository;
 
+    // Any authenticated user may reach this; the method body restricts to self-or-org-wide.
+    // (The class-level role list omits CENTER_ADMIN/ACADEMIC_MANAGER/etc., which would 403 those
+    // roles out before the self-check runs and break their PermissionContext — so gate per-method.)
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/user/{userId}")
     public ResponseEntity<UserPermissionDTO> getUserPermissions(@PathVariable UUID userId,
             @AuthenticationPrincipal AuthUser authUser) {
