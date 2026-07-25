@@ -58,11 +58,14 @@ public class ExamController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "classId or studentId is required");
         }
-        if (!authz.isOrgWide()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Specify classId, centerId, or studentId unless you have an org-wide role");
+        // No explicit scope: org-wide staff see everything; center-bound staff default to
+        // their own centre — matching /api/classes and /api/teachers, whose list endpoints
+        // fall back to effectiveListCenterId() rather than 403'ing a centre-scoped manager.
+        if (authz.isOrgWide()) {
+            return ResponseEntity.ok(examRepository.findAll(pageable).getContent());
         }
-        return ResponseEntity.ok(examRepository.findAll(pageable).getContent());
+        UUID effCenter = authz.effectiveListCenterId(null);
+        return ResponseEntity.ok(examsForCenter(effCenter));
     }
 
     @GetMapping("/{id}")
