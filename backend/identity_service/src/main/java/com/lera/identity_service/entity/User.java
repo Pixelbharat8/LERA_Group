@@ -1,5 +1,7 @@
 package com.lera.identity_service.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,6 +23,9 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
     
+    // WRITE_ONLY: accepted on input (create/import) but NEVER serialized out — otherwise any
+    // endpoint returning a raw User (e.g. GET /api/staff) leaks the bcrypt hash to the client.
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
     
@@ -108,18 +113,27 @@ public class User {
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
 
+    // These lazy @ManyToOne overlays are read-only navigation (insertable/updatable=false) on top
+    // of the scalar *Id columns above, which carry the real values the API exposes. @JsonIgnore
+    // keeps Jackson from serializing the uninitialized Hibernate proxies — which otherwise 500s
+    // ("No serializer found for ByteBuddyInterceptor") whenever a raw User is returned (e.g.
+    // GET /api/staff) and would throw LazyInitializationException in prod (open-in-view=false).
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "center_id", insertable = false, updatable = false)
     private Center center;
-    
+
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", insertable = false, updatable = false)
     private Role role;
-    
+
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id", insertable = false, updatable = false)
     private Department department;
-    
+
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reports_to", insertable = false, updatable = false)
     private User manager;
