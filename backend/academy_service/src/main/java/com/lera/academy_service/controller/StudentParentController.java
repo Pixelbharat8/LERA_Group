@@ -25,6 +25,7 @@ public class StudentParentController {
     private final StudentParentRepository studentParentRepository;
     private final StudentParentAccessPolicy studentParentAccessPolicy;
     private final AcademyAuthorizationService authz;
+    private final com.lera.academy_service.repository.StudentRepository studentRepository;
     
     @GetMapping
     public ResponseEntity<List<StudentParent>> getAll(
@@ -45,11 +46,16 @@ public class StudentParentController {
         if (!CurrentUser.isStaff()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
-        if (!authz.isOrgWide()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "parentId or studentId is required unless you have an org-wide role");
+        // Org-wide staff see all links; centre-bound staff (e.g. CENTER_MANAGER on the
+        // parent-communications page) get links for students in their own centre rather
+        // than a 403 — mirroring the /api/exams and /api/classes list convention.
+        if (authz.isOrgWide()) {
+            return ResponseEntity.ok(studentParentRepository.findAll());
         }
-        return ResponseEntity.ok(studentParentRepository.findAll());
+        UUID effCenter = authz.effectiveListCenterId(null);
+        List<UUID> centreStudentIds = studentRepository.findByCenterId(effCenter).stream()
+                .map(s -> s.getId()).toList();
+        return ResponseEntity.ok(studentParentRepository.findByStudentIdIn(centreStudentIds));
     }
     
     @GetMapping("/{id}")
