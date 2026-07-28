@@ -119,9 +119,16 @@ export default function UserProfilePage() {
       setCenters(Array.isArray(centersData) ? centersData : centersData?.data || []);
       setDepartments(Array.isArray(deptsData) ? deptsData : deptsData?.data || []);
 
-      // Related data from other services (not applicable to every user type)
-      const attendanceData = await apiFetch(`/api/attendance/user/${userId}/stats`, {}, { silent: true }).catch(() => null);
-      if (attendanceData) setAttendanceStats(attendanceData);
+      // Related data from other services (not applicable to every user type).
+      // Backend exposes /user/{id}/summary (there is no /stats) returning yearly totals as
+      // presentDays/absentDays/lateDays/attendanceRate — map to the keys this card renders.
+      const attendanceData: any = await apiFetch(`/api/attendance/user/${userId}/summary`, {}, { silent: true }).catch(() => null);
+      if (attendanceData) setAttendanceStats({
+        present: attendanceData.presentDays ?? 0,
+        absent: attendanceData.absentDays ?? 0,
+        late: attendanceData.lateDays ?? 0,
+        rate: Math.round(attendanceData.attendanceRate ?? 0),
+      });
 
       const paymentsData = await apiFetch(`/api/payments/user/${userId}`, {}, { silent: true }).catch(() => []);
       setPaymentHistory(Array.isArray(paymentsData) ? paymentsData : paymentsData?.data || []);
