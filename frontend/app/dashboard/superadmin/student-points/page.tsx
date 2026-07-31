@@ -66,7 +66,7 @@ export default function StudentPointsAdminPage() {
     const needle = search.toLowerCase();
     return rows.filter(
       (r) =>
-        r.studentId.toLowerCase().includes(needle) ||
+        (r.studentId ?? "").toLowerCase().includes(needle) ||
         (r.studentName ?? "").toLowerCase().includes(needle) ||
         (r.currentRank ?? "").toLowerCase().includes(needle)
     );

@@ -422,7 +422,7 @@ export default function RefundsPage() {
                   <option value="">Select Payment</option>
                   {Object.values(payments).slice(0, 500).map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.id.slice(0, 8).toUpperCase()} - {formatCurrency(Number(p.amount || 0))}
+                      {(p.id ?? "").slice(0, 8).toUpperCase()} - {formatCurrency(Number(p.amount || 0))}
                     </option>
                   ))}
                 </select>

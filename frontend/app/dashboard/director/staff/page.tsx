@@ -109,8 +109,8 @@ export default function DirectorStaffPage() {
   const uniqueCenters = Array.from(new Set(staff.map(s => s.center).filter(Boolean)));
 
   const filteredStaff = staff.filter(s => {
-    const matchesSearch = s.fullname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          s.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (s.fullname ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (s.email ?? "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = filterRole === "all" || s.role === filterRole;
     const matchesCenter = filterCenter === "all" || s.center === filterCenter;
     return matchesSearch && matchesRole && matchesCenter;

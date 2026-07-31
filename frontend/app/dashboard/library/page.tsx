@@ -76,8 +76,8 @@ export default function LibraryPage() {
   const categories = ["all", ...Array.from(new Set(books.map(b => b.category)))];
 
   const filteredBooks = books.filter(book => {
-    const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         book.author.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (book.title ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (book.author ?? "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || book.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });

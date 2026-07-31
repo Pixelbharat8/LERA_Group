@@ -275,8 +275,8 @@ export default function CustomFieldsPage() {
   };
 
   const filteredFields = fields.filter(f => 
-    f.fieldLabel.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    f.fieldName.toLowerCase().includes(searchTerm.toLowerCase())
+    (f.fieldLabel ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (f.fieldName ?? "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const currentEntity = ENTITY_TYPES.find(e => e.key === activeEntity);

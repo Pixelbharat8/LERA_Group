@@ -85,8 +85,8 @@ export default function DirectorCentersPage() {
   };
 
   const filteredCenters = centers.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.address.toLowerCase().includes(searchQuery.toLowerCase())
+    (c.name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.address ?? "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalStats = {

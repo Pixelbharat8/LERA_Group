@@ -243,7 +243,7 @@ export default function DropdownOptionsPage() {
   };
 
   const filteredOptions = options.filter(opt =>
-    opt.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (opt.label ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
     opt.labelVi?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 

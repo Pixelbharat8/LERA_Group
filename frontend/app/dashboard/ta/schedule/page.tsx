@@ -96,8 +96,8 @@ export default function TASchedulePage() {
 
   const todaySchedules = schedules.filter(s => s.date === new Date().toISOString().split("T")[0]);
   const weeklyHours = schedules.reduce((total, s) => {
-    const start = parseInt(s.startTime.split(":")[0]);
-    const end = parseInt(s.endTime.split(":")[0]);
+    const start = parseInt((s.startTime ?? "").split(":")[0]);
+    const end = parseInt((s.endTime ?? "").split(":")[0]);
     return total + (end - start);
   }, 0);
 

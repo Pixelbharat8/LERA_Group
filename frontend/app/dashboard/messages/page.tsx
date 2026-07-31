@@ -149,7 +149,7 @@ export default function MessagesPage() {
   };
 
   const filteredConversations = conversations.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    (c.name ?? "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);

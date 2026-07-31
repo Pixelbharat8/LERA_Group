@@ -113,9 +113,9 @@ export default function StaffMessagesPage() {
   };
 
   const filteredMessages = messages.filter(m => 
-    m.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.content.toLowerCase().includes(searchQuery.toLowerCase())
+    (m.subject ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (m.senderName ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (m.content ?? "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const unreadCount = messages.filter(m => !m.isRead).length;

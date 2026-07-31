@@ -68,8 +68,8 @@ export default function FormConfigurationPage() {
 
   // Filter configs by search
   const filteredConfigs = allConfigs.filter(config =>
-    config.formName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    config.entityType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (config.formName ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (config.entityType ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     (config.description || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 

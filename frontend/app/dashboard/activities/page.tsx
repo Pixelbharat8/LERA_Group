@@ -188,7 +188,7 @@ export default function ActivitiesPage() {
             <div>
               <p className="text-sm text-gray-500">User Activities</p>
               <p className="text-2xl font-bold text-gray-900">
-                {activities.filter((a) => a.type.includes("USER")).length}
+                {activities.filter((a) => (a.type ?? "").includes("USER")).length}
               </p>
             </div>
           </div>
@@ -199,7 +199,7 @@ export default function ActivitiesPage() {
             <div>
               <p className="text-sm text-gray-500">Lead Activities</p>
               <p className="text-2xl font-bold text-gray-900">
-                {activities.filter((a) => a.type.includes("LEAD")).length}
+                {activities.filter((a) => (a.type ?? "").includes("LEAD")).length}
               </p>
             </div>
           </div>
@@ -210,7 +210,7 @@ export default function ActivitiesPage() {
             <div>
               <p className="text-sm text-gray-500">Payment Activities</p>
               <p className="text-2xl font-bold text-gray-900">
-                {activities.filter((a) => a.type.includes("PAYMENT")).length}
+                {activities.filter((a) => (a.type ?? "").includes("PAYMENT")).length}
               </p>
             </div>
           </div>

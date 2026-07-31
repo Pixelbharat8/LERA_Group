@@ -150,9 +150,9 @@ export default function FeatureManagementPage() {
 
   const filtered = users.filter(
     (u) =>
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase()) ||
-      u.role.toLowerCase().includes(search.toLowerCase())
+      (u.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (u.email ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (u.role ?? "").toLowerCase().includes(search.toLowerCase())
   );
   const isGodMode = selected ? GOD_MODE_ROLES.includes(selected.role) : false;
 

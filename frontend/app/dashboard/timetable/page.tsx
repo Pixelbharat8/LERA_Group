@@ -83,8 +83,8 @@ export default function TimetablePage() {
     if (slot.day !== today) return false;
     
     const currentTime = now.getHours() * 60 + now.getMinutes();
-    const [startHour, startMin] = slot.startTime.split(":").map(Number);
-    const [endHour, endMin] = slot.endTime.split(":").map(Number);
+    const [startHour, startMin] = (slot.startTime ?? "").split(":").map(Number);
+    const [endHour, endMin] = (slot.endTime ?? "").split(":").map(Number);
     const slotStart = startHour * 60 + startMin;
     const slotEnd = endHour * 60 + endMin;
     
@@ -100,7 +100,7 @@ export default function TimetablePage() {
     const todayClasses = timetable
       .filter(slot => slot.day === currentDay)
       .filter(slot => {
-        const [startHour, startMin] = slot.startTime.split(":").map(Number);
+        const [startHour, startMin] = (slot.startTime ?? "").split(":").map(Number);
         return startHour * 60 + startMin > currentTime;
       })
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
