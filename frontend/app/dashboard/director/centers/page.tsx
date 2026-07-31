@@ -197,14 +197,14 @@ export default function DirectorCentersPage() {
                 <td className="py-4 px-4 text-center font-medium">{center.classCount}</td>
                 <td className="py-4 px-4 text-center">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPerformanceBadge(center.performance)}`}>
-                    {center.performance.replace("_", " ").toUpperCase()}
+                    {(center.performance ?? "").replace("_", " ").toUpperCase()}
                   </span>
                 </td>
                 <td className="py-4 px-4 text-center">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     center.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
                   }`}>
-                    {center.status.toUpperCase()}
+                    {(center.status ?? "").toUpperCase()}
                   </span>
                 </td>
                 <td className="py-4 px-4 text-center">

@@ -352,7 +352,7 @@ export default function TeacherPermissionSlipsPage() {
                     <ul className="text-sm divide-y border rounded">
                       {list.map((r) => (
                         <li key={r.id} className="px-3 py-2 flex items-center justify-between">
-                          <span className="font-mono text-xs text-gray-500">{r.studentId.slice(0, 8)}…</span>
+                          <span className="font-mono text-xs text-gray-500">{(r.studentId ?? "").slice(0, 8)}…</span>
                           <span
                             className={`text-xs px-2 py-0.5 rounded ${
                               r.response === "YES"

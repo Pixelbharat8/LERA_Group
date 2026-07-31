@@ -151,7 +151,7 @@ export default function ChairmanReportsPage() {
 
   const downloadReport = (report: Report) => {
     exportToCsv(
-      datedFilename(report.name.replace(/\s+/g, "_")),
+      datedFilename((report.name ?? "report").replace(/\s+/g, "_")),
       [report],
       [
         { key: "name", label: "Name" },
@@ -328,7 +328,7 @@ export default function ChairmanReportsPage() {
                     
                     <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                       <span className="flex items-center gap-1">
-                        {getFormatIcon(report.format)} {report.format.toUpperCase()}
+                        {getFormatIcon(report.format)} {(report.format ?? "").toUpperCase()}
                       </span>
                       {report.size && <span>{report.size}</span>}
                     </div>

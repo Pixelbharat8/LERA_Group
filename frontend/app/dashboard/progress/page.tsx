@@ -145,7 +145,7 @@ export default function ProgressPage() {
                 {recentProgress.map((student, index) => (
                   <div key={index} className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                      {student.name.charAt(0)}
+                      {(student.name ?? "").charAt(0)}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">

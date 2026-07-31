@@ -475,7 +475,7 @@ export default function FooterEditor() {
                     <div key={col.id}>
                       <h4 className="font-bold text-xs mb-1">{col.title[lang]}</h4>
                       <ul className="space-y-0.5">
-                        {col.links.slice(0, 3).map((link) => (
+                        {(col.links ?? []).slice(0, 3).map((link) => (
                           <li key={link.id} className="text-xs opacity-70">{link.label[lang]}</li>
                         ))}
                       </ul>

@@ -217,7 +217,7 @@ export default function ChairmanSupportPage() {
                         </div>
                         <div className="flex gap-2">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(ticket.status)}`}>
-                            {ticket.status.replace("_", " ")}
+                            {(ticket.status ?? "").replace("_", " ")}
                           </span>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(ticket.priority)}`}>
                             {ticket.priority}
