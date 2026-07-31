@@ -80,7 +80,7 @@ export default function CenterAdminAttendance() {
   };
 
   const filteredAttendance = attendance.filter(record =>
-    record.studentName.toLowerCase().includes(searchTerm.toLowerCase())
+    (record.studentName ?? "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const stats = {

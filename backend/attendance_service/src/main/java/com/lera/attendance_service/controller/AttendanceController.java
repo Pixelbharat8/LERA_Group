@@ -14,19 +14,42 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import jakarta.validation.Valid;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/attendance")
 @RequiredArgsConstructor
 public class AttendanceController {
-    
+
     private final AttendanceService attendanceService;
     private final AttendanceAuthorizationService authz;
     private final com.lera.attendance_service.client.StudentAccessClient studentAccessClient;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    /**
+     * Attendance rows carry only a studentId; enrich each with the student's display name from the
+     * shared students table (one batched query) so list responses aren't bare UUIDs. Without this
+     * the center-admin attendance page crashed on record.studentName.toLowerCase().
+     */
+    private List<AttendanceRecord> withNames(List<AttendanceRecord> records) {
+        if (records == null || records.isEmpty()) return records;
+        List<UUID> ids = records.stream().map(AttendanceRecord::getStudentId)
+                .filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        if (ids.isEmpty()) return records;
+        Map<UUID, String> names = new HashMap<>();
+        String placeholders = ids.stream().map(x -> "?").collect(Collectors.joining(","));
+        jdbcTemplate.query("SELECT id, fullname FROM students WHERE id IN (" + placeholders + ")",
+                (java.sql.ResultSet rs) -> { names.put(rs.getObject("id", UUID.class), rs.getString("fullname")); },
+                ids.toArray());
+        records.forEach(r -> r.setStudentName(names.get(r.getStudentId())));
+        return records;
+    }
 
     /**
      * SECURITY: a STUDENT/PARENT may only query a student they own/are linked to. Attendance
@@ -59,28 +82,28 @@ public class AttendanceController {
             UUID effectiveMarker = authz.effectiveMarkedById(authUser, markedBy);
             List<AttendanceRecord> list = attendanceService.getAttendanceByMarkedBy(effectiveMarker);
             authz.assertAttendanceRecordsForCaller(authUser, list);
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(withNames(list));
         }
         if (studentId != null) {
             assertStudentOwnership(authUser, studentId);
             List<AttendanceRecord> list = attendanceService.getAttendanceByStudent(studentId);
             authz.assertAttendanceRecordsForCaller(authUser, list);
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(withNames(list));
         }
         if (classId != null) {
             List<AttendanceRecord> list = attendanceService.getAttendanceByClass(classId);
             authz.assertAttendanceRecordsForCaller(authUser, list);
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(withNames(list));
         }
         UUID effCenter = authz.effectiveQueryCenterId(authUser, centerId);
         if (effCenter != null) {
-            return ResponseEntity.ok(attendanceService.getAttendanceByCenter(effCenter));
+            return ResponseEntity.ok(withNames(attendanceService.getAttendanceByCenter(effCenter)));
         }
         if (authz.isOrgWide(authUser)) {
             return ResponseEntity.ok(attendanceService.getAllAttendance(pageable));
         }
         if (authz.mayDefaultToJwtCenterAttendanceList(authUser) && authUser.getCenterId() != null) {
-            return ResponseEntity.ok(attendanceService.getAttendanceByCenter(authUser.getCenterId()));
+            return ResponseEntity.ok(withNames(attendanceService.getAttendanceByCenter(authUser.getCenterId())));
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                 "Specify centerId or studentId for attendance list queries");

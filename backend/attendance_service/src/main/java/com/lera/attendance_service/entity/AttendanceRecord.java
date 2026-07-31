@@ -22,7 +22,12 @@ public class AttendanceRecord {
     
     @Column(name = "student_id", nullable = false)
     private UUID studentId;
-    
+
+    // Not persisted — populated on list responses from the shared students table so the UI can
+    // show/filter by name instead of a bare studentId UUID (see AttendanceController.withNames).
+    @Transient
+    private String studentName;
+
     @Column(name = "center_id")
     private UUID centerId;
     
