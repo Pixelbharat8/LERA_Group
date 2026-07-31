@@ -123,7 +123,20 @@ export default function DiscountsPage() {
         })));
       }
 
-      setDiscounts(Array.isArray(discountsData) ? discountsData : []);
+      // The payment service serializes discounts with discountType/discountValue/currentUses/
+      // maxUses/validFrom/validTo/isActive; this page's Discount shape uses type/value/usageCount/
+      // usageLimit/startDate/endDate/status. Map them so the table renders (previously
+      // discount.type was undefined → `.replace()` crashed the whole page into the error boundary).
+      setDiscounts(Array.isArray(discountsData) ? discountsData.map((d: any) => ({
+        ...d,
+        type: d.type ?? d.discountType,
+        value: d.value ?? d.discountValue ?? 0,
+        usageCount: d.usageCount ?? d.currentUses ?? 0,
+        usageLimit: d.usageLimit ?? d.maxUses,
+        startDate: d.startDate ?? d.validFrom,
+        endDate: d.endDate ?? d.validTo,
+        status: d.status ?? (d.isActive ? 'ACTIVE' : 'INACTIVE'),
+      })) : []);
     } catch (err) {
       console.error("Error fetching data:", err);
       setDiscounts([]);
@@ -402,7 +415,7 @@ export default function DiscountsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(discount.type)}`}>
-                        {discount.type.replace("_", " ")}
+                        {(discount.type ?? "").replace("_", " ")}
                       </span>
                     </td>
                     <td className="px-6 py-4 font-medium">
