@@ -763,6 +763,15 @@ export const translations = {
     online: "Online",
     offline: "Offline",
     noConversations: "No conversations yet",
+    // Common labels referenced via t() that were missing (rendered the raw key before)
+    name: "Name",
+    student: "Student",
+    center: "Center",
+    role: "Role",
+    roles: "Roles",
+    selectStudent: "Select Student",
+    optionalNotes: "Optional Notes",
+    downloadStarted: "Download started",
   },
   VI: {
     // Navigation
@@ -1515,6 +1524,15 @@ export const translations = {
     online: "Trực Tuyến",
     offline: "Ngoại Tuyến",
     noConversations: "Chưa có cuộc hội thoại nào",
+    // Common labels referenced via t() that were missing (rendered the raw key before)
+    name: "Tên",
+    student: "Học viên",
+    center: "Cơ sở",
+    role: "Vai trò",
+    roles: "Vai trò",
+    selectStudent: "Chọn học viên",
+    optionalNotes: "Ghi chú (tùy chọn)",
+    downloadStarted: "Đã bắt đầu tải xuống",
   }
 };
 
