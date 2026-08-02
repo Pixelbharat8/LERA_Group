@@ -741,7 +741,7 @@ export default function TAGradesPage() {
                         <h4 className="font-semibold">{assignment.title}</h4>
                         {assignment.dueDate && (
                           <p className="text-sm text-gray-500">
-                            Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                            Due: {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : "—"}
                           </p>
                         )}
                       </div>

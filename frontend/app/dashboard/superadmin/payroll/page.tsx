@@ -670,7 +670,7 @@ export default function PayrollPage() {
                   {viewingRecord.status}
                 </span>
                 {viewingRecord.paidAt && (
-                  <span className="text-sm text-gray-500">Paid on {new Date(viewingRecord.paidAt).toLocaleDateString()}</span>
+                  <span className="text-sm text-gray-500">Paid on {viewingRecord.paidAt ? new Date(viewingRecord.paidAt).toLocaleDateString() : "—"}</span>
                 )}
               </div>
             </div>

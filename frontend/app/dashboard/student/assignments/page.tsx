@@ -237,7 +237,7 @@ export default function StudentAssignmentsPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <span>📅</span>
-                      <span>Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                      <span>Due: {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : "—"}</span>
                     </div>
                     {assignment.grade && (
                       <div className="flex items-center gap-1">

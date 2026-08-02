@@ -740,7 +740,7 @@ export default function ParentCommunicationsPage() {
                           <div className="flex items-center gap-4 text-xs text-gray-500">
                             <span>📧 {broadcast.recipientCount} recipients</span>
                             <span>👤 {broadcast.sentBy}</span>
-                            <span>📅 {new Date(broadcast.sentAt).toLocaleString()}</span>
+                            <span>📅 {broadcast.sentAt ? new Date(broadcast.sentAt).toLocaleString() : "Not sent"}</span>
                             <span className={`px-2 py-0.5 rounded-full ${
                               broadcast.type === "ALL_PARENTS" ? "bg-purple-100 text-purple-700" :
                               broadcast.type === "CLASS_PARENTS" ? "bg-blue-100 text-blue-700" :

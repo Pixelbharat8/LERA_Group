@@ -138,7 +138,7 @@ export default function LibraryPage() {
                   <span className="text-2xl">📖</span>
                   <div>
                     <p className="font-medium text-gray-900">{book.bookTitle}</p>
-                    <p className="text-sm text-gray-500">{t.dueDate}: {new Date(book.dueDate).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-500">{t.dueDate}: {book.dueDate ? new Date(book.dueDate).toLocaleDateString() : "—"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

@@ -364,7 +364,7 @@ export default function ChairmanReportsPage() {
                       <div>
                         <h3 className="font-bold text-gray-900">{report.name}</h3>
                         <p className="text-sm text-gray-500">
-                          {getFrequencyLabel(report.frequency)} • Next: {new Date(report.nextRun).toLocaleDateString()}
+                          {getFrequencyLabel(report.frequency)} • Next: {report.nextRun ? new Date(report.nextRun).toLocaleDateString() : "—"}
                         </p>
                         <div className="flex gap-2 mt-1">
                           {report.recipients.map((email, i) => (

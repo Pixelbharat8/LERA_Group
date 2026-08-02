@@ -106,7 +106,7 @@ export default function StudentPaymentsPage() {
         { key: "invoiceNumber", label: "Invoice" },
         { key: "description", label: "Description" },
         { key: (p) => formatCurrency(p.amount, p.currency), label: "Amount" },
-        { key: (p) => new Date(p.dueDate).toLocaleDateString(), label: "Due Date" },
+        { key: (p) => p.dueDate ? new Date(p.dueDate).toLocaleDateString() : "—", label: "Due Date" },
         { key: (p) => (p.paidDate ? new Date(p.paidDate).toLocaleDateString() : ""), label: "Paid Date" },
         { key: "status", label: "Status" },
         { key: "paymentMethod", label: "Payment Method" },
@@ -239,7 +239,7 @@ export default function StudentPaymentsPage() {
                       <span className="font-semibold">{formatCurrency(payment.amount, payment.currency)}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div>{new Date(payment.dueDate).toLocaleDateString()}</div>
+                      <div>{payment.dueDate ? new Date(payment.dueDate).toLocaleDateString() : "—"}</div>
                       {payment.paidDate && (
                         <div className="text-xs text-green-600">
                           Paid: {new Date(payment.paidDate).toLocaleDateString()}

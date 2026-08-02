@@ -737,7 +737,7 @@ export default function TeacherGradesPage() {
                       {assignment.dueDate && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Due:</span>
-                          <span className="font-medium">{new Date(assignment.dueDate).toLocaleDateString()}</span>
+                          <span className="font-medium">{assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : "—"}</span>
                         </div>
                       )}
                     </div>

@@ -163,7 +163,7 @@ export default function ParentPermissionSlipsPage() {
                       <span>Activity: {new Date(slip.activityDate).toLocaleString()}</span>
                     )}
                     {slip.dueDate && (
-                      <span>Reply by: {new Date(slip.dueDate).toLocaleString()}</span>
+                      <span>Reply by: {slip.dueDate ? new Date(slip.dueDate).toLocaleString() : "—"}</span>
                     )}
                   </div>
                 </div>

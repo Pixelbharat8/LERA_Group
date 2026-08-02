@@ -179,7 +179,7 @@ export default function TATasksPage() {
                   <div className="flex items-center gap-4 text-sm text-gray-500">
                     <div className="flex items-center gap-1">
                       <span>📅</span>
-                      <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                      <span>Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span>👤</span>

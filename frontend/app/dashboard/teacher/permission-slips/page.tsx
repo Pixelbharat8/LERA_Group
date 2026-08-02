@@ -306,7 +306,7 @@ export default function TeacherPermissionSlipsPage() {
                         <span>Activity: {new Date(slip.activityDate).toLocaleString()}</span>
                       )}
                       {slip.dueDate && (
-                        <span>Due: {new Date(slip.dueDate).toLocaleString()}</span>
+                        <span>Due: {slip.dueDate ? new Date(slip.dueDate).toLocaleString() : "—"}</span>
                       )}
                     </div>
                   </div>

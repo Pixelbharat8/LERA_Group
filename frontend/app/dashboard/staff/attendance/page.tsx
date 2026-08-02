@@ -832,7 +832,7 @@ export default function StaffAttendancePage() {
                         </span>
                         <p className="font-medium text-gray-900 mt-2">{leave.leaveType} Leave</p>
                         <p className="text-sm text-gray-500">
-                          {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}
+                          {leave.startDate ? new Date(leave.startDate).toLocaleDateString() : "—"} - {leave.endDate ? new Date(leave.endDate).toLocaleDateString() : "—"}
                         </p>
                       </div>
                       <span className="text-xs text-gray-400">

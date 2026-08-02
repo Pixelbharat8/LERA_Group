@@ -222,7 +222,7 @@ export default function StaffTasksPage() {
                     )}
                     <div className="flex gap-4 text-sm text-gray-500 ml-6">
                       {task.dueDate && (
-                        <span>📅 Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                        <span>📅 Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}</span>
                       )}
                       {task.assignedBy && <span>👤 From: {task.assignedBy}</span>}
                       {task.category && <span>📁 {task.category}</span>}

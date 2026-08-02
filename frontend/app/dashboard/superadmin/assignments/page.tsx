@@ -138,7 +138,7 @@ export default function AssignmentManagement() {
       { key: "title", label: "Title" },
       { key: "assignmentType", label: "Type" },
       { key: (a) => new Date(a.assignedDate).toLocaleDateString(), label: "Assigned" },
-      { key: (a) => new Date(a.dueDate).toLocaleDateString(), label: "Due Date" },
+      { key: (a) => a.dueDate ? new Date(a.dueDate).toLocaleDateString() : "—", label: "Due Date" },
       { key: "maxScore", label: "Max Score" },
     ]);
   };
@@ -223,7 +223,7 @@ export default function AssignmentManagement() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-500">{new Date(assignment.assignedDate).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">{new Date(assignment.dueDate).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">{assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : "—"}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-500">{assignment.maxScore}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-full text-xs ${

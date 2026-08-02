@@ -153,7 +153,7 @@ export default function ParentPaymentsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{payment.invoiceNumber}</td>
                     <td className="px-6 py-4 text-sm">{payment.description}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">₫{payment.amount.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{new Date(payment.dueDate).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{payment.dueDate ? new Date(payment.dueDate).toLocaleDateString() : "—"}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(payment.status)}`}>{payment.status}</span>
                     </td>
