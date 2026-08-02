@@ -43,7 +43,7 @@ export default function DirectorStaffPage() {
         users.forEach((u: any) => {
           allStaff.push({
             id: u.id,
-            fullname: u.fullname || `${u.firstName} ${u.lastName}`.trim() || u.email,
+            fullname: u.fullname || [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email,
             email: u.email,
             phone: u.phone,
             role: u.role || "STAFF",
@@ -60,7 +60,7 @@ export default function DirectorStaffPage() {
           if (!allStaff.find(s => s.email === t.email)) {
             allStaff.push({
               id: t.id,
-              fullname: t.fullname || `${t.firstName} ${t.lastName}`.trim(),
+              fullname: t.fullname || [t.firstName, t.lastName].filter(Boolean).join(" ") || t.email,
               email: t.email,
               phone: t.phone,
               role: "TEACHER",

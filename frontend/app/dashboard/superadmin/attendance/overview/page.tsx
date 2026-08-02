@@ -206,11 +206,11 @@ export default function ExecutiveAttendanceOverviewPage() {
       : summaries.filter(s => s.centerId === selectedCenter);
     
     return {
-      totalStaff: filtered.reduce((sum, s) => sum + s.totalStaff, 0),
-      presentToday: filtered.reduce((sum, s) => sum + s.presentToday, 0),
-      absentToday: filtered.reduce((sum, s) => sum + s.absentToday, 0),
-      onLeave: filtered.reduce((sum, s) => sum + s.onLeave, 0),
-      pendingApprovals: filtered.reduce((sum, s) => sum + s.pendingApprovals, 0)
+      totalStaff: filtered.reduce((sum, s) => sum + (Number(s.totalStaff) || 0), 0),
+      presentToday: filtered.reduce((sum, s) => sum + (Number(s.presentToday) || 0), 0),
+      absentToday: filtered.reduce((sum, s) => sum + (Number(s.absentToday) || 0), 0),
+      onLeave: filtered.reduce((sum, s) => sum + (Number(s.onLeave) || 0), 0),
+      pendingApprovals: filtered.reduce((sum, s) => sum + (Number(s.pendingApprovals) || 0), 0)
     };
   }, [summaries, selectedCenter]);
 
