@@ -120,14 +120,16 @@ public class DiscountService {
 
     @Transactional
     public Optional<Discount> applyDiscount(UUID id) {
-        return discountRepository.findById(id).map(discount -> {
-            discount.setCurrentUses(discount.getCurrentUses() + 1);
-            if (discount.getMaxUses() != null && discount.getCurrentUses() >= discount.getMaxUses()) {
-                discount.setIsActive(false);
-            }
-            log.info("Applied discount: {} (uses: {})", discount.getCode(), discount.getCurrentUses());
-            return discountRepository.save(discount);
-        });
+        // Atomic claim — increments currentUses only while under maxUses, so concurrent
+        // redemptions can't push it past the limit (was a read-modify-write race).
+        if (discountRepository.claimUse(id) == 0) {
+            // Not found, or already at maxUses — no increment happened.
+            return discountRepository.findById(id);
+        }
+        discountRepository.deactivateIfExhausted(id);
+        Optional<Discount> updated = discountRepository.findById(id);
+        updated.ifPresent(d -> log.info("Applied discount: {} (uses: {})", d.getCode(), d.getCurrentUses()));
+        return updated;
     }
 
     @CacheEvict(value = "discounts", allEntries = true)
