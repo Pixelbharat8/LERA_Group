@@ -117,16 +117,26 @@ img {
     transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     will-change: transform;
   }
+  .card-premium {
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.4s ease;
+  }
   .card-premium:hover {
     @apply shadow-lift;
     transform: translateY(-6px);
+    border-color: rgba(10, 26, 92, 0.14);
   }
-  /* Buttons — hover lift + tactile press feedback */
+  /* Buttons — modern gradient + soft glow, tactile press */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-brand-orange600 text-white px-7 py-3.5 rounded-full font-semibold shadow-soft transition-all hover:shadow-lift active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-2 text-white px-7 py-3.5 rounded-full font-semibold transition-all active:scale-[0.98];
+    background-image: linear-gradient(135deg, #f7a916 0%, #ea7a0c 100%);
+    box-shadow: 0 4px 16px -4px rgba(245, 158, 11, 0.45);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 26px -6px rgba(245, 158, 11, 0.55);
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 border border-brand-navy text-brand-navy hover:bg-brand-navy hover:text-white px-7 py-3.5 rounded-full font-semibold transition-all active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-2 border border-brand-navy text-brand-navy hover:bg-brand-navy hover:text-white px-7 py-3.5 rounded-full font-semibold transition-all active:scale-[0.98];
   }
   /* Section hierarchy — consistent eyebrow → title → lead rhythm across every page */
   .section-eyebrow {
@@ -154,6 +164,23 @@ img {
 @keyframes revealUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: none; }
+}
+
+/* Sleek: aurora glow — a slow, soft, professional light source for hero depth
+   (subtle, low-opacity — modern SaaS, not colourful blobs). */
+@keyframes aurora {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.55; }
+  50% { transform: translate(4%, -4%) scale(1.12); opacity: 0.75; }
+}
+.aurora-glow {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  animation: aurora 20s ease-in-out infinite;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora-glow { animation: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal-stagger > * { opacity: 1; }

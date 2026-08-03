@@ -365,6 +365,11 @@ export default function Home() {
           />
           <div className="absolute inset-0 bg-gradient-to-br from-brand-navy/95 via-brand-navy/80 to-brand-navy/40" />
         </div>
+        {/* Sleek: soft aurora light for modern depth (subtle, professional) */}
+        <div className="absolute inset-0 z-[1] overflow-hidden pointer-events-none" aria-hidden="true">
+          <div className="aurora-glow -top-24 -left-16 w-[32rem] h-[32rem]" style={{ background: "radial-gradient(circle, rgba(59,130,246,0.35), transparent 70%)" }} />
+          <div className="aurora-glow top-1/4 -right-24 w-[36rem] h-[36rem]" style={{ background: "radial-gradient(circle, rgba(245,158,11,0.22), transparent 70%)", animationDelay: "6s" }} />
+        </div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left: copy + CTAs */}
