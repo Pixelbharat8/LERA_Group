@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
+import HeroAura from "../components/HeroAura";
 import Footer from "../components/Footer";
 import { publicFetch } from "../../lib/api";
 import { HERO_IMAGES } from "../../config/images";
@@ -157,6 +158,7 @@ export default function AboutPage() {
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 bg-gradient-to-br from-brand-navy via-brand-navy600 to-brand-navy text-white relative overflow-hidden">
+        <HeroAura />
         <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{backgroundImage: `url('${HERO_IMAGES.about}')`}}></div>
         <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <h1 className="text-4xl sm:text-5xl font-bold mb-6">

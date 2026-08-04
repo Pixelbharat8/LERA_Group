@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
+import HeroAura from "../components/HeroAura";
 import Footer from "../components/Footer";
 import { publicFetch } from "../../lib/api";
 import { COURSE_IMAGES, HERO_IMAGES, PLACEHOLDERS } from "../../config/images";
@@ -190,6 +191,7 @@ export default function CoursesPage() {
 
       {/* Hero Section - Dynamic from CMS */}
       <section className="pt-32 pb-20 bg-gradient-to-br from-brand-navy via-brand-navy600 to-brand-navy text-white relative overflow-hidden">
+        <HeroAura />
         <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{backgroundImage: `url('${HERO_IMAGES.courses}')`}}></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <span className="inline-block px-4 py-2 bg-white/20 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">

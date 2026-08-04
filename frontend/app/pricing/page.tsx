@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
+import HeroAura from "../components/HeroAura";
 import Footer from "../components/Footer";
 import { publicFetch } from "../../lib/api";
 import { useReveal } from "../hooks/useReveal";
@@ -67,8 +68,9 @@ export default function PricingPage() {
       <Header />
 
       {/* Hero */}
-      <section className="pt-32 pb-16 bg-gradient-to-br from-brand-navy via-brand-navy600 to-brand-navy text-white">
-        <div className="reveal max-w-5xl mx-auto px-4 text-center">
+      <section className="pt-32 pb-16 bg-gradient-to-br from-brand-navy via-brand-navy600 to-brand-navy text-white relative overflow-hidden">
+        <HeroAura />
+        <div className="reveal max-w-5xl mx-auto px-4 text-center relative z-10">
           <span className="inline-block px-4 py-2 bg-white/15 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             {EN ? "💳 Transparent pricing" : "💳 Học phí minh bạch"}
           </span>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import Header from "../components/Header";
+import HeroAura from "../components/HeroAura";
 import Footer from "../components/Footer";
 import ConsentCheckbox from "../components/ConsentCheckbox";
 import { publicFetch } from "../../lib/api";
@@ -205,6 +206,7 @@ export default function ContactPage() {
       
       {/* Hero Section with Background Image */}
       <section className="pt-32 pb-20 bg-gradient-to-br from-brand-navy via-brand-navy600 to-brand-navy text-white relative overflow-hidden">
+        <HeroAura />
         <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{backgroundImage: `url('${HERO_IMAGES.contact}')`}}></div>
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-brand-navy/50"></div>
         <div className="reveal max-w-7xl mx-auto px-4 text-center relative z-10">
