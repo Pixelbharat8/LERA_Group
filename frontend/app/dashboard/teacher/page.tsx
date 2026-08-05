@@ -168,7 +168,7 @@ export default function TeacherDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <Link key={index} href={stat.href} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl hover:-translate-y-0.5 transition-all block cursor-pointer">
+          <Link key={index} href={stat.href} className="dash-card p-6 hover:shadow-xl hover:-translate-y-0.5 transition-all block cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">{stat.label}</p>
@@ -183,7 +183,7 @@ export default function TeacherDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4">{t("quickActions")}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {quickActions.map((action, index) => (
@@ -198,7 +198,7 @@ export default function TeacherDashboard() {
       </div>
 
       {/* Today's Schedule */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4">{t("todaysSchedule")}</h2>
         {todaySchedule.length === 0 ? (
           <p className="text-gray-500 text-sm py-6 text-center">{t("noSessionsToday")}</p>

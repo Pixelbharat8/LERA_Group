@@ -120,6 +120,16 @@ img {
   .card-premium {
     transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.4s ease;
   }
+  /* Dashboard card — cleaner modern look: subtle border + light shadow that lifts
+     gently on hover (Linear/Vercel style, not heavy drop shadows). */
+  .dash-card {
+    @apply bg-white rounded-xl border border-gray-100 shadow-sm;
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+  }
+  .dash-card:hover {
+    @apply shadow-md;
+    transform: translateY(-2px);
+  }
   .card-premium:hover {
     @apply shadow-lift;
     transform: translateY(-6px);

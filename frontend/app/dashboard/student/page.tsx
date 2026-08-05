@@ -111,7 +111,7 @@ export default function StudentDashboard() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+          <div key={i} className="dash-card p-6 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between">
               <div><p className="text-gray-500 text-sm">{stat.label}</p><p className="text-3xl font-bold">{stat.value}</p></div>
               <div className={`${stat.color} p-4 rounded-full text-2xl`}>{stat.icon}</div>
@@ -119,7 +119,7 @@ export default function StudentDashboard() {
           </div>
         ))}
       </div>
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <h2 className="text-xl font-bold mb-4">{t("quickActions")}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {quickActions.map((a, i) => (

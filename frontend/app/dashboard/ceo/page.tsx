@@ -114,7 +114,7 @@ export default function CEODashboard() {
       <div><h1 className="text-3xl font-bold text-gray-800">{t("ceoDashboard")}</h1><p className="text-gray-600">{t("executiveOverview")}</p></div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {stats.map((s, i) => (
-          <div key={i} onClick={() => (s as any).href && (window.location.href = (s as any).href)} className="bg-white rounded-xl shadow-lg p-6 cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all">
+          <div key={i} onClick={() => (s as any).href && (window.location.href = (s as any).href)} className="dash-card p-6 cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all">
             <div className="flex items-center justify-between">
               <div><p className="text-gray-500 text-sm">{s.label}</p><p className="text-3xl font-bold">{s.value}</p></div>
               <div className={`${s.color} p-4 rounded-full text-2xl`}>{s.icon}</div>
@@ -122,7 +122,7 @@ export default function CEODashboard() {
           </div>
         ))}
       </div>
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <h2 className="text-xl font-bold mb-4">{t("quickActions")}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {quickActions.map((a, i) => (
@@ -132,7 +132,7 @@ export default function CEODashboard() {
       </div>
 
       {/* Recent Students - interconnected data from all centers */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <h2 className="text-xl font-bold mb-4">👨‍🎓 {t("recentStudents")}</h2>
         {recentStudents.length > 0 ? (
           <div className="overflow-x-auto">
@@ -169,7 +169,7 @@ export default function CEODashboard() {
       </div>
 
       {/* Recent Payments - interconnected financial data */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <h2 className="text-xl font-bold mb-4">💰 {t("recentPayments")}</h2>
         {recentPayments.length > 0 ? (
           <div className="space-y-3">

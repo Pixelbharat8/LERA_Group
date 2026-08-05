@@ -307,7 +307,7 @@ export default function ChairmanDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title={t("departmentsTab")} value={departments.length} icon="🏛️" color="purple" onClick={() => setActiveTab("departments")} />
         <StatCard title={t("enrollments")} value={enrollments.length} icon="📝" color="blue" onClick={() => setActiveTab("students")} />
-        <div onClick={() => (window.location.href = "/dashboard/finance")} className="bg-white rounded-xl shadow-lg p-6 cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all">
+        <div onClick={() => (window.location.href = "/dashboard/finance")} className="dash-card p-6 cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-2xl">💰</div>
             <div>
@@ -320,7 +320,7 @@ export default function ChairmanDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <h3 className="text-lg font-semibold mb-4">🚀 {t("quickActions")}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <QuickAction title={t("addUser")} icon="👤➕" onClick={() => setActiveTab("users")} />
@@ -331,7 +331,7 @@ export default function ChairmanDashboard() {
       </div>
 
       {/* Recent Activity - REAL DATA from all sources */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <h3 className="text-lg font-semibold mb-4">📋 {t("recentActivity")}</h3>
         <div className="space-y-3">
           {getRecentActivities().length > 0 ? (
@@ -345,7 +345,7 @@ export default function ChairmanDashboard() {
       </div>
 
       {/* Recent Students Table - shows latest 5 students added across ALL centers */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <h3 className="text-lg font-semibold mb-4">👨‍🎓 {t("recentStudents")}</h3>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -397,7 +397,7 @@ export default function ChairmanDashboard() {
       </div>
 
       {/* Roles Section */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <h3 className="text-lg font-semibold mb-4">🔐 {t("systemRoles")}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {roles.map((role: any) => (
@@ -411,7 +411,7 @@ export default function ChairmanDashboard() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="dash-card overflow-hidden">
         <div className="p-4 border-b">
           <input
             type="text"
@@ -467,7 +467,7 @@ export default function ChairmanDashboard() {
       <h2 className="text-2xl font-bold text-gray-800">✅ {t("pendingApprovalsTab")}</h2>
       
       {pendingApprovals.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+        <div className="dash-card p-8 text-center">
           <div className="text-6xl mb-4">✨</div>
           <h3 className="text-xl font-semibold text-gray-700">{t("allCaughtUp")}</h3>
           <p className="text-gray-500">{t("noPendingApprovals")}</p>
@@ -475,7 +475,7 @@ export default function ChairmanDashboard() {
       ) : (
         <div className="space-y-4">
           {pendingApprovals.map((item: any) => (
-            <div key={item.id} className="bg-white rounded-xl shadow-lg p-6">
+            <div key={item.id} className="dash-card p-6">
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-semibold">{item.title}</h3>
@@ -511,7 +511,7 @@ export default function ChairmanDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {centers.map((center: any) => (
-          <div key={center.id} className="bg-white rounded-xl shadow-lg p-6">
+          <div key={center.id} className="dash-card p-6">
             <div className="flex justify-between items-start mb-4">
               <h3 className="font-semibold text-lg">{center.name}</h3>
               <span className={`px-2 py-1 rounded text-xs ${
@@ -547,7 +547,7 @@ export default function ChairmanDashboard() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="dash-card overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
@@ -592,7 +592,7 @@ export default function ChairmanDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {courses.map((course: any) => (
-          <div key={course.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div key={course.id} className="dash-card overflow-hidden">
             <div className="h-2 bg-gradient-to-r from-blue-500 to-purple-500"></div>
             <div className="p-6">
               <h3 className="font-semibold text-lg mb-2">{course.name}</h3>
@@ -627,7 +627,7 @@ export default function ChairmanDashboard() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="dash-card overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
@@ -669,7 +669,7 @@ export default function ChairmanDashboard() {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-800">📋 {t("auditLogs")}</h2>
       
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <div className="space-y-4">
           {activityLogs.length > 0 ? (
             activityLogs.slice(0, 20).map((log: any, idx: number) => (
@@ -734,7 +734,7 @@ export default function ChairmanDashboard() {
   );
 
   const renderWebsiteContent = () => (
-    <div className="bg-white rounded-xl shadow-lg p-6">
+    <div className="dash-card p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-800">🌐 {t("websiteContentManagement")}</h2>
@@ -798,7 +798,7 @@ export default function ChairmanDashboard() {
         </div>
 
         {/* Students Table */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="dash-card overflow-hidden">
           <div className="p-4 border-b">
             <input
               type="text"
@@ -887,7 +887,7 @@ export default function ChairmanDashboard() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white rounded-xl shadow-lg mb-6 overflow-x-auto">
+      <div className="dash-card mb-6 overflow-x-auto">
         <div className="flex p-2">
           {TABS.map((tab) => (
             <button
@@ -963,7 +963,7 @@ function StatCard({ title, value, icon, color, onClick }: { title: string; value
   };
 
   return (
-    <div onClick={onClick} className={`bg-white rounded-xl shadow-lg p-6 ${onClick ? "cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all" : ""}`}>
+    <div onClick={onClick} className={`dash-card p-6 ${onClick ? "cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all" : ""}`}>
       <div className="flex items-center gap-4">
         <div className={`w-12 h-12 ${colors[color]} rounded-xl flex items-center justify-center text-2xl`}>
           {icon}

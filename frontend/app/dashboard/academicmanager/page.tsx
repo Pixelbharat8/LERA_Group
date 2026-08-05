@@ -129,7 +129,7 @@ export default function AcademicManagerDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <div key={index} onClick={() => (stat as any).href && (window.location.href = (stat as any).href)} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
+          <div key={index} onClick={() => (stat as any).href && (window.location.href = (stat as any).href)} className="dash-card p-6 hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">{stat.label}</p>
@@ -144,7 +144,7 @@ export default function AcademicManagerDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {quickActions.map((action, index) => (
@@ -160,7 +160,7 @@ export default function AcademicManagerDashboard() {
 
       {/* Recent Activities */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="dash-card p-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Class Performance</h2>
           <div className="space-y-4">
             {recentClasses.length === 0 ? (
@@ -180,7 +180,7 @@ export default function AcademicManagerDashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="dash-card p-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Upcoming Exams</h2>
           <div className="space-y-4">
             {upcomingExams.length === 0 ? (
