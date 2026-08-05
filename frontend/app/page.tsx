@@ -563,7 +563,7 @@ export default function Home() {
       </section>
 
       {/* ===== STATS ===== */}
-      <section className="py-16 sm:py-24 bg-gray-50">
+      <section className="py-16 sm:py-24 bg-gradient-to-b from-slate-50 to-blue-50/40">
         <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             {/* Parse stats from CMS or use defaults */}
@@ -674,7 +674,7 @@ export default function Home() {
       </section>
 
       {/* ===== WHY CHOOSE US ===== */}
-      <section className="py-16 sm:py-24 bg-gray-50">
+      <section className="py-16 sm:py-24 bg-gradient-to-b from-slate-50 to-blue-50/40">
         <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 max-w-2xl mx-auto">
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
@@ -778,7 +778,7 @@ export default function Home() {
 
       {/* ===== TESTIMONIALS ===== */}
       {displayTestimonials.length > 0 && (
-      <section className="py-16 sm:py-24 bg-gray-50">
+      <section className="py-16 sm:py-24 bg-gradient-to-b from-slate-50 to-blue-50/40">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
             {getContent("testimonial_eyebrow", "Testimonials", "Cảm nhận")}
@@ -867,7 +867,7 @@ export default function Home() {
 
       {/* ===== STUDENT ACHIEVEMENTS (optional, CMS-driven) ===== */}
       {achievements.length > 0 && (
-        <section className="py-16 sm:py-24 bg-gray-50">
+        <section className="py-16 sm:py-24 bg-gradient-to-b from-slate-50 to-blue-50/40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12 max-w-2xl mx-auto">
               <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
