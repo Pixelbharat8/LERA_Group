@@ -304,7 +304,7 @@ export default function ChairmanRolesPage() {
       {/* Role Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {roles.map((role) => (
-          <div key={role.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div key={role.id} className="dash-card overflow-hidden">
             <div className={`h-2 ${getRoleBadgeColor(role.name).split(" ")[0]}`}></div>
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
@@ -362,7 +362,7 @@ export default function ChairmanRolesPage() {
       </div>
 
       {/* Role Hierarchy */}
-      <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
+      <div className="mt-8 dash-card p-6">
         <h3 className="text-lg font-semibold mb-4">📊 Role Hierarchy</h3>
         <div className="flex flex-wrap items-center justify-center gap-4">
           <div className="flex flex-col items-center">

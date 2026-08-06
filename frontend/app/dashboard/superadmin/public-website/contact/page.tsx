@@ -484,7 +484,7 @@ export default function ContactPageEditor() {
           {/* Preview Tab */}
           {activeTab === "preview" && (
             <div className="bg-gray-100 rounded-lg p-6">
-              <div className="bg-white rounded-xl shadow-lg p-8 max-w-2xl mx-auto">
+              <div className="dash-card p-8 max-w-2xl mx-auto">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">📍 Contact Information Preview</h2>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">

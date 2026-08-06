@@ -514,7 +514,7 @@ export default function AboutPageEditor() {
           {/* Preview Tab */}
           {activeTab === "preview" && (
             <div className="bg-gray-100 rounded-lg p-6">
-              <div className="bg-white rounded-xl shadow-lg p-8 max-w-3xl mx-auto">
+              <div className="dash-card p-8 max-w-3xl mx-auto">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">{settings.about_title_en}</h1>
                 <p className="text-xl text-blue-600 mb-6">{settings.about_subtitle_en}</p>
                 <p className="text-gray-700 mb-8">{settings.about_description_en}</p>

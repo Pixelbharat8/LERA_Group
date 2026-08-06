@@ -248,7 +248,7 @@ export default function CenterProfilePage() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-lg mb-6">
+      <div className="dash-card mb-6">
         <div className="flex border-b overflow-x-auto">
           {[
             { id: "overview", name: "Overview", icon: "📋" },
@@ -276,7 +276,7 @@ export default function CenterProfilePage() {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         {/* Overview Tab */}
         {activeTab === "overview" && (
           <div className="space-y-6">

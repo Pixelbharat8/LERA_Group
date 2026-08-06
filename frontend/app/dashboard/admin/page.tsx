@@ -98,7 +98,7 @@ export default function AdminDashboard() {
       <div><h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1><p className="text-gray-600">System administration & management</p></div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((s, i) => (
-          <div key={i} className="bg-white rounded-xl shadow-lg p-6">
+          <div key={i} className="dash-card p-6">
             <div className="flex items-center justify-between">
               <div><p className="text-gray-500 text-sm">{s.label}</p><p className="text-3xl font-bold">{s.value}</p></div>
               <div className={`${s.color} p-4 rounded-full text-2xl`}>{s.icon}</div>
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
           </div>
         ))}
       </div>
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="dash-card p-6">
         <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {quickActions.map((a, i) => (

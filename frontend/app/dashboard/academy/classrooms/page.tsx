@@ -435,7 +435,7 @@ export default function ClassroomsPage() {
           </div>
         ) : (
           filteredClasses.map((classroom) => (
-            <div key={classroom.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            <div key={classroom.id} className="dash-card overflow-hidden hover:shadow-xl transition-shadow">
               {/* Card Header */}
               <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
                 <div className="flex items-center justify-between">

@@ -684,7 +684,7 @@ export default function ParentCommunicationPage() {
       {/* Message Modal */}
       {showMessageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-lg">
+          <div className="w-full max-w-lg dash-card">
             <div className="flex items-center justify-between border-b px-5 py-4">
               <h2 className="text-lg font-semibold text-gray-900">
                 Send Message to {messageRecipient?.name}
@@ -735,7 +735,7 @@ export default function ParentCommunicationPage() {
       {/* Meeting Request Modal */}
       {showMeetingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-lg">
+          <div className="w-full max-w-lg dash-card">
             <div className="flex items-center justify-between border-b px-5 py-4">
               <h2 className="text-lg font-semibold text-gray-900">Request Parent-Teacher Meeting</h2>
               <button onClick={() => setShowMeetingModal(false)} className="text-gray-500 hover:text-gray-800">✕</button>

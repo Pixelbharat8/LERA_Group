@@ -306,7 +306,7 @@ export default function DepartmentsPage() {
           </div>
         ) : (
           filteredDepartments.map((department) => (
-            <div key={department.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            <div key={department.id} className="dash-card overflow-hidden hover:shadow-xl transition-shadow">
               {/* Card Header */}
               <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-4">
                 <div className="flex items-center justify-between">

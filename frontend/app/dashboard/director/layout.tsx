@@ -69,7 +69,7 @@ export default function DirectorLayout({ children }: { children: React.ReactNode
   if (!isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center bg-white rounded-xl shadow-lg p-8 max-w-md">
+        <div className="text-center dash-card p-8 max-w-md">
           <div className="text-6xl mb-4">🚫</div>
           <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
           <p className="text-gray-600 mb-2">

@@ -187,7 +187,7 @@ export default function GuestDashboard() {
         </div>
 
         {/* Tab Content */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="dash-card overflow-hidden">
           {activeTab === "welcome" && (
             <div className="p-8">
               <div className="text-center mb-8">

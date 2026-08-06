@@ -124,7 +124,7 @@ export default function ChairmanCentersPage() {
       {/* Centers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {centers.map((center) => (
-          <div key={center.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div key={center.id} className="dash-card overflow-hidden">
             <div className="h-2 bg-gradient-to-r from-blue-500 to-purple-500"></div>
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">

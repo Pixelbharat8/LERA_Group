@@ -67,7 +67,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
   if (!isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
+        <div className="text-center p-8 dash-card max-w-md">
           <div className="text-6xl mb-4">🔒</div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
           <p className="text-gray-600 mb-4">

@@ -767,7 +767,7 @@ export default function ParentCommunicationsPage() {
       {/* Reply Modal */}
       {showReplyModal && selectedMessage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-lg">
+          <div className="w-full max-w-lg dash-card">
             <div className="flex items-center justify-between border-b px-5 py-4">
               <h2 className="text-lg font-semibold text-gray-900">Reply to {selectedMessage.parentName}</h2>
               <button onClick={() => setShowReplyModal(false)} className="text-gray-500 hover:text-gray-800">✕</button>
@@ -803,7 +803,7 @@ export default function ParentCommunicationsPage() {
       {/* Meeting Response Modal */}
       {showMeetingModal && selectedMeeting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-lg">
+          <div className="w-full max-w-lg dash-card">
             <div className="flex items-center justify-between border-b px-5 py-4">
               <h2 className="text-lg font-semibold text-gray-900">
                 {meetingAction === "APPROVED" ? "Approve" : "Decline"} Meeting Request
@@ -852,7 +852,7 @@ export default function ParentCommunicationsPage() {
       {/* Broadcast Modal */}
       {showBroadcastModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-lg max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-lg dash-card max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b px-5 py-4">
               <h2 className="text-lg font-semibold text-gray-900">📢 Send Broadcast to Parents</h2>
               <button onClick={() => setShowBroadcastModal(false)} className="text-gray-500 hover:text-gray-800">✕</button>
