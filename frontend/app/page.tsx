@@ -10,6 +10,7 @@ import StickyTrialBar from "./components/StickyTrialBar";
 import TrustMark from "./components/TrustMark";
 import SmartImage from "./components/SmartImage";
 import FacebookFeatured from "./components/FacebookFeatured";
+import VideoSection from "./components/VideoSection";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { apiUrl, publicFetch } from "../lib/api";
@@ -672,6 +673,13 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ===== VIDEO (CMS-driven — renders only when home_video_url is set; no fake video) ===== */}
+      <VideoSection
+        url={getSetting("home_video_url")}
+        title={getContent("video_title", "See LERA in action", "LERA trong hành động")}
+        subtitle={getContent("video_subtitle", "Step inside our classrooms and meet the teachers who make English click.", "Bước vào lớp học và gặp gỡ những giáo viên giúp con yêu thích tiếng Anh.")}
+      />
 
       {/* ===== WHY CHOOSE US ===== */}
       <section className="py-16 sm:py-24 bg-gradient-to-b from-slate-50 to-blue-50/40">
