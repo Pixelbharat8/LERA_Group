@@ -260,7 +260,7 @@ export default function ContactPage() {
                     value={formData.name} 
                     onChange={(e) => setFormData({...formData, name: e.target.value})} 
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
-                    placeholder={t("yourName")} 
+                    aria-label={t("yourName")} placeholder={t("yourName")} 
                   />
                   <input 
                     type="email" 
@@ -268,7 +268,7 @@ export default function ContactPage() {
                     value={formData.email} 
                     onChange={(e) => setFormData({...formData, email: e.target.value})} 
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
-                    placeholder={t("yourEmail")} 
+                    aria-label={t("yourEmail")} placeholder={t("yourEmail")} 
                   />
                   <input 
                     type="text" 
@@ -276,7 +276,7 @@ export default function ContactPage() {
                     value={formData.subject} 
                     onChange={(e) => setFormData({...formData, subject: e.target.value})} 
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
-                    placeholder={t("subject")} 
+                    aria-label={t("subject")} placeholder={t("subject")} 
                   />
                   <textarea 
                     required 
@@ -284,7 +284,7 @@ export default function ContactPage() {
                     value={formData.message} 
                     onChange={(e) => setFormData({...formData, message: e.target.value})} 
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all resize-none" 
-                    placeholder={t("message")} 
+                    aria-label={t("message")} placeholder={t("message")} 
                   />
                   <ConsentCheckbox checked={consent} onChange={setConsent} />
                   <button type="submit" disabled={isSubmitting || !consent} className="btn-primary w-full disabled:opacity-50">

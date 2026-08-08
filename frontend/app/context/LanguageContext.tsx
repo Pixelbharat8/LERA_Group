@@ -1551,6 +1551,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setMounted(true);
   }, []);
 
+  // Keep <html lang> in sync with the active language (a11y + SEO — the site defaults to VI,
+  // so a static lang="en" mis-announced Vietnamese content to screen readers and crawlers).
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = language === "VI" ? "vi" : "en";
+    }
+  }, [language]);
+
   // Save language to localStorage when changed
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);

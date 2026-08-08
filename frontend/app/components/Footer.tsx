@@ -106,6 +106,7 @@ export default function Footer() {
             <div className="flex space-x-4">
               <a
                 href={facebookUrl}
+                aria-label="Facebook"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors"
@@ -117,6 +118,7 @@ export default function Footer() {
               </a>
               <a
                 href={instagramUrl}
+                aria-label="Instagram"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-gradient-to-br hover:from-purple-600 hover:to-pink-500 transition-colors"
@@ -128,6 +130,7 @@ export default function Footer() {
               </a>
               <a
                 href={youtubeUrl}
+                aria-label="YouTube"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
@@ -139,6 +142,7 @@ export default function Footer() {
               </a>
               <a
                 href={tiktokUrl}
+                aria-label="TikTok"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-black transition-colors"
