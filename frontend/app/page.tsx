@@ -375,10 +375,11 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left: copy + CTAs */}
             <div className="order-2 lg:order-1">
-              <p className="text-sm font-semibold tracking-wider uppercase text-orange-300 mb-4">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur px-4 py-1.5 text-sm font-semibold text-orange-200 ring-1 ring-white/20 mb-5">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
                 {getContent("hero_subtitle", "Where Excellence is the Standard", "Nơi Xuất Sắc Là Tiêu Chuẩn")}
-              </p>
-              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
+              </span>
+              <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-[1.05]">
                 {getContent("hero_title", "Ready for Knowledge for the Future", "Sẵn Sàng Tri Thức Cho Tương Lai")}
               </h1>
               <p className="mt-6 text-lg text-white/85 leading-relaxed max-w-xl">
