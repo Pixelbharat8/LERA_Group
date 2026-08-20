@@ -628,7 +628,7 @@ export default function Home() {
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
               {getContent("courses_eyebrow", "Our programmes", "Chương trình học")}
             </p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy">{t("learningPathTitle")}</h2>
+            <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-brand-navy">{t("learningPathTitle")}</h2>
             <p className="mt-4 text-lg text-gray-600 leading-relaxed">{t("learningPathSubtitle")}</p>
           </div>
 
@@ -689,7 +689,7 @@ export default function Home() {
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
               {getContent("why_eyebrow", "Why LERA", "Vì sao chọn LERA")}
             </p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy">{t("whyChooseUs")}</h2>
+            <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-brand-navy">{t("whyChooseUs")}</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -726,7 +726,7 @@ export default function Home() {
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
               {getContent("facebook_eyebrow", "Life at LERA", "Tại LERA")}
             </p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy">
+            <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-brand-navy">
               {getContent("facebook_title", "From Our Facebook", "Từ Facebook của chúng tôi")}
             </h2>
             <p className="mt-4 text-lg text-gray-600 leading-relaxed">
@@ -792,7 +792,7 @@ export default function Home() {
           <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
             {getContent("testimonial_eyebrow", "Testimonials", "Cảm nhận")}
           </p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy mb-10">
+          <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-brand-navy mb-10">
             {getContent("testimonial_title", "What Parents Say About Us", "Phụ huynh nói gì về chúng tôi")}
           </h2>
 
@@ -840,7 +840,7 @@ export default function Home() {
             <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
               {getContent("gallery_eyebrow", "Gallery", "Hình ảnh")}
             </p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy">
+            <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-brand-navy">
               {getContent("gallery_title", "Our Learning Environment", "Môi trường học tập")}
             </h2>
             <p className="mt-4 text-lg text-gray-600 leading-relaxed">{getContent("gallery_subtitle", "Where Excellence is the Standard", "Nơi xuất sắc là tiêu chuẩn")}</p>
@@ -882,7 +882,7 @@ export default function Home() {
               <p className="text-sm font-semibold tracking-wider uppercase text-blue-600 mb-3">
                 {getContent("achievements_eyebrow", "Results", "Thành tích")}
               </p>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-navy">
+              <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-brand-navy">
                 {getContent("achievements_title", "Outstanding Students", "Gương mặt xuất sắc")}
               </h2>
               <p className="mt-4 text-lg text-gray-600 leading-relaxed">{getContent("achievements_subtitle", "Our students consistently achieve outstanding results", "Học sinh của chúng tôi luôn đạt thành tích xuất sắc")}</p>
@@ -921,7 +921,7 @@ export default function Home() {
       {/* ===== FINAL CTA BAND ===== */}
       <section className="py-16 sm:py-24" style={{ backgroundColor: "var(--brand-primary, #0a1a5c)" }}>
         <div className="reveal max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-4">
+          <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
             {getContent("cta_title", t("ctaTitle"), t("ctaTitle"))}
           </h2>
           <p className="text-blue-100/80 text-lg mb-8 max-w-2xl mx-auto leading-relaxed">{getContent("cta_desc", t("ctaDesc"), t("ctaDesc"))}</p>
