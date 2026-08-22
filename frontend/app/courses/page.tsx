@@ -197,7 +197,7 @@ export default function CoursesPage() {
           <span className="inline-block px-4 py-2 bg-white/20 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             {language === "EN" ? `📚 ${courses.length} Programs Available` : `📚 ${courses.length} Chương trình có sẵn`}
           </span>
-          <h1 className="text-4xl sm:text-5xl font-bold mb-6">
+          <h1 className="text-5xl sm:text-6xl font-extrabold mb-6">
             {language === "EN" ? heroContent.title.EN : heroContent.title.VI}
           </h1>
           <p className="text-xl text-white/90 max-w-3xl mx-auto">

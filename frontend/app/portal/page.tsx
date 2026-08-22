@@ -61,7 +61,7 @@ export default function PortalPage() {
           <span className="inline-block px-4 py-2 bg-white/15 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             {c("hero_badge", EN ? "📱 Parent & Student Portal" : "📱 Cổng phụ huynh & học viên")}
           </span>
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
+          <h1 className="text-5xl md:text-6xl font-extrabold mb-6">
             {c("hero_title", EN ? "Stay connected to your child's learning" : "Luôn kết nối với việc học của con")}
           </h1>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">

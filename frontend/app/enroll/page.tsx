@@ -150,7 +150,7 @@ function EnrollInner() {
 
       <section className="pt-32 pb-12 bg-gradient-to-br from-brand-navy via-blue-800 to-blue-700 text-white">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+          <h1 className="text-5xl md:text-6xl font-extrabold mb-4">
             {c("hero_title", EN ? "Enrol online" : "Đăng ký nhập học")}
           </h1>
           <p className="text-lg text-white/90">

@@ -174,7 +174,7 @@ export default function FAQPage() {
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">{t.title}</h1>
+            <h1 className="text-5xl md:text-6xl font-extrabold mb-4">{t.title}</h1>
             <p className="text-xl text-blue-100">{t.subtitle}</p>
           </div>
         </div>

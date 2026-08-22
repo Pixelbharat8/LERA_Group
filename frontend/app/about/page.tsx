@@ -161,7 +161,7 @@ export default function AboutPage() {
         <HeroAura />
         <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{backgroundImage: `url('${HERO_IMAGES.about}')`}}></div>
         <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-6">
+          <h1 className="text-5xl sm:text-6xl font-extrabold mb-6">
             {language === "EN" ? content.heroTitle.EN : content.heroTitle.VI}
           </h1>
           <p className="text-xl text-white/90 max-w-3xl mx-auto">
@@ -216,19 +216,19 @@ export default function AboutPage() {
         <div className="reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="reveal-stagger grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div className="card-premium p-6">
-              <p className="text-3xl sm:text-4xl font-bold text-brand-navy mb-2">{stats.students}</p>
+              <p className="text-4xl sm:text-5xl font-extrabold text-brand-navy mb-2">{stats.students}</p>
               <p className="text-gray-600">{language === "EN" ? "Students per class" : "Học viên mỗi lớp"}</p>
             </div>
             <div className="card-premium p-6">
-              <p className="text-3xl sm:text-4xl font-bold text-brand-navy mb-2">{stats.teachers}</p>
+              <p className="text-4xl sm:text-5xl font-extrabold text-brand-navy mb-2">{stats.teachers}</p>
               <p className="text-gray-600">{language === "EN" ? "Qualified teachers" : "Giáo viên đạt chuẩn"}</p>
             </div>
             <div className="card-premium p-6">
-              <p className="text-3xl sm:text-4xl font-bold text-brand-navy mb-2">{stats.centers}</p>
+              <p className="text-4xl sm:text-5xl font-extrabold text-brand-navy mb-2">{stats.centers}</p>
               <p className="text-gray-600">{language === "EN" ? "Aligned curriculum" : "Chương trình chuẩn"}</p>
             </div>
             <div className="card-premium p-6">
-              <p className="text-3xl sm:text-4xl font-bold text-brand-navy mb-2">{stats.satisfaction}</p>
+              <p className="text-4xl sm:text-5xl font-extrabold text-brand-navy mb-2">{stats.satisfaction}</p>
               <p className="text-gray-600">{language === "EN" ? "Welcoming ages from" : "Đón nhận từ độ tuổi"}</p>
             </div>
           </div>

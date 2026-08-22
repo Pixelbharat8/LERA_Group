@@ -64,7 +64,7 @@ export default function TeachersPage() {
           <span className="inline-block px-4 py-2 bg-white/20 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             {language === "VI" ? "👩‍🏫 Đội ngũ giáo viên" : "👩‍🏫 Our Teachers"}
           </span>
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
+          <h1 className="text-5xl md:text-6xl font-extrabold mb-6">
             {language === "VI" ? "Gặp gỡ giáo viên của chúng tôi" : "Meet Our Teachers"}
           </h1>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">

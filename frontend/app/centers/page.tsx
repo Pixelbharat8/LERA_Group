@@ -103,7 +103,7 @@ export default function CentersPage() {
           <span className="inline-block px-4 py-2 bg-white/20 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             {language === "EN" ? `📍 ${centers.length} Learning Center${centers.length > 1 ? 's' : ''}` : `📍 ${centers.length} Cơ sở học tập`}
           </span>
-          <h1 className="text-4xl sm:text-5xl font-bold mb-6">{t("centersHeroTitle")}</h1>
+          <h1 className="text-5xl sm:text-6xl font-extrabold mb-6">{t("centersHeroTitle")}</h1>
           <p className="text-xl text-white/90 max-w-3xl mx-auto">{t("centersHeroDesc")}</p>
         </div>
       </section>

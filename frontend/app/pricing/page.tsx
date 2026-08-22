@@ -74,7 +74,7 @@ export default function PricingPage() {
           <span className="inline-block px-4 py-2 bg-white/15 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             {EN ? "💳 Transparent pricing" : "💳 Học phí minh bạch"}
           </span>
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
+          <h1 className="text-5xl md:text-6xl font-extrabold mb-6">
             {EN ? "Tuition & Programmes" : "Học phí & Chương trình"}
           </h1>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">
