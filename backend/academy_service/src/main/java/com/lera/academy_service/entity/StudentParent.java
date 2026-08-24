@@ -51,4 +51,11 @@ public class StudentParent {
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    // Guard: @Builder.Default does not run on the @NoArgsConstructor path Jackson uses, so a
+    // @RequestBody insert that omits createdAt would persist null → NOT NULL violation (500).
+    @PrePersist
+    void onCreate() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
+    }
 }

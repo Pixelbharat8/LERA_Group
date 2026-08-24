@@ -9,6 +9,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -58,6 +59,14 @@ public class TenantSettings {
     @Column(nullable = false)
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    // @PreUpdate does NOT fire on insert, and @Builder.Default is skipped on the @NoArgsConstructor
+    // path Jackson uses — so a @RequestBody insert omitting updatedAt would persist null → NOT NULL
+    // violation (500). Guard the insert path explicitly.
+    @PrePersist
+    protected void onCreate() {
+        if (updatedAt == null) updatedAt = LocalDateTime.now();
+    }
 
     @PreUpdate
     protected void onUpdate() {
