@@ -90,7 +90,9 @@ export function WebsiteSettingsProvider({ children }: { children: ReactNode }) {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const data = (await apiFetch('/api/website-settings')) as WebsiteSettings;
+      // silent: optional CMS settings that always fall back to DEFAULT_SETTINGS — a backend
+      // hiccup must not throw a raw "Internal Server Error" toast at public-site visitors.
+      const data = (await apiFetch('/api/website-settings', {}, { silent: true })) as WebsiteSettings;
       setSettings({ ...DEFAULT_SETTINGS, ...data });
       setError(null);
     } catch (err) {
@@ -104,7 +106,7 @@ export function WebsiteSettingsProvider({ children }: { children: ReactNode }) {
 
   const fetchGroupedSettings = async () => {
     try {
-      const data = (await apiFetch('/api/website-settings/grouped')) as GroupedSettings;
+      const data = (await apiFetch('/api/website-settings/grouped', {}, { silent: true })) as GroupedSettings;
       setGrouped(data);
     } catch (err) {
       console.warn('Error fetching grouped settings:', err);
@@ -152,7 +154,7 @@ export async function fetchWebsiteSettings(): Promise<WebsiteSettings> {
         return { ...DEFAULT_SETTINGS, ...data };
       }
     } else {
-      const data = (await apiFetch('/api/website-settings')) as WebsiteSettings;
+      const data = (await apiFetch('/api/website-settings', {}, { silent: true })) as WebsiteSettings;
       return { ...DEFAULT_SETTINGS, ...data };
     }
   } catch (err) {
