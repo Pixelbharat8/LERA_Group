@@ -106,6 +106,7 @@ export default function BookTrialPage() {
               </label>
               <input
                 required
+                aria-label={language === "EN" ? "Parent / contact name" : "Tên phụ huynh / liên hệ"}
                 className="w-full px-4 py-2 border rounded-lg"
                 value={formData.parentName}
                 onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
@@ -117,6 +118,7 @@ export default function BookTrialPage() {
               </label>
               <input
                 required
+                aria-label={language === "EN" ? "Phone" : "Điện thoại"}
                 className="w-full px-4 py-2 border rounded-lg"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -126,6 +128,7 @@ export default function BookTrialPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
                 type="email"
+                aria-label="Email"
                 className="w-full px-4 py-2 border rounded-lg"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -136,6 +139,7 @@ export default function BookTrialPage() {
                 {language === "EN" ? "Student name" : "Tên học viên"}
               </label>
               <input
+                aria-label={language === "EN" ? "Student name" : "Tên học viên"}
                 className="w-full px-4 py-2 border rounded-lg"
                 value={formData.studentName}
                 onChange={(e) => setFormData({ ...formData, studentName: e.target.value })}
@@ -149,6 +153,7 @@ export default function BookTrialPage() {
                 type="number"
                 min={2}
                 max={99}
+                aria-label={language === "EN" ? "Age" : "Tuổi"}
                 className="w-full px-4 py-2 border rounded-lg"
                 value={formData.age}
                 onChange={(e) => setFormData({ ...formData, age: e.target.value })}
@@ -159,6 +164,7 @@ export default function BookTrialPage() {
                 {language === "EN" ? "Preferred day / time" : "Ngày / giờ mong muốn"}
               </label>
               <input
+                aria-label={language === "EN" ? "Preferred day / time" : "Ngày / giờ mong muốn"}
                 className="w-full px-4 py-2 border rounded-lg"
                 placeholder={language === "EN" ? "e.g. Weekday evenings" : "VD: Tối trong tuần"}
                 value={formData.preferredTime}

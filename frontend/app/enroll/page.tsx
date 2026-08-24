@@ -195,6 +195,7 @@ function EnrollInner() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{EN ? "Programme *" : "Chương trình *"}</label>
                 <select required value={form.courseCode}
+                  aria-label={EN ? "Programme" : "Chương trình"}
                   onChange={(e) => setForm({ ...form, courseCode: e.target.value })}
                   className="w-full px-4 py-2 border rounded-lg bg-white">
                   <option value="">{EN ? "Select a programme…" : "Chọn chương trình…"}</option>
@@ -215,12 +216,12 @@ function EnrollInner() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{EN ? "Student name *" : "Tên học viên *"}</label>
-                  <input required className="w-full px-4 py-2 border rounded-lg"
+                  <input required aria-label={EN ? "Student name" : "Tên học viên"} className="w-full px-4 py-2 border rounded-lg"
                     value={form.studentName} onChange={(e) => setForm({ ...form, studentName: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{EN ? "Student age" : "Tuổi học viên"}</label>
-                  <input type="number" min={2} max={99} className="w-full px-4 py-2 border rounded-lg"
+                  <input type="number" min={2} max={99} aria-label={EN ? "Student age" : "Tuổi học viên"} className="w-full px-4 py-2 border rounded-lg"
                     value={form.studentAge} onChange={(e) => setForm({ ...form, studentAge: e.target.value })} />
                 </div>
               </div>
@@ -228,12 +229,12 @@ function EnrollInner() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{EN ? "Parent / contact name *" : "Tên phụ huynh / liên hệ *"}</label>
-                  <input required className="w-full px-4 py-2 border rounded-lg"
+                  <input required aria-label={EN ? "Parent / contact name" : "Tên phụ huynh / liên hệ"} className="w-full px-4 py-2 border rounded-lg"
                     value={form.parentName} onChange={(e) => setForm({ ...form, parentName: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{EN ? "Phone *" : "Điện thoại *"}</label>
-                  <input required className="w-full px-4 py-2 border rounded-lg"
+                  <input required aria-label={EN ? "Phone" : "Điện thoại"} className="w-full px-4 py-2 border rounded-lg"
                     value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 </div>
               </div>
@@ -241,12 +242,12 @@ function EnrollInner() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input type="email" className="w-full px-4 py-2 border rounded-lg"
+                  <input type="email" aria-label="Email" className="w-full px-4 py-2 border rounded-lg"
                     value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{EN ? "Preferred start" : "Thời gian bắt đầu mong muốn"}</label>
-                  <input className="w-full px-4 py-2 border rounded-lg"
+                  <input aria-label={EN ? "Preferred start" : "Thời gian bắt đầu mong muốn"} className="w-full px-4 py-2 border rounded-lg"
                     placeholder={EN ? "e.g. Next month" : "VD: Tháng sau"}
                     value={form.startPref} onChange={(e) => setForm({ ...form, startPref: e.target.value })} />
                 </div>
@@ -254,7 +255,7 @@ function EnrollInner() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{EN ? "Anything else?" : "Thông tin thêm?"}</label>
-                <textarea rows={2} className="w-full px-4 py-2 border rounded-lg"
+                <textarea rows={2} aria-label={EN ? "Anything else?" : "Thông tin thêm?"} className="w-full px-4 py-2 border rounded-lg"
                   value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
 
