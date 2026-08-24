@@ -85,6 +85,8 @@ const withRewrites = {
       { source: "/api/teachers/:path*", destination: `${academyUrl}/api/teachers/:path*` },
       { source: "/api/student-parents", destination: `${academyUrl}/api/student-parents` },
       { source: "/api/student-parents/:path*", destination: `${academyUrl}/api/student-parents/:path*` },
+      { source: "/api/event-rsvps", destination: `${academyUrl}/api/event-rsvps` },
+      { source: "/api/event-rsvps/:path*", destination: `${academyUrl}/api/event-rsvps/:path*` },
       { source: "/api/parent-students", destination: `${academyUrl}/api/parent-students` },
       { source: "/api/parent-students/:path*", destination: `${academyUrl}/api/parent-students/:path*` },
       { source: "/api/courses", destination: `${academyUrl}/api/courses` },

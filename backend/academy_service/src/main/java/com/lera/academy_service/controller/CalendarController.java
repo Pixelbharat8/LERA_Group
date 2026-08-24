@@ -95,8 +95,11 @@ public class CalendarController {
         return ResponseEntity.noContent().build();
     }
 
-    /** Next {limit} events from now, soonest first. */
+    /** Next {limit} events from now, soonest first.
+     *  Open to any authenticated user (overrides the class-level STAFF gate) so parents/students
+     *  can see upcoming school events on their portal. Read-only, non-sensitive. */
     @GetMapping("/upcoming")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<CalendarEvent>> getUpcomingEvents(
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(required = false) UUID userId) {

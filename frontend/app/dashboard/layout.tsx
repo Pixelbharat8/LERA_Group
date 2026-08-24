@@ -1023,6 +1023,20 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         permission: "dashboard" as const,
       },
       {
+        name: `📝 ${language === "VI" ? "Bài tập về nhà" : "Homework"}`,
+        icon: "📝",
+        href: "/dashboard/parent/homework",
+        roles: ["PARENT"],
+        permission: "dashboard" as const,
+      },
+      {
+        name: `🎉 ${language === "VI" ? "Sự kiện" : "Events"}`,
+        icon: "🎉",
+        href: "/dashboard/parent/events",
+        roles: ["PARENT"],
+        permission: "dashboard" as const,
+      },
+      {
         name: `📝 ${language === "VI" ? "Đơn xin phép" : "Permission Slips"}`,
         icon: "📝",
         href: "/dashboard/parent/permission-slips",
