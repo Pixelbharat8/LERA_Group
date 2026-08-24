@@ -27,13 +27,86 @@ interface SocialPixel {
   enabled: boolean;
 }
 
+interface SocialPost {
+  id: string;
+  title?: string;
+  content?: string;
+  contentType?: string;
+  platforms?: string[];
+  status?: string;
+  scheduledAt?: string;
+  publishedAt?: string;
+  createdAt?: string;
+}
+
+const PLATFORM_OPTIONS = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Zalo"];
+
 export default function SocialMediaManager({ backHref = "/dashboard/chairman/marketing" }: { backHref?: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"platforms" | "pixels" | "sharing">("platforms");
+  const [activeTab, setActiveTab] = useState<"posts" | "platforms" | "pixels" | "sharing">("posts");
   // Live connect/sync state
   const [connectForm, setConnectForm] = useState<{ id: string; pageId: string; token: string } | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
+
+  // Company posts (compose + list)
+  const emptyPost = { title: "", content: "", contentType: "post", platforms: [] as string[], hashtags: "", mediaUrl: "", linkUrl: "", scheduledAt: "" };
+  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [showCompose, setShowCompose] = useState(false);
+  const [savingPost, setSavingPost] = useState(false);
+  const [postError, setPostError] = useState("");
+  const [postForm, setPostForm] = useState(emptyPost);
+
+  const fetchPosts = async () => {
+    setPostsLoading(true);
+    try {
+      const data = await apiFetch("/api/social-media-posts", {}, { silent: true });
+      setPosts(Array.isArray(data) ? data : (data?.content || []));
+    } catch {
+      setPosts([]);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchPosts(); }, []);
+
+  const togglePostPlatform = (p: string) => {
+    setPostForm((f) => ({
+      ...f,
+      platforms: f.platforms.includes(p) ? f.platforms.filter((x) => x !== p) : [...f.platforms, p],
+    }));
+  };
+
+  const createPost = async (status: "draft" | "scheduled" | "published") => {
+    if (!postForm.content.trim()) { setPostError("Write some content first."); return; }
+    if (status === "scheduled" && !postForm.scheduledAt) { setPostError("Pick a date & time to schedule."); return; }
+    setSavingPost(true); setPostError("");
+    try {
+      await apiFetch("/api/social-media-posts", {
+        method: "POST",
+        body: JSON.stringify({
+          title: postForm.title || null,
+          content: postForm.content,
+          contentType: postForm.contentType,
+          platforms: postForm.platforms,
+          hashtags: postForm.hashtags ? postForm.hashtags.split(/[\s,]+/).filter(Boolean) : [],
+          mediaUrl: postForm.mediaUrl || null,
+          linkUrl: postForm.linkUrl || null,
+          scheduledAt: status === "scheduled" ? postForm.scheduledAt : null,
+          status,
+        }),
+      });
+      setShowCompose(false);
+      setPostForm(emptyPost);
+      await fetchPosts();
+    } catch (e) {
+      setPostError(e instanceof Error ? e.message : "Could not save this post.");
+    } finally {
+      setSavingPost(false);
+    }
+  };
 
   // Followers/engagement start as "—" (no data): followers are filled from the
   // backend's real followerCount in fetchSettings; engagement has no backend
@@ -270,6 +343,7 @@ export default function SocialMediaManager({ backHref = "/dashboard/chairman/mar
       <div className="max-w-6xl mx-auto px-6 pt-6">
         <div className="flex gap-2 border-b border-gray-200">
           {[
+            { id: "posts", label: "📝 Company Posts", desc: "Compose & schedule" },
             { id: "platforms", label: "🔗 Social Platforms", desc: "Links & profiles" },
             { id: "pixels", label: "📊 Tracking Pixels", desc: "Analytics & ads" },
             { id: "sharing", label: "🔄 Sharing Defaults", desc: "OG & meta tags" },
@@ -639,6 +713,181 @@ export default function SocialMediaManager({ backHref = "/dashboard/chairman/mar
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Company Posts Tab */}
+        {activeTab === "posts" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Company posts</h2>
+                <p className="text-sm text-gray-500">Compose, schedule and track posts across your channels.</p>
+              </div>
+              <button
+                onClick={() => { setPostError(""); setShowCompose((s) => !s); }}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700"
+              >
+                {showCompose ? "Close" : "✏️ Compose a post"}
+              </button>
+            </div>
+
+            {showCompose && (
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title (optional)</label>
+                  <input
+                    type="text" aria-label="Post title"
+                    value={postForm.title}
+                    onChange={(e) => setPostForm({ ...postForm, title: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="Internal title / campaign name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Content *</label>
+                  <textarea
+                    aria-label="Post content" rows={4}
+                    value={postForm.content}
+                    onChange={(e) => setPostForm({ ...postForm, content: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="What do you want to say? 🎉"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{postForm.content.length} characters</p>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <select
+                      aria-label="Content type"
+                      value={postForm.contentType}
+                      onChange={(e) => setPostForm({ ...postForm, contentType: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg bg-white"
+                    >
+                      {["post", "story", "reel", "video", "article", "carousel"].map((t) => (
+                        <option key={t} value={t}>{t[0].toUpperCase() + t.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Schedule for (optional)</label>
+                    <input
+                      type="datetime-local" aria-label="Schedule date and time"
+                      value={postForm.scheduledAt}
+                      onChange={(e) => setPostForm({ ...postForm, scheduledAt: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Channels</label>
+                  <div className="flex flex-wrap gap-2">
+                    {PLATFORM_OPTIONS.map((p) => (
+                      <button
+                        key={p} type="button" onClick={() => togglePostPlatform(p)}
+                        className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                          postForm.platforms.includes(p)
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+                        }`}
+                      >{p}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Media URL (optional)</label>
+                    <input
+                      type="url" aria-label="Media URL"
+                      value={postForm.mediaUrl}
+                      onChange={(e) => setPostForm({ ...postForm, mediaUrl: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      placeholder="https://…/image.jpg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Link (optional)</label>
+                    <input
+                      type="url" aria-label="Link URL"
+                      value={postForm.linkUrl}
+                      onChange={(e) => setPostForm({ ...postForm, linkUrl: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      placeholder="https://leraacademy.edu.vn/…"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hashtags (optional)</label>
+                  <input
+                    type="text" aria-label="Hashtags"
+                    value={postForm.hashtags}
+                    onChange={(e) => setPostForm({ ...postForm, hashtags: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="#LERA #EnglishForKids"
+                  />
+                </div>
+
+                {postError && <p className="text-sm text-red-600">{postError}</p>}
+
+                <div className="flex flex-wrap justify-end gap-3 pt-2">
+                  <button onClick={() => createPost("draft")} disabled={savingPost} className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50">
+                    Save draft
+                  </button>
+                  <button onClick={() => createPost("scheduled")} disabled={savingPost} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50">
+                    Schedule
+                  </button>
+                  <button onClick={() => createPost("published")} disabled={savingPost} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
+                    {savingPost ? "Saving…" : "Publish now"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Posts list */}
+            {postsLoading ? (
+              <div className="text-center py-10 text-gray-400">Loading posts…</div>
+            ) : posts.length === 0 ? (
+              <div className="text-center py-10 text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+                No posts yet — click <b>Compose a post</b> to create your first one.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {posts.map((post) => {
+                  const s = (post.status || "draft").toLowerCase();
+                  const badge =
+                    s === "published" ? "bg-green-100 text-green-800" :
+                    s === "scheduled" ? "bg-blue-100 text-blue-800" :
+                    s === "pending_approval" ? "bg-amber-100 text-amber-800" :
+                    s === "failed" ? "bg-red-100 text-red-800" :
+                    "bg-gray-100 text-gray-700";
+                  const when = post.publishedAt || post.scheduledAt || post.createdAt;
+                  return (
+                    <div key={post.id} className="bg-white border border-gray-200 rounded-xl p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          {post.title && <p className="font-semibold text-gray-900">{post.title}</p>}
+                          <p className="text-sm text-gray-700 line-clamp-2">{post.content}</p>
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            {(post.platforms || []).map((pl) => (
+                              <span key={pl} className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">{pl}</span>
+                            ))}
+                            {post.contentType && <span className="px-2 py-0.5 text-xs rounded-full bg-purple-50 text-purple-600">{post.contentType}</span>}
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <span className={`px-2 py-1 text-xs rounded-full ${badge}`}>{s.replace("_", " ")}</span>
+                          {when && <p className="text-xs text-gray-400 mt-1">{new Date(when).toLocaleString()}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
