@@ -2,6 +2,8 @@ package com.lera.identity_service.controller;
 
 import com.lera.identity_service.entity.TenantSettings;
 import com.lera.identity_service.repository.TenantSettingsRepository;
+import com.lera.identity_service.security.AuthUser;
+import com.lera.identity_service.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,30 +22,66 @@ import org.springframework.data.domain.Page;
 public class TenantSettingsController {
     
     private final TenantSettingsRepository tenantSettingsRepository;
-    
+
+    private static final String REDACTED = "••••••••";
+
+    /** Roles allowed to manage (write) tenant settings — those may also read encrypted VALUES.
+     *  TEACHER/STAFF can list settings but must not read encrypted secrets. */
+    private static final java.util.Set<String> SETTINGS_MANAGERS = java.util.Set.of(
+            "SUPER_ADMIN", "CHAIRMAN", "CEO", "DIRECTOR", "CENTER_MANAGER", "CENTER_ADMIN");
+
+    private static boolean callerCanSeeSecrets() {
+        return SecurityUtils.currentUser()
+                .map(AuthUser::getRoleName)
+                .map(r -> r != null && SETTINGS_MANAGERS.contains(r.toUpperCase()))
+                .orElse(false);
+    }
+
+    /** As-is for managers / non-encrypted; otherwise a DETACHED copy with the value masked
+     *  (never mutate the managed entity — open-in-view could flush a masked value to the DB). */
+    private static TenantSettings sanitize(TenantSettings s, boolean canSeeSecrets) {
+        if (canSeeSecrets || !Boolean.TRUE.equals(s.getIsEncrypted())) return s;
+        return TenantSettings.builder()
+                .id(s.getId())
+                .tenantId(s.getTenantId())
+                .settingKey(s.getSettingKey())
+                .settingValue(REDACTED)
+                .settingType(s.getSettingType())
+                .description(s.getDescription())
+                .isEncrypted(s.getIsEncrypted())
+                .updatedAt(s.getUpdatedAt())
+                .build();
+    }
+
     @GetMapping
     public ResponseEntity<List<TenantSettings>> getAllSettings(Pageable pageable) {
-        return ResponseEntity.ok(tenantSettingsRepository.findAll(pageable).getContent());
+        boolean canSeeSecrets = callerCanSeeSecrets();
+        return ResponseEntity.ok(tenantSettingsRepository.findAll(pageable).getContent()
+                .stream().map(s -> sanitize(s, canSeeSecrets)).toList());
     }
-    
+
     @GetMapping("/{id}")
     public ResponseEntity<TenantSettings> getSettingById(@PathVariable UUID id) {
+        boolean canSeeSecrets = callerCanSeeSecrets();
         return tenantSettingsRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(s -> ResponseEntity.ok(sanitize(s, canSeeSecrets)))
                 .orElse(ResponseEntity.notFound().build());
     }
-    
+
     @GetMapping("/tenant/{tenantId}")
     public ResponseEntity<List<TenantSettings>> getSettingsByTenantId(@PathVariable UUID tenantId) {
-        return ResponseEntity.ok(tenantSettingsRepository.findByTenantId(tenantId));
+        boolean canSeeSecrets = callerCanSeeSecrets();
+        return ResponseEntity.ok(tenantSettingsRepository.findByTenantId(tenantId)
+                .stream().map(s -> sanitize(s, canSeeSecrets)).toList());
     }
-    
+
     @GetMapping("/tenant/{tenantId}/key/{key}")
     public ResponseEntity<TenantSettings> getSettingByTenantAndKey(
-            @PathVariable UUID tenantId, 
+            @PathVariable UUID tenantId,
             @PathVariable String key) {
+        boolean canSeeSecrets = callerCanSeeSecrets();
         return tenantSettingsRepository.findByTenantIdAndSettingKey(tenantId, key)
-                .map(ResponseEntity::ok)
+                .map(s -> ResponseEntity.ok(sanitize(s, canSeeSecrets)))
                 .orElse(ResponseEntity.notFound().build());
     }
     

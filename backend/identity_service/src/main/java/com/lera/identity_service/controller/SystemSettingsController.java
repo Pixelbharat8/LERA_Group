@@ -3,6 +3,8 @@ package com.lera.identity_service.controller;
 import com.lera.identity_service.entity.SystemSettings;
 import com.lera.identity_service.model.ApiResponse;
 import com.lera.identity_service.repository.SystemSettingsRepository;
+import com.lera.identity_service.security.AuthUser;
+import com.lera.identity_service.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,9 +23,54 @@ public class SystemSettingsController {
 
     private final SystemSettingsRepository settingsRepository;
 
+    private static final String REDACTED = "••••••••";
+
+    /**
+     * Whether the caller may read secret setting VALUES. Mirrors the write gate
+     * (SUPER_ADMIN / CHAIRMAN) — writing the AI API key requires those roles, so reading it
+     * should too. Everyone else still reads non-secret settings (dropdowns, custom fields, public
+     * config) fully; only sensitive values are masked for them.
+     */
+    private static boolean callerCanSeeSecrets() {
+        return SecurityUtils.currentUser()
+                .map(AuthUser::getRoleName)
+                .map(r -> "SUPER_ADMIN".equalsIgnoreCase(r) || "CHAIRMAN".equalsIgnoreCase(r))
+                .orElse(false);
+    }
+
+    /** A non-public setting whose value is a credential/secret. */
+    private static boolean isSensitive(SystemSettings s) {
+        if (Boolean.TRUE.equals(s.getIsPublic())) return false;
+        String k = s.getSettingKey() == null ? "" : s.getSettingKey().toLowerCase();
+        String c = s.getCategory() == null ? "" : s.getCategory().toLowerCase();
+        return c.equals("ai") || c.contains("secret") || c.contains("credential")
+                || k.contains("api_key") || k.contains("apikey") || k.contains("secret")
+                || k.contains("password") || k.contains("passwd") || k.contains("token")
+                || k.contains("private_key");
+    }
+
+    /** As-is for admins / non-secrets; otherwise a DETACHED copy with the value masked (never mutate
+     *  the managed entity — with open-in-view a mutation could be flushed to the DB). */
+    private static SystemSettings sanitize(SystemSettings s, boolean canSeeSecrets) {
+        if (canSeeSecrets || !isSensitive(s)) return s;
+        return SystemSettings.builder()
+                .id(s.getId())
+                .settingKey(s.getSettingKey())
+                .settingValue(REDACTED)
+                .settingType(s.getSettingType())
+                .category(s.getCategory())
+                .description(s.getDescription())
+                .isPublic(s.getIsPublic())
+                .updatedBy(s.getUpdatedBy())
+                .updatedAt(s.getUpdatedAt())
+                .build();
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<SystemSettings>>> getAllSettings(Pageable pageable) {
-        List<SystemSettings> settings = settingsRepository.findAll(pageable).getContent();
+        boolean canSeeSecrets = callerCanSeeSecrets();
+        List<SystemSettings> settings = settingsRepository.findAll(pageable).getContent()
+                .stream().map(s -> sanitize(s, canSeeSecrets)).toList();
         return ResponseEntity.ok(ApiResponse.success(settings));
     }
 
@@ -35,14 +82,17 @@ public class SystemSettingsController {
 
     @GetMapping("/category/{category}")
     public ResponseEntity<ApiResponse<List<SystemSettings>>> getByCategory(@PathVariable String category) {
-        List<SystemSettings> settings = settingsRepository.findByCategory(category);
+        boolean canSeeSecrets = callerCanSeeSecrets();
+        List<SystemSettings> settings = settingsRepository.findByCategory(category)
+                .stream().map(s -> sanitize(s, canSeeSecrets)).toList();
         return ResponseEntity.ok(ApiResponse.success(settings));
     }
 
     @GetMapping("/key/{key}")
     public ResponseEntity<ApiResponse<SystemSettings>> getByKey(@PathVariable String key) {
+        boolean canSeeSecrets = callerCanSeeSecrets();
         return settingsRepository.findBySettingKey(key)
-                .map(s -> ResponseEntity.ok(ApiResponse.success(s)))
+                .map(s -> ResponseEntity.ok(ApiResponse.success(sanitize(s, canSeeSecrets))))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -124,10 +174,12 @@ public class SystemSettingsController {
 
     @GetMapping("/map")
     public ResponseEntity<Map<String, String>> getSettingsAsMap(Pageable pageable) {
+        boolean canSeeSecrets = callerCanSeeSecrets();
         List<SystemSettings> settings = settingsRepository.findAll(pageable).getContent();
         Map<String, String> map = new HashMap<>();
         for (SystemSettings s : settings) {
-            map.put(s.getSettingKey(), s.getSettingValue());
+            boolean mask = !canSeeSecrets && isSensitive(s);
+            map.put(s.getSettingKey(), mask ? REDACTED : s.getSettingValue());
         }
         return ResponseEntity.ok(map);
     }

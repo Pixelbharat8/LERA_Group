@@ -1,5 +1,6 @@
 package com.lera.connect_service.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -35,6 +36,9 @@ public class DeviceToken {
     @Column(nullable = false)
     private String platform;
 
+    // The raw push token is an opaque device credential — accept it on input (register), but never
+    // echo it back in responses (the /me and /user/{id} list endpoints return DeviceToken rows).
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(nullable = false, columnDefinition = "TEXT")
     private String token;
 
