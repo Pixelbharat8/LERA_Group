@@ -1,5 +1,6 @@
 package com.lera.identity_service.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -38,6 +39,9 @@ public class CustomFieldValue {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    // Read-only convenience association (customFieldId is the writable FK). LAZY + prod
+    // open-in-view=false would 500 on serialization; not consumed by clients, so ignore.
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "custom_field_id", insertable = false, updatable = false)
     private CustomField customField;

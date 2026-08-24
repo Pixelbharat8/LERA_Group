@@ -31,7 +31,10 @@ public class CustomField {
     @Column(nullable = false)
     private String fieldType; // text, number, date, select, multiselect, checkbox, textarea, email, phone, url, file
     
-    @ElementCollection
+    // EAGER (not the @ElementCollection default LAZY): the frontend needs these options to render
+    // select/multiselect fields, and prod open-in-view=false would otherwise 500 on serialization
+    // of an uninitialized bag. The collection is tiny (a field's option list), so EAGER is cheap.
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "custom_field_options", joinColumns = @JoinColumn(name = "field_id"))
     @Column(name = "option_value")
     private List<String> options; // for select/multiselect types
