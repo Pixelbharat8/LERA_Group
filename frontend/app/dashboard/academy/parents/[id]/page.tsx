@@ -29,6 +29,19 @@ interface Child {
   classId?: string;
   status: string;
   attendanceRate?: number;
+  // parent–child link (student_parents row)
+  linkId?: string;
+  relationship?: string;
+  isPrimary?: boolean;
+  isEmergencyContact?: boolean;
+  canPickup?: boolean;
+}
+
+interface StudentOption {
+  id: string;
+  fullname?: string;
+  name?: string;
+  studentCode?: string;
 }
 
 interface Payment {
@@ -77,9 +90,80 @@ export default function ParentProfilePage() {
     lateDays: 0
   });
 
+  // Parent–child link management (link/unlink + pickup/emergency flags)
+  const [showLink, setShowLink] = useState(false);
+  const [allStudents, setAllStudents] = useState<StudentOption[]>([]);
+  const [studentQuery, setStudentQuery] = useState("");
+  const [linkForm, setLinkForm] = useState({
+    studentId: "", relationship: "Guardian",
+    isPrimary: false, isEmergencyContact: false, canPickup: true,
+  });
+  const [savingLink, setSavingLink] = useState(false);
+  const [linkError, setLinkError] = useState("");
+
   useEffect(() => {
     fetchAllData();
   }, [parentId]);
+
+  const openLinkModal = async () => {
+    setLinkError("");
+    setStudentQuery("");
+    setLinkForm({ studentId: "", relationship: "Guardian", isPrimary: false, isEmergencyContact: false, canPickup: true });
+    setShowLink(true);
+    try {
+      const data = await apiFetch(`/api/students`);
+      setAllStudents(Array.isArray(data) ? data : []);
+    } catch {
+      setAllStudents([]);
+    }
+  };
+
+  const saveLink = async () => {
+    if (!linkForm.studentId) { setLinkError("Please choose a student first."); return; }
+    setSavingLink(true); setLinkError("");
+    try {
+      // Link on the parent's USER id (see the children-fetch note) so the parent portal sees it.
+      const parentUserId = parent?.userId || parentId;
+      await apiFetch(`/api/student-parents`, {
+        method: "POST",
+        body: JSON.stringify({
+          studentId: linkForm.studentId,
+          parentId: parentUserId,
+          relationship: linkForm.relationship,
+          isPrimary: linkForm.isPrimary,
+          isEmergencyContact: linkForm.isEmergencyContact,
+          canPickup: linkForm.canPickup,
+        }),
+      });
+      setShowLink(false);
+      await fetchAllData();
+    } catch (e) {
+      setLinkError(e instanceof Error ? e.message : "Could not link this child.");
+    } finally {
+      setSavingLink(false);
+    }
+  };
+
+  const unlinkChild = async (linkId?: string) => {
+    if (!linkId) return;
+    if (!confirm("Unlink this child from this parent? This removes the relationship, not the student.")) return;
+    try {
+      await apiFetch(`/api/student-parents/${linkId}`, { method: "DELETE" });
+      await fetchAllData();
+    } catch { /* global toast surfaces the error */ }
+  };
+
+  // Toggle a pickup/emergency/primary flag on an existing link (optimistic → refetch).
+  const toggleChildFlag = async (child: Child, field: "isPrimary" | "isEmergencyContact" | "canPickup") => {
+    if (!child.linkId) return;
+    try {
+      await apiFetch(`/api/student-parents/${child.linkId}`, {
+        method: "PUT",
+        body: JSON.stringify({ [field]: !child[field] }),
+      });
+      await fetchAllData();
+    } catch { /* global toast surfaces the error */ }
+  };
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -103,12 +187,16 @@ export default function ParentProfilePage() {
       
       setParent(enrichedParent);
 
-      // Fetch children via student-parents relationship
-      const studentParentsData = await apiFetch(`/api/student-parents?parentId=${parentId}`).catch(() => []);
+      // Fetch children via student-parents relationship.
+      // IMPORTANT: student_parents.parent_id is the parent's USER id (the portal + ParentProfile
+      // getChildren both key off userId), NOT the parent-profile id in the URL. Use userId so the
+      // admin view and the parent portal stay consistent.
+      const parentUserId = parentData?.userId || parentId;
+      const studentParentsData = await apiFetch(`/api/student-parents?parentId=${parentUserId}`).catch(() => []);
       const studentParents = Array.isArray(studentParentsData) ? studentParentsData : [];
       
       // Fetch details for each child
-      const childrenPromises = studentParents.map(async (sp: { studentId: string; relationship?: string }) => {
+      const childrenPromises = studentParents.map(async (sp: { id: string; studentId: string; relationship?: string; isPrimary?: boolean; isEmergencyContact?: boolean; canPickup?: boolean }) => {
         const studentData = await apiFetch(`/api/students/${sp.studentId}`).catch(() => null);
         if (studentData) {
           // Get student name from user if available
@@ -142,7 +230,12 @@ export default function ParentProfilePage() {
             className,
             classId: studentData.classId,
             status: studentData.status || "ACTIVE",
-            attendanceRate: Math.round((presentCount / totalRecords) * 100)
+            attendanceRate: Math.round((presentCount / totalRecords) * 100),
+            linkId: sp.id,
+            relationship: sp.relationship,
+            isPrimary: sp.isPrimary,
+            isEmergencyContact: sp.isEmergencyContact,
+            canPickup: sp.canPickup,
           };
         }
         return null;
@@ -397,36 +490,154 @@ export default function ParentProfilePage() {
 
           {activeTab === "children" && (
             <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900">Linked children ({children.length})</h3>
+                <button
+                  onClick={openLinkModal}
+                  className="px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700"
+                >
+                  + Link a child
+                </button>
+              </div>
               {children.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">No children linked to this parent</div>
+                <div className="text-center py-8 text-gray-500">
+                  No children linked yet — use “Link a child” to attach a student.
+                </div>
               ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {children.map(child => (
-                  <div key={child.id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-xl">
-                        👨‍🎓
+                  <div key={child.id} className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-xl">
+                          👨‍🎓
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{child.fullname}</p>
+                          <p className="text-sm text-gray-500">{child.studentCode} {child.className && `• ${child.className}`}</p>
+                          {child.attendanceRate !== undefined && (
+                            <p className="text-xs text-gray-500">Attendance: <span className={child.attendanceRate >= 90 ? "text-green-600" : child.attendanceRate >= 75 ? "text-yellow-600" : "text-red-600"}>{child.attendanceRate}%</span></p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{child.fullname}</p>
-                        <p className="text-sm text-gray-500">{child.studentCode} {child.className && `• ${child.className}`}</p>
-                        {child.attendanceRate !== undefined && (
-                          <p className="text-xs text-gray-500">Attendance: <span className={child.attendanceRate >= 90 ? "text-green-600" : child.attendanceRate >= 75 ? "text-yellow-600" : "text-red-600"}>{child.attendanceRate}%</span></p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <span className={`px-2 py-1 text-xs rounded-full ${
                         child.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
                       }`}>{child.status}</span>
+                    </div>
+
+                    {/* Relationship + pickup / emergency flags — click a chip to toggle */}
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                      {child.relationship && (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 font-medium">{child.relationship}</span>
+                      )}
+                      <button
+                        onClick={() => toggleChildFlag(child, "isPrimary")}
+                        title="Primary contact"
+                        className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${child.isPrimary ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-white text-gray-400 border-gray-200 hover:border-gray-300"}`}
+                      >★ Primary</button>
+                      <button
+                        onClick={() => toggleChildFlag(child, "isEmergencyContact")}
+                        title="Emergency contact"
+                        className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${child.isEmergencyContact ? "bg-red-100 text-red-700 border-red-200" : "bg-white text-gray-400 border-gray-200 hover:border-gray-300"}`}
+                      >🚨 Emergency</button>
+                      <button
+                        onClick={() => toggleChildFlag(child, "canPickup")}
+                        title="Authorized for pickup"
+                        className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${child.canPickup ? "bg-green-100 text-green-700 border-green-200" : "bg-white text-gray-400 border-gray-200 hover:border-gray-300"}`}
+                      >🚗 Pickup</button>
+                    </div>
+
+                    <div className="flex items-center gap-4 mt-3">
                       <Link href={`/dashboard/academy/students/${child.id}`} className="text-orange-600 hover:underline text-sm">
                         View Profile →
                       </Link>
+                      <button onClick={() => unlinkChild(child.linkId)} className="text-red-600 hover:underline text-sm">
+                        Unlink
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
               )}
+            </div>
+          )}
+
+          {/* Link-a-child modal */}
+          {showLink && (
+            <div className="fixed inset-0 z-[70] bg-black/40 flex items-center justify-center p-4" onClick={() => !savingLink && setShowLink(false)}>
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Link a child</h3>
+
+                <label className="block text-sm font-medium text-gray-700 mb-1">Student</label>
+                <input
+                  type="text"
+                  aria-label="Search students by name or code"
+                  placeholder="Search by name or code…"
+                  value={studentQuery}
+                  onChange={(e) => setStudentQuery(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg mb-2"
+                />
+                <div className="max-h-44 overflow-y-auto border rounded-lg divide-y mb-4">
+                  {allStudents
+                    .filter((s) => !children.some((c) => c.id === s.id))
+                    .filter((s) => {
+                      const q = studentQuery.trim().toLowerCase();
+                      if (!q) return true;
+                      return `${s.fullname || s.name || ""} ${s.studentCode || ""}`.toLowerCase().includes(q);
+                    })
+                    .slice(0, 40)
+                    .map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => setLinkForm({ ...linkForm, studentId: s.id })}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${linkForm.studentId === s.id ? "bg-orange-50 text-orange-700 font-medium" : "text-gray-700"}`}
+                      >
+                        {s.fullname || s.name || "Unnamed"} {s.studentCode ? `· ${s.studentCode}` : ""}
+                      </button>
+                    ))}
+                  {allStudents.length === 0 && (
+                    <div className="px-3 py-4 text-sm text-gray-400 text-center">No students found.</div>
+                  )}
+                </div>
+
+                <label className="block text-sm font-medium text-gray-700 mb-1">Relationship</label>
+                <select
+                  aria-label="Relationship to student"
+                  value={linkForm.relationship}
+                  onChange={(e) => setLinkForm({ ...linkForm, relationship: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg mb-4 bg-white"
+                >
+                  {["Mother", "Father", "Guardian", "Grandparent", "Sibling", "Other"].map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+
+                <div className="space-y-2 mb-5">
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" checked={linkForm.isPrimary} onChange={(e) => setLinkForm({ ...linkForm, isPrimary: e.target.checked })} />
+                    ★ Primary contact
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" checked={linkForm.isEmergencyContact} onChange={(e) => setLinkForm({ ...linkForm, isEmergencyContact: e.target.checked })} />
+                    🚨 Emergency contact
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" checked={linkForm.canPickup} onChange={(e) => setLinkForm({ ...linkForm, canPickup: e.target.checked })} />
+                    🚗 Authorized for pickup
+                  </label>
+                </div>
+
+                {linkError && <p className="text-sm text-red-600 mb-3">{linkError}</p>}
+
+                <div className="flex justify-end gap-3">
+                  <button onClick={() => setShowLink(false)} disabled={savingLink} className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium">
+                    Cancel
+                  </button>
+                  <button onClick={saveLink} disabled={savingLink || !linkForm.studentId} className="px-4 py-2 bg-orange-600 text-white text-sm font-semibold rounded-lg hover:bg-orange-700 disabled:opacity-50">
+                    {savingLink ? "Linking…" : "Link child"}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

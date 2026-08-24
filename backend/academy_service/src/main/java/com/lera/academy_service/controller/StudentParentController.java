@@ -99,6 +99,8 @@ public class StudentParentController {
         return studentParentRepository.findById(id).map(sp -> {
             if (details.getRelationship() != null) sp.setRelationship(details.getRelationship());
             if (details.getIsPrimary() != null) sp.setIsPrimary(details.getIsPrimary());
+            if (details.getIsEmergencyContact() != null) sp.setIsEmergencyContact(details.getIsEmergencyContact());
+            if (details.getCanPickup() != null) sp.setCanPickup(details.getCanPickup());
             return ResponseEntity.ok(studentParentRepository.save(sp));
         }).orElse(ResponseEntity.notFound().build());
     }
