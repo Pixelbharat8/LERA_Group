@@ -392,7 +392,7 @@ export default function ParentProfilePage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                    {child.fullname.charAt(0)}
+                    {(child.fullname || "?").charAt(0)}
                   </div>
                   <div>
                     <div className="font-semibold">{child.fullname}</div>

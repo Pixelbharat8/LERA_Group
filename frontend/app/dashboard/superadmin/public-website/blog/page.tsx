@@ -268,7 +268,7 @@ export default function BlogEditor() {
                     ? "bg-yellow-500 text-white"
                     : "bg-purple-500 text-white"
                 }`}>
-                  {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
+                  {(post.status || "").charAt(0).toUpperCase() + (post.status || "").slice(1)}
                 </span>
               </div>
             </div>

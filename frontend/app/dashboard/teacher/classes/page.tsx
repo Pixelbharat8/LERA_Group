@@ -502,7 +502,7 @@ export default function TeacherClassesPage() {
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium">
-                                      {student.fullname.charAt(0)}
+                                      {(student.fullname || "?").charAt(0)}
                                     </div>
                                     <div>
                                       <div className="font-medium text-gray-900">{student.fullname}</div>

@@ -622,7 +622,7 @@ export default function ClassProfilePage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm">
-                            {s.fullname.charAt(0)}
+                            {(s.fullname || "?").charAt(0)}
                           </div>
                           <div>
                             <span className="font-medium">{s.fullname}</span>

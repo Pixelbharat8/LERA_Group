@@ -152,7 +152,7 @@ export default function LeadershipContentPage() {
                   />
                 ) : (
                   <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center text-white text-4xl font-bold">
-                    {member.name.charAt(0)}
+                    {(member.name || "?").charAt(0)}
                   </div>
                 )}
               </div>

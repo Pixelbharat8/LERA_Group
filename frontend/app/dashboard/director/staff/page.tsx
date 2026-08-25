@@ -236,7 +236,7 @@ export default function DirectorStaffPage() {
                 <td className="py-4 px-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-lg font-medium">
-                      {member.fullname.charAt(0)}
+                      {(member.fullname || "?").charAt(0)}
                     </div>
                     <div>
                       <p className="font-medium">{member.fullname}</p>
@@ -277,7 +277,7 @@ export default function DirectorStaffPage() {
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center text-2xl font-bold">
-                  {selectedStaff.fullname.charAt(0)}
+                  {(selectedStaff.fullname || "?").charAt(0)}
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">{selectedStaff.fullname}</h2>

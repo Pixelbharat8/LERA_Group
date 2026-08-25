@@ -529,7 +529,7 @@ export default function ExecutiveAttendanceOverviewPage() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-xl">
-                                {record.userName.charAt(0)}
+                                {(record.userName || "?").charAt(0)}
                               </div>
                               <div>
                                 <p className="font-medium text-gray-900">{record.userName}</p>
