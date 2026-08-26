@@ -77,4 +77,11 @@ public class StudentDocument {
     public void setExpiryDate(LocalDate expiryDate) {
         this.expiresAt = expiryDate;
     }
+
+    // Guard: @Builder.Default is skipped on the @NoArgsConstructor path Jackson uses, so a
+    // @RequestBody insert omitting uploadedAt would persist null → NOT NULL violation (500).
+    @PrePersist
+    void onCreate() {
+        if (uploadedAt == null) uploadedAt = LocalDateTime.now();
+    }
 }
