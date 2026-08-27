@@ -104,9 +104,10 @@ export default function ClassroomsPage() {
         apiFetch(enrollmentsUrl).catch(() => []),
       ]);
 
-      const teachersArr = (Array.isArray(teachersData) ? teachersData : []).filter(
-        (t: any) => t.roleName === "TEACHER" || t.role?.name === "TEACHER" || t.roleId?.includes("teacher")
-      );
+      // /api/teachers already returns only teachers (each with fullname = displayName). The old
+      // roleName/role filter matched NOTHING (Teacher entity has no roleName) → empty teacher
+      // dropdowns (could not assign a teacher) and every class showed "Not Assigned".
+      const teachersArr = Array.isArray(teachersData) ? teachersData : [];
       setTeachers(teachersArr);
       
       const centersArr = Array.isArray(centersData) ? centersData : [];

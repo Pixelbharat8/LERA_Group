@@ -97,7 +97,16 @@ export default function StudentFeePlansPage() {
       setStudents(Array.isArray(studentsData) ? studentsData : []);
       setCourses(Array.isArray(coursesData) ? coursesData : []);
       setCenters(Array.isArray(centersData) ? centersData : []);
-      setFeePlans(Array.isArray(plansData) ? plansData : []);
+      // Map the StudentFeePlan entity (totalAmount/installments/planName) to the fields this page
+      // reads (finalAmount/baseAmount/planType/studentName) — sending them raw rendered ₫NaN and
+      // crashed the search on undefined studentName.
+      setFeePlans(Array.isArray(plansData) ? plansData.map((p: any) => ({
+        ...p,
+        finalAmount: p.finalAmount ?? p.totalAmount ?? 0,
+        baseAmount: p.baseAmount ?? p.totalAmount ?? 0,
+        planType: p.planType ?? "CUSTOM",
+        studentName: p.studentName ?? "",
+      })) : []);
     } catch (err) {
       console.error("Error fetching data:", err);
       setFeePlans([]);
@@ -144,7 +153,7 @@ export default function StudentFeePlansPage() {
   const filteredPlans = feePlans.filter(plan => {
     if (filterStatus !== "all" && plan.status !== filterStatus) return false;
     if (filterCenter !== "all" && plan.centerId !== filterCenter) return false;
-    if (searchQuery && !plan.studentName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (searchQuery && !(plan.studentName || "").toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
 
