@@ -240,13 +240,26 @@ export default function DiscountsPage() {
 
       await apiFetch(url, {
         method,
-        body: JSON.stringify(form)
+        // Map the form to the Discount entity field names (type->discountType, value->discountValue,
+        // usageLimit->maxUses, startDate->validFrom, endDate->validTo). Sending the raw form left the
+        // NOT NULL discountType/discountValue unset, so every save was silently rejected.
+        body: JSON.stringify({
+          name: form.name,
+          code: form.code,
+          discountType: form.type,
+          discountValue: form.value,
+          maxUses: form.usageLimit || null,
+          validFrom: form.startDate || null,
+          validTo: form.endDate || null,
+          description: form.description,
+        })
       });
 
       await fetchData();
       setShowModal(false);
     } catch (err) {
       console.error("Error saving discount:", err);
+      alert("Could not save the discount — please check the fields and try again.");
     }
   };
 

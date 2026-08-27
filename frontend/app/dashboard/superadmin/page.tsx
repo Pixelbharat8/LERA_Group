@@ -52,7 +52,7 @@ export default function SuperAdminDashboard() {
         const [centersData, studentsData, teachersData, paymentsData, enrollmentsData] = await Promise.all([
           apiFetch("/api/centers").catch(() => []),
           apiFetch("/api/students").catch(() => []),
-          apiFetch("/api/users?role=TEACHER").catch(() => []),
+          apiFetch("/api/teachers").catch(() => []),  // real teacher list (GET /api/users ignores ?role= and returns everyone)
           apiFetch("/api/payments").catch(() => []),
           apiFetch("/api/enrollments").catch(() => []),
         ]);

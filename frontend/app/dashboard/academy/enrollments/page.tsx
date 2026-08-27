@@ -19,7 +19,7 @@ interface Enrollment {
 interface Student {
   id: string;
   studentCode: string;
-  fullName: string;
+  fullname: string;
 }
 
 interface ClassItem {
@@ -153,9 +153,14 @@ export default function EnrollmentsPage() {
     }
   };
 
-  const filteredEnrollments = enrollments.filter(e =>
-    e.enrollmentCode?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredEnrollments = enrollments.filter(e => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    const name = (students.find(s => s.id === e.studentId)?.fullname || "").toLowerCase();
+    return name.includes(q)
+      || (e.studentId || "").toLowerCase().includes(q)
+      || (e.status || "").toLowerCase().includes(q);
+  });
 
   if (loading) {
     return (
@@ -184,7 +189,7 @@ export default function EnrollmentsPage() {
             rows={enrollments}
             columns={[
               { key: "enrollmentCode", label: "Code" },
-              { key: (e) => students.find((s) => s.id === e.studentId)?.fullName || e.studentId, label: "Student" },
+              { key: (e) => students.find((s) => s.id === e.studentId)?.fullname || e.studentId, label: "Student" },
               { key: (e) => classes.find((c) => c.id === e.classId)?.name || e.classId, label: "Class" },
               { key: "enrollmentDate", label: "Enrollment Date" },
               { key: "status", label: "Status" },
@@ -339,7 +344,7 @@ export default function EnrollmentsPage() {
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 >
                   <option value="">Select Student</option>
-                  {students.map(s => <option key={s.id} value={s.id}>{s.fullName || s.studentCode}</option>)}
+                  {students.map(s => <option key={s.id} value={s.id}>{s.fullname || s.studentCode}</option>)}
                 </select>
               </div>
               <div>

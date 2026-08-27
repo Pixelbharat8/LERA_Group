@@ -155,7 +155,13 @@ export default function ChairmanRolesPage() {
       let users: any[] = [];
       try {
         const data = await apiFetch(`/api/users?roleName=${role.name}`);
-        users = Array.isArray(data) ? data : data?.data || [];
+        const all = Array.isArray(data) ? data : data?.data || [];
+        // GET /api/users ignores ?roleName= and returns EVERY user, so filter client-side
+        // (otherwise every role shows the entire user list as its members).
+        users = all.filter((u: any) =>
+          u.roleName?.toUpperCase() === role.name?.toUpperCase() ||
+          u.role?.toUpperCase() === role.name?.toUpperCase()
+        );
       } catch {
         // Try fetching all users and filter by role
         const allData = await apiFetch("/api/users");

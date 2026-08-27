@@ -212,7 +212,7 @@ export default function DirectorsPage() {
         alert("Director updated successfully!");
       } else {
         const tempPassword = generateTempPassword();
-        await apiFetch("/api/users", {
+        await apiFetch("/api/auth/register", {
           method: "POST",
           body: JSON.stringify({
             ...payload,

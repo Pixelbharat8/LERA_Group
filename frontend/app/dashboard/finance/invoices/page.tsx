@@ -100,9 +100,11 @@ export default function InvoicesPage() {
       setStudents(Array.isArray(studentsData) ? studentsData : []);
       setCenters(Array.isArray(centersData) ? centersData : []);
       
-      if (Array.isArray(invoicesData)) {
+      // Backend returns a Spring Page for the org-wide (unpaginated-by-center) path; normalize.
+      const invoiceList = Array.isArray(invoicesData) ? invoicesData : ((invoicesData as any)?.content || []);
+      if (Array.isArray(invoiceList)) {
         // Map backend invoice format to frontend interface
-        setInvoices(invoicesData.map((inv: any) => ({
+        setInvoices(invoiceList.map((inv: any) => ({
           id: inv.id,
           invoiceNumber: inv.invoiceNumber || `INV-${inv.id?.slice(0, 8)}`,
           studentId: inv.studentId,
