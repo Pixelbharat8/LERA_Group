@@ -1,11 +1,11 @@
 # LERA Connect Service - Dockerfile v11
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM maven:3.9.12-eclipse-temurin-25 AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 RUN mvn -DskipTests package
 
-FROM eclipse-temurin:17-jdk-jammy
+FROM eclipse-temurin:25-jdk-jammy
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 # Healthcheck client (curl) + non-root user (uid 1001)

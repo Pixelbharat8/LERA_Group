@@ -130,8 +130,11 @@ class DiscountServiceTest {
 
     @Test
     void applyDiscount_shouldIncrementUses() {
+        when(discountRepository.claimUse(testDiscount.getId())).thenAnswer(invocation -> {
+            testDiscount.setCurrentUses(testDiscount.getCurrentUses() + 1);
+            return 1;
+        });
         when(discountRepository.findById(testDiscount.getId())).thenReturn(Optional.of(testDiscount));
-        when(discountRepository.save(any(Discount.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Optional<Discount> result = discountService.applyDiscount(testDiscount.getId());
         assertTrue(result.isPresent());

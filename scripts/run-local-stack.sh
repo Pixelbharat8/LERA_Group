@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run all LERA Spring Boot services + Next.js frontend against LOCAL PostgreSQL (no Docker).
-# Prerequisites: Java 17+, Maven, Node/npm, Postgres with database lera (see ensure-local-db.sh).
+# Prerequisites: Java 25+, Maven, Node/npm, Postgres with database lera (see ensure-local-db.sh).
 
 set -euo pipefail
 

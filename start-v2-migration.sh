@@ -48,7 +48,7 @@ fi
 
 # Check Java
 if ! command -v java &> /dev/null; then
-    echo -e "${RED}❌ Java not found. Please install Java 17+${NC}"
+    echo -e "${RED}❌ Java not found. Please install Java 25+${NC}"
     exit 1
 else
     JAVA_VERSION=$(java -version 2>&1 | head -n 1)

@@ -4,7 +4,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-green)](https://spring.io/projects/spring-boot)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)](https://www.postgresql.org/)
-[![Java](https://img.shields.io/badge/Java-17-orange)](https://openjdk.org/)
+[![Java](https://img.shields.io/badge/Java-25-orange)](https://openjdk.org/)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE)
 
 > **Full multi-tenant education, CRM, sports-management, and automation ecosystem**
@@ -184,7 +184,7 @@ LERA_Group/
 | **Docker Compose** | v2+ | Multi-container deployment |
 | **Git** | Latest | Version control |
 | **Node.js** | 18+ | Frontend development (optional) |
-| **Java** | 17 (Temurin) | Backend development (optional) |
+| **Java** | 25 (Temurin) | Backend development (optional) |
 | **Maven** | 3.9+ | Backend build (optional) |
 
 ---
