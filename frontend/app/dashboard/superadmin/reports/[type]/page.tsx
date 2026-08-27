@@ -169,7 +169,13 @@ export default function ReportTypePage() {
       const items = Array.isArray(result)
         ? result
         : (result?.items ?? result?.content ?? []);
-      setData(items);
+      // GET /api/users ignores ?role=X and returns EVERY user; if this report targets a role,
+      // filter client-side so e.g. the Staff report does not list all system users.
+      const roleMatch = config.apiPath.match(/[?&]role=([A-Z_]+)/);
+      const rows = roleMatch
+        ? items.filter((u: any) => (u.roleName || u.role || "").toUpperCase() === roleMatch[1])
+        : items;
+      setData(rows);
     } catch (err) {
       console.error("Error fetching report data:", err);
       setData([]);

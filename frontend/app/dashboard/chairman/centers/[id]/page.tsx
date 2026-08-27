@@ -118,7 +118,9 @@ export default function CenterProfilePage() {
 
       // Fetch potential managers for dropdown
       const managersData = await apiFetch("/api/users?role=CENTER_MANAGER").catch(() => []);
-      setManagers(Array.isArray(managersData) ? managersData : managersData?.data?.content || managersData?.data || []);
+      const managersRaw = Array.isArray(managersData) ? managersData : managersData?.data?.content || managersData?.data || [];
+      // GET /api/users ignores ?role= and returns everyone → filter to actual center managers.
+      setManagers(managersRaw.filter((u: any) => (u.roleName || u.role || "").toUpperCase() === "CENTER_MANAGER"));
 
     } catch (error) {
       console.error("Error fetching center data:", error);
