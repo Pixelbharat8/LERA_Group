@@ -14,7 +14,7 @@ describe("loadTeachersForChild", () => {
       if (url.startsWith("/api/enrollments")) return Promise.resolve([{ classId: "cl1" }, { classId: "cl2" }]);
       if (url === "/api/classes/cl1") return Promise.resolve({ name: "A1", teacherId: "t1" });
       if (url === "/api/classes/cl2") return Promise.resolve({ name: "A2", teacherId: "t1" });
-      if (url === "/api/teachers/t1") return Promise.resolve({ userId: "u1" });
+      if (url === "/api/teachers/t1/contact") return Promise.resolve({ userId: "u1" });
       if (url === "/api/users/u1")
         return Promise.resolve({ fullname: "Ms. Lan", email: "lan@x.com", phone: "0900" });
       return Promise.resolve(null);
@@ -44,7 +44,7 @@ describe("loadTeachersForChild", () => {
     apiFetch.mockImplementation((url: string) => {
       if (url.startsWith("/api/enrollments")) return Promise.resolve([{ classId: "cl1" }]);
       if (url === "/api/classes/cl1") return Promise.resolve({ name: "A1", teacherId: "t1" });
-      if (url === "/api/teachers/t1") return Promise.resolve({ userId: "u1" });
+      if (url === "/api/teachers/t1/contact") return Promise.resolve({ userId: "u1" });
       if (url === "/api/users/u1") return Promise.resolve({ email: "teacher.jo@x.com" });
       return Promise.resolve(null);
     });
