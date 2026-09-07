@@ -272,6 +272,16 @@ jobs:
             docker push ${{ secrets.DOCKER_USERNAME }}/lera_frontend:latest
           fi
 
+      # The nginx gateway is the ONLY task behind the ALB — without this image the
+      # ECS stack has nothing to route to. It was previously never built.
+      - name: Build, scan & push gateway image
+        run: |
+          if [ -f gateway/Dockerfile ]; then
+            docker build -t ${{ secrets.DOCKER_USERNAME }}/lera_gateway:latest gateway
+            trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ${{ secrets.DOCKER_USERNAME }}/lera_gateway:latest
+            docker push ${{ secrets.DOCKER_USERNAME }}/lera_gateway:latest
+          fi
+
   ###########################################################
   # 5. Deploy the hardened AWS infrastructure (CloudFormation).
   #    Self-gating: runs on push to main, but no-ops (success) until the
@@ -288,8 +298,9 @@ jobs:
         id: gate
         run: |
           if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ] \
-             || [ -z "${{ secrets.DB_PASSWORD }}" ] || [ -z "${{ secrets.JWT_SECRET }}" ]; then
-            echo "::notice::Deploy skipped — add repo secrets AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, DB_PASSWORD, JWT_SECRET to enable."
+             || [ -z "${{ secrets.DB_PASSWORD }}" ] || [ -z "${{ secrets.JWT_SECRET }}" ] \
+             || [ -z "${{ secrets.LERA_INTERNAL_API_KEY }}" ] || [ -z "${{ secrets.DOCKER_USERNAME }}" ]; then
+            echo "::notice::Deploy skipped — add repo secrets AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, DB_PASSWORD, JWT_SECRET, LERA_INTERNAL_API_KEY, DOCKER_USERNAME to enable."
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=true" >> "$GITHUB_OUTPUT"
@@ -307,7 +318,7 @@ jobs:
           # WAFv2 WebACL is Scope=CLOUDFRONT, which AWS only allows in us-east-1.
           aws-region: us-east-1
 
-      - name: Deploy CloudFormation stack (Multi-AZ RDS + WAF + VPC)
+      - name: Deploy CloudFormation stack (ECS Fargate + Multi-AZ RDS + WAF + VPC)
         if: steps.gate.outputs.enabled == 'true'
         run: |
           aws cloudformation deploy \
@@ -318,11 +329,32 @@ jobs:
             --parameter-overrides \
               Environment=prod \
               DBPassword='${{ secrets.DB_PASSWORD }}' \
-              JWTSecret='${{ secrets.JWT_SECRET }}'
+              JWTSecret='${{ secrets.JWT_SECRET }}' \
+              LeraInternalApiKey='${{ secrets.LERA_INTERNAL_API_KEY }}' \
+              ImageRegistry='${{ secrets.DOCKER_USERNAME }}'
+
+      # Roll the services onto the images this run just pushed. `aws cloudformation
+      # deploy` is a no-op when only the :latest image content changed, so force a
+      # new deployment per service.
+      - name: Roll ECS services onto the new images
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          CLUSTER=$(aws cloudformation describe-stacks --stack-name lera-prod \
+            --query "Stacks[0].Outputs[?OutputKey=='EcsClusterName'].OutputValue" --output text)
+          for svc in identity_service academy_service payment_service payroll_service \
+                     attendance_service connect_service ai_gateway rule_engine \
+                     social_media_service frontend gateway; do
+            aws ecs update-service --cluster "$CLUSTER" --service "$svc" \
+              --force-new-deployment --no-cli-pager >/dev/null
+            echo "rolling $svc"
+          done
 
       - name: Report stack status
         if: steps.gate.outputs.enabled == 'true'
         run: |
           aws cloudformation describe-stacks --stack-name lera-prod \
             --query "Stacks[0].StackStatus" --output text
+          echo "::notice::Public URL: $(aws cloudformation describe-stacks --stack-name lera-prod \
+            --query "Stacks[0].Outputs[?OutputKey=='FrontendURL'].OutputValue" --output text)"
           echo "::notice::Infra deployed. Next: run Flyway migrations against the RDS and roll out the pushed images on your compute layer (ECS/EC2/k8s)."
