@@ -19,6 +19,9 @@
 
  <properties>
     <java.version>25</java.version>
+    <!-- CVE-2026-54291 (HIGH) in the SCRAM client bundled by the JDBC driver.
+         Overrides the version managed by spring-boot-starter-parent. -->
+    <postgresql.version>42.7.12</postgresql.version>
      <lombok.version>1.18.46</lombok.version>
     <maven.compiler.proc>full</maven.compiler.proc>
  </properties>

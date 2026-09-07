@@ -15,7 +15,14 @@
  <artifactId>connect_service</artifactId>
  <version>1.0.0</version>
 
- <properties><java.version>25</java.version><lombok.version>1.18.46</lombok.version><maven.compiler.proc>full</maven.compiler.proc></properties>
+ <properties>
+        <java.version>25</java.version>
+        <lombok.version>1.18.46</lombok.version>
+        <maven.compiler.proc>full</maven.compiler.proc>
+        <!-- CVE-2026-54291 (HIGH) in the SCRAM client bundled by the JDBC driver.
+             Overrides the version managed by spring-boot-starter-parent. -->
+        <postgresql.version>42.7.12</postgresql.version>
+    </properties>
 
  <dependencies>
      <dependency>
@@ -121,15 +128,17 @@
             <artifactId>httpclient</artifactId>
             <version>4.5.14</version>
         </dependency>
+        <!-- 1.78.1 carried CVE-2025-14813 (CRITICAL, GOSTCTR). -->
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.78.1</version>
+            <version>1.84</version>
         </dependency>
+        <!-- 0.9.4 carried CVE-2024-29371 (HIGH, DoS via malicious JWE). -->
         <dependency>
             <groupId>org.bitbucket.b_c</groupId>
             <artifactId>jose4j</artifactId>
-            <version>0.9.4</version>
+            <version>0.9.6</version>
         </dependency>
     </dependencies>
 
