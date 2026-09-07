@@ -40,8 +40,7 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "shadcn-ui": "0.8.0",
-    "tailwindcss": "3.4.17",
-    "xlsx": "^0.18.5"
+    "tailwindcss": "3.4.17"
   },
   "devDependencies": {
     "@capacitor/assets": "3.0.5",
