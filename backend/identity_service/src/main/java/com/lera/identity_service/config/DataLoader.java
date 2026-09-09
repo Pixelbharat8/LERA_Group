@@ -23,6 +23,7 @@ public class DataLoader implements CommandLineRunner {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final com.lera.identity_service.repository.RolePermissionRepository rolePermissionRepository;
+    private final com.lera.identity_service.repository.PermissionRepository permissionRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${lera.seed.admin-password:}")
@@ -39,9 +40,41 @@ public class DataLoader implements CommandLineRunner {
     @Override
     public void run(String... args) {
         createDefaultRoles();
+        seedPermissionCatalog();
         createAdminUser();
         createChairmanAndCEO();
         seedRolePermissions();
+    }
+
+    /**
+     * Seed the `permissions` catalog — the list the Chairman's Roles &amp; Permissions grid
+     * renders. This used to live only in identity's data.sql, which meant it never loaded in
+     * any deployed profile (both prod and docker set spring.sql.init.mode=never), leaving the
+     * grid empty in production. It also duplicated {@link #ALL_CODES}, so the two could drift.
+     *
+     * Derived from ALL_CODES so there is a single source of truth, and idempotent, so it is
+     * safe on every boot and in every profile.
+     */
+    private void seedPermissionCatalog() {
+        int created = 0;
+        for (String code : ALL_CODES) {
+            if (permissionRepository.findByCode(code).isPresent()) continue;
+            String[] parts = code.split("\\.", 2);
+            String module = parts[0];
+            String action = parts.length > 1 ? parts[1] : code;
+            permissionRepository.save(com.lera.identity_service.entity.Permission.builder()
+                    .code(code)
+                    .name(capitalise(action) + " " + capitalise(module))
+                    .module(module.toUpperCase(java.util.Locale.ROOT))
+                    .description(capitalise(action) + " access for " + module)
+                    .build());
+            created++;
+        }
+        if (created > 0) log.info("Seeded {} permission catalog entries", created);
+    }
+
+    private static String capitalise(String s) {
+        return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
     // Permission catalog (must match permissions table codes).
