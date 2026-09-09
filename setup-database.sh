@@ -48,7 +48,7 @@ echo -e "${GREEN}✅ PostgreSQL is running${NC}"
 # Database configuration
 DB_NAME="lera"
 DB_USER="lera"
-DB_PASSWORD="lera123"
+DB_PASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}"
 DB_HOST="localhost"
 DB_PORT="5432"
 

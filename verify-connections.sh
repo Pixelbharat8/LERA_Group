@@ -164,7 +164,7 @@ if pg_isready -d lera >/dev/null 2>&1 && [ "$running_count" -gt 0 ] && [ "$respo
     echo "   • Frontend: http://localhost:3000"
     echo "   • Identity API: http://localhost:8080"
     echo "   • Academy API: http://localhost:8081"
-    echo "   • Login: admin@lera.com / admin123"
+    echo "   • Login: admin@lera.com / <see LERA_SEED_ADMIN_PASSWORD>"
 else
     echo -e "${YELLOW}⚠️  SYSTEM NOT FULLY OPERATIONAL${NC}"
     echo ""

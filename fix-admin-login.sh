@@ -15,7 +15,7 @@ echo ""
 
 psql -h localhost -U lera -d lera << 'EOF'
 -- Create super admin user with proper bcrypt hash
--- Password: admin123
+-- Password: <see LERA_SEED_ADMIN_PASSWORD>
 -- Bcrypt hash generated with: $2a$10$N9qo8uLOickgx2ZMRZoMye
 INSERT INTO users (id, email, password, full_name, role_id, is_active, created_at, updated_at)
 SELECT 
@@ -55,7 +55,7 @@ echo ""
 echo "📋 Login Credentials:"
 echo "   URL: http://localhost:3000/auth/login"
 echo "   Email: admin@lera.com"
-echo "   Password: admin123"
+echo "   Password: <see LERA_SEED_ADMIN_PASSWORD>"
 echo ""
 echo "🎯 Dashboard: http://localhost:3000/dashboard/superadmin"
 echo ""

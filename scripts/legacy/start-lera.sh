@@ -29,7 +29,7 @@ DB_HOST="localhost"
 DB_PORT="5432"
 DB_NAME="lera"
 DB_USER="lera"
-DB_PASSWORD="lera123"
+DB_PASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}"
 
 # Service ports (aligned with backend application.properties & frontend next.config.js)
 FRONTEND_PORT=3000

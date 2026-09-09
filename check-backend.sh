@@ -34,7 +34,7 @@ echo ""
 echo "🔐 Testing Login API..."
 login_response=$(curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@lera.com","password":"admin123"}')
+  -d "{\"email\":\"admin@lera.com\",\"password\":\"${ADMIN_PASSWORD:?ADMIN_PASSWORD not set - see LERA_SEED_ADMIN_PASSWORD in .env.example}\"}")
 
 if echo "$login_response" | grep -q '"success":true'; then
   echo "✅ Login API: Working"
@@ -61,6 +61,6 @@ echo "=================================="
 echo "📋 Login Instructions:"
 echo "   1. Go to: http://localhost:3000/auth/login"
 echo "   2. Email: admin@lera.com"
-echo "   3. Password: admin123"
+echo "   3. Password: <see LERA_SEED_ADMIN_PASSWORD>"
 echo "   4. You'll be redirected to: /dashboard/superadmin"
 echo "=================================="

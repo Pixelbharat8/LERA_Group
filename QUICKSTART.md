@@ -40,14 +40,14 @@ That's it! Everything is now running.
 
 ### PgAdmin
 - Email: `admin@lera.com`
-- Password: `admin123`
+- Password: `<LERA_SEED_ADMIN_PASSWORD>`
 
 ### Database (from PgAdmin)
 - Host: `postgres` (NOT localhost!)
 - Port: `5432`
 - Database: `lera`
 - Username: `lera`
-- Password: `lera123`
+- Password: `<DB_PASSWORD from .env.example>`
 
 ---
 

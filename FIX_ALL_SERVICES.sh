@@ -114,7 +114,7 @@ if [ $build_failed -eq 0 ]; then
     echo "   cd $SCRIPT_DIR/frontend && npm run dev"
     echo ""
     echo "   Then open: http://localhost:3000"
-    echo "   Login: admin@lera.com / admin123"
+    echo "   Login: admin@lera.com / <see LERA_SEED_ADMIN_PASSWORD>"
     echo ""
 else
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

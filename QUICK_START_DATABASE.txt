@@ -20,7 +20,7 @@ Host:     localhost
 Port:     5432
 Database: lera
 Username: lera
-Password: lera123
+Password: <see DB_PASSWORD in .env.example>
 
 
 💻 CONNECT VIA TERMINAL
@@ -34,7 +34,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/lera
     username: lera
-    password: lera123
+    password: <DB_PASSWORD>
 
 
 🎯 USEFUL COMMANDS

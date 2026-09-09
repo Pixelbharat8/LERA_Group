@@ -112,7 +112,7 @@ check_disk() {
 
 access_postgres() {
     echo -e "${GREEN}🗄️  Accessing PostgreSQL CLI...${NC}"
-    echo -e "${YELLOW}Database: lera | User: lera | Password: lera123${NC}"
+    echo -e "${YELLOW}Database: lera | User: lera | Password: <see DB_PASSWORD in .env.example>${NC}"
     docker compose exec postgres psql -U lera -d lera
 }
 

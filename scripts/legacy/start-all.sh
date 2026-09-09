@@ -13,7 +13,7 @@ LOG_DIR="$ROOT_DIR/logs"
 # Database config
 DB_NAME="lera"
 DB_USER="lera"
-DB_PASS="lera123"
+DB_PASS="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}"
 DB_PORT="5432"
 
 # Colors

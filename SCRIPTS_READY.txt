@@ -42,7 +42,7 @@ Step 7: 📋 Display connection details
    Port: 5432
    Database: lera
    Username: lera
-   Password: lera123
+   Password: <see DB_PASSWORD in .env.example>
 
 📊 Database Status:
    Tables: 107/107
@@ -53,7 +53,7 @@ Step 7: 📋 Display connection details
 ─────────────────────────────────────────────────────────────────
 
 psql -h localhost -U lera -d lera
-Password: lera123
+Password: <see DB_PASSWORD in .env.example>
 
 
 ⚡ QUICK VERIFICATION:

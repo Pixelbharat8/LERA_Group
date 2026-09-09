@@ -49,7 +49,7 @@ fi
 MIGRATION_FILE="backend/academy_service/src/main/resources/db/migration/V20250115__form_configuration_and_activity.sql"
 if [ -f "$MIGRATION_FILE" ]; then
     log "Running migration: $MIGRATION_FILE"
-    PGPASSWORD=lera123 psql -h localhost -U lera -d lera -f "$MIGRATION_FILE" 2>/dev/null || warn "Migration may already be applied"
+    PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -f "$MIGRATION_FILE" 2>/dev/null || warn "Migration may already be applied"
 else
     warn "Migration file not found: $MIGRATION_FILE"
 fi

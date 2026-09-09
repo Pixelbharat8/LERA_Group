@@ -178,7 +178,7 @@ cat << 'EOF'
 │     Expected: {"status":"UP"}                                              │
 │                                                                              │
 │  2. DATABASE CONNECTION:                                                    │
-│     PGPASSWORD=lera123 psql -h localhost -U lera -d lera                  │
+│     PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera                  │
 │     \dt leads;  (should show leads table)                                   │
 │                                                                              │
 │  3. LIST LEADS:                                                             │
@@ -212,7 +212,7 @@ cat << 'EOF'
 │         • Restart service: killall java                                     │
 │                                                                              │
 │  ISSUE: Database errors                                                    │
-│  FIX:   • Verify DB exists: PGPASSWORD=lera123 psql -l                    │
+│  FIX:   • Verify DB exists: PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -l                    │
 │         • Check DB connection: psql -h localhost -U lera -d lera           │
 │         • Restart PostgreSQL: brew services restart postgresql@15          │
 │                                                                              │

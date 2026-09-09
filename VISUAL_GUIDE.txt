@@ -75,7 +75,7 @@
    
    Login:
    📧 Email: admin@lera.com
-   🔑 Password: admin123
+   🔑 Password: <see LERA_SEED_ADMIN_PASSWORD>
 
 
 ┌─────────────────────────────────────────────────────────────────┐

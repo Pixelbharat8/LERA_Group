@@ -77,7 +77,7 @@ DB_PORT=${DB_PORT:-5432}
 
 echo -e "${BLUE}Running: pg_dump -h $DB_HOST -p $DB_PORT -U $DB_USER $DB_NAME > $BACKUP_FILE${NC}"
 
-PGPASSWORD=lera123 pg_dump -h $DB_HOST -p $DB_PORT -U $DB_USER $DB_NAME > $BACKUP_FILE
+PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" pg_dump -h $DB_HOST -p $DB_PORT -U $DB_USER $DB_NAME > $BACKUP_FILE
 
 if [ $? -eq 0 ]; then
     BACKUP_SIZE=$(du -h $BACKUP_FILE | cut -f1)
@@ -100,14 +100,14 @@ if [ "$CREATE_STAGING" = "y" ]; then
     echo -e "Creating staging database: ${BLUE}$STAGING_DB${NC}"
     
     # Drop if exists
-    PGPASSWORD=lera123 psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "DROP DATABASE IF EXISTS $STAGING_DB;" 2>/dev/null || true
+    PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "DROP DATABASE IF EXISTS $STAGING_DB;" 2>/dev/null || true
     
     # Create new database
-    PGPASSWORD=lera123 psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "CREATE DATABASE $STAGING_DB;"
+    PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "CREATE DATABASE $STAGING_DB;"
     
     # Restore backup to staging
     echo -e "${BLUE}Restoring backup to staging...${NC}"
-    PGPASSWORD=lera123 psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB < $BACKUP_FILE
+    PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB < $BACKUP_FILE
     
     echo -e "${GREEN}✅ Staging database created: $STAGING_DB${NC}"
 fi
@@ -125,7 +125,7 @@ if [ -f "database/init/migration_v1_to_v2.sql" ]; then
     
     if [ "$RUN_MIGRATION" = "y" ]; then
         echo -e "${BLUE}Running migration...${NC}"
-        PGPASSWORD=lera123 psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB < database/init/migration_v1_to_v2.sql
+        PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB < database/init/migration_v1_to_v2.sql
         
         if [ $? -eq 0 ]; then
             echo -e "${GREEN}✅ Migration completed successfully${NC}"
@@ -147,17 +147,17 @@ if [ "$CREATE_STAGING" = "y" ] && [ "$RUN_MIGRATION" = "y" ]; then
     echo -e "${BLUE}Running verification queries...${NC}"
     
     # Check tenant table
-    TENANT_COUNT=$(PGPASSWORD=lera123 psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB -t -c "SELECT COUNT(*) FROM tenants;")
+    TENANT_COUNT=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB -t -c "SELECT COUNT(*) FROM tenants;")
     echo -e "Tenants created: ${GREEN}$TENANT_COUNT${NC}"
     
     # Check users with tenant
-    USER_COUNT=$(PGPASSWORD=lera123 psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB -t -c "SELECT COUNT(*) FROM users WHERE tenant_id IS NOT NULL;")
-    TOTAL_USERS=$(PGPASSWORD=lera123 psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB -t -c "SELECT COUNT(*) FROM users;")
+    USER_COUNT=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB -t -c "SELECT COUNT(*) FROM users WHERE tenant_id IS NOT NULL;")
+    TOTAL_USERS=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB -t -c "SELECT COUNT(*) FROM users;")
     echo -e "Users migrated: ${GREEN}$USER_COUNT / $TOTAL_USERS${NC}"
     
     # Check students with tenant
-    STUDENT_COUNT=$(PGPASSWORD=lera123 psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB -t -c "SELECT COUNT(*) FROM students WHERE tenant_id IS NOT NULL;")
-    TOTAL_STUDENTS=$(PGPASSWORD=lera123 psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB -t -c "SELECT COUNT(*) FROM students;")
+    STUDENT_COUNT=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB -t -c "SELECT COUNT(*) FROM students WHERE tenant_id IS NOT NULL;")
+    TOTAL_STUDENTS=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h $DB_HOST -p $DB_PORT -U $DB_USER $STAGING_DB -t -c "SELECT COUNT(*) FROM students;")
     echo -e "Students migrated: ${GREEN}$STUDENT_COUNT / $TOTAL_STUDENTS${NC}"
     
     if [ "$USER_COUNT" = "$TOTAL_USERS" ] && [ "$STUDENT_COUNT" = "$TOTAL_STUDENTS" ]; then

@@ -20,7 +20,7 @@ register_response=$(curl -s -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@lera.com",
-    "password": "admin123",
+    "password": "<LERA_SEED_ADMIN_PASSWORD>",
     "fullname": "Super Administrator",
     "roleName": "SUPER_ADMIN",
     "centerId": null
@@ -37,7 +37,7 @@ login_response=$(curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@lera.com",
-    "password": "admin123"
+    "password": "<LERA_SEED_ADMIN_PASSWORD>"
   }')
 
 echo "Login Response:"
@@ -53,7 +53,7 @@ if echo "$login_response" | grep -q '"success":true'; then
   echo ""
   echo "📋 Login Credentials:"
   echo "   Email: admin@lera.com"
-  echo "   Password: admin123"
+  echo "   Password: <see LERA_SEED_ADMIN_PASSWORD>"
   echo ""
   echo "🌐 Login URL: http://localhost:3000/auth/login"
   echo ""

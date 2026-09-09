@@ -78,7 +78,7 @@ test_db_query() {
     
     log_test "$name"
     
-    local result=$(PGPASSWORD=lera123 psql -h localhost -U lera -d lera -tc "$query" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+    local result=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -tc "$query" 2>/dev/null | grep -oE '[0-9]+' | head -1)
     
     if [ -z "$result" ]; then
         log_fail "$name: query failed"
@@ -281,7 +281,7 @@ fi
 echo ""
 echo -e "${GREEN}Next Steps:${NC}"
 echo "1. Open http://localhost:3000 in your browser"
-echo "2. Login with: admin@lera.com / admin123"
+echo "2. Login with: admin@lera.com / <see LERA_SEED_ADMIN_PASSWORD>"
 echo "3. Navigate to SuperAdmin dashboard"
 echo "4. Verify all pages show data:"
 echo "   - Teachers (should show 3)"

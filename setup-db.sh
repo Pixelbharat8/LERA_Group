@@ -6,7 +6,7 @@
 
 DB_NAME="lera"
 DB_USER="lera"
-DB_PASS="lera123"
+DB_PASS="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}"
 DB_PORT="5432"
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -204,7 +204,7 @@ if [ -n "$TABLE_COUNT" ] && [ "$TABLE_COUNT" -gt 0 ] 2>/dev/null; then
   echo -e "${GREEN}  ✅ Tables in database: ${TABLE_COUNT}${NC}"
 else
   echo -e "${RED}  ❌ Could not verify database. Check connection manually:${NC}"
-  echo -e "${YELLOW}     PGPASSWORD=lera123 psql -U lera -d lera -h localhost -p 5432${NC}"
+  echo -e "${YELLOW}     PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -U lera -d lera -h localhost -p 5432${NC}"
 fi
 
 echo ""

@@ -63,7 +63,7 @@ if [ "$JAVA_COUNT" -eq 6 ] && [ "$NODE_COUNT" -ge 1 ]; then
     echo "✅ ALL SYSTEMS OPERATIONAL!"
     echo ""
     echo "🌐 Open: http://localhost:3000"
-    echo "👤 Login: admin@lera.com / admin123"
+    echo "👤 Login: admin@lera.com / <see LERA_SEED_ADMIN_PASSWORD>"
 else
     echo "⚠️  Some services are not running"
     echo ""

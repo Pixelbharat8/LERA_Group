@@ -160,7 +160,7 @@ echo "╚═══════════════════════�
 echo ""
 echo "📋 Access the application:"
 echo "   🌐 Frontend: http://localhost:3000"
-echo "   👤 Login: admin@lera.com / admin123"
+echo "   👤 Login: admin@lera.com / <see LERA_SEED_ADMIN_PASSWORD>"
 echo ""
 echo "📝 View Logs:"
 echo "   tail -f /tmp/identity_service.log"

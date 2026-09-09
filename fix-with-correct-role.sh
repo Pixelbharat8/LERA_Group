@@ -66,7 +66,7 @@ echo ""
 
 response=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@lera.com","password":"admin123"}')
+  -d "{\"email\":\"admin@lera.com\",\"password\":\"${ADMIN_PASSWORD:?ADMIN_PASSWORD not set - see LERA_SEED_ADMIN_PASSWORD in .env.example}\"}")
 
 http_code=$(echo "$response" | grep "HTTP_CODE" | cut -d: -f2)
 body=$(echo "$response" | grep -v "HTTP_CODE")
@@ -82,12 +82,12 @@ if [ "$http_code" = "200" ]; then
   echo ""
   echo "📋 Login at: http://localhost:3000/auth/login"
   echo "   Email: admin@lera.com"
-  echo "   Password: admin123"
+  echo "   Password: <see LERA_SEED_ADMIN_PASSWORD>"
 else
   echo "❌ Still failing - checking what's wrong..."
   echo ""
   echo "Trying existing user:"
   curl -s -X POST http://localhost:8080/api/auth/login \
     -H "Content-Type: application/json" \
-    -d '{"email":"admin@lera.edu.vn","password":"admin123"}' | jq .
+    -d '{"email":"admin@lera.edu.vn","password":"<LERA_SEED_ADMIN_PASSWORD>"}' | jq .
 fi

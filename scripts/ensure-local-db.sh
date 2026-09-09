@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Verify local PostgreSQL is running and the LERA app user/db exist.
-# Uses the same credentials as Spring Boot defaults: user lera, password lera123, DB lera.
+# Uses the same credentials as Spring Boot defaults: user lera, password <DB_PASSWORD>, DB lera.
 
 set -euo pipefail
 
@@ -8,7 +8,7 @@ HOST="${DB_HOST:-127.0.0.1}"
 PORT="${DB_PORT:-5432}"
 USER_NAME="${DB_USER:-lera}"
 DB_NAME="${DB_NAME:-lera}"
-export PGPASSWORD="${DB_PASSWORD:-lera123}"
+export PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}"
 
 if ! command -v psql >/dev/null 2>&1; then
   echo "ERROR: psql not found. Install PostgreSQL (e.g. brew install postgresql@15)."
@@ -31,7 +31,7 @@ fi
 
 echo "ERROR: Cannot connect with: psql -h $HOST -p $PORT -U $USER_NAME -d $DB_NAME"
 echo "Create role and database once (connect as your superuser, often your macOS user):"
-echo "  psql postgres -c \"CREATE USER lera WITH PASSWORD 'lera123';\"  # ignore error if exists"
-echo "  psql postgres -c \"ALTER USER lera WITH PASSWORD 'lera123';\""
+echo "  psql postgres -c \"CREATE USER lera WITH PASSWORD '<DB_PASSWORD>';\"  # ignore error if exists"
+echo "  psql postgres -c \"ALTER USER lera WITH PASSWORD '<DB_PASSWORD>';\""
 echo "  psql postgres -c \"CREATE DATABASE lera OWNER lera;\"  # ignore error if exists"
 exit 1

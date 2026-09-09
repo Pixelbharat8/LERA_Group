@@ -178,8 +178,8 @@ else
     fail "Docker: POSTGRES_USER incorrect"
   fi
 
-  if grep -q "POSTGRES_PASSWORD: lera123" "$DOCKER_FILE"; then
-    ok "Docker: POSTGRES_PASSWORD = lera123"
+  if grep -q "POSTGRES_PASSWORD: <DB_PASSWORD>" "$DOCKER_FILE"; then
+    ok "Docker: POSTGRES_PASSWORD = <DB_PASSWORD>"
   else
     fail "Docker: POSTGRES_PASSWORD incorrect"
   fi

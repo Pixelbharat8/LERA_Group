@@ -153,7 +153,7 @@ cat << 'EOF'
 │                                                                              │
 │  Open Frontend:                                                             │
 │  http://localhost:3000                                                     │
-│  admin@lera.com / admin123                                                 │
+│  admin@lera.com / <see LERA_SEED_ADMIN_PASSWORD>                                                 │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
 
