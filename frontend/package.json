@@ -30,17 +30,21 @@
     "@capacitor/preferences": "6.0.3",
     "@capacitor/push-notifications": "6.0.3",
     "@stomp/stompjs": "^7.0.0",
-    "axios": "1.16.0",
+    "axios": "1.20.0",
     "bcryptjs": "2.4.3",
     "clsx": "2.1.1",
     "isomorphic-dompurify": "^3.18.0",
     "js-cookie": "3.0.7",
     "lucide-react": "^0.562.0",
-    "next": "14.2.35",
+    "next": "15.5.25",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "shadcn-ui": "0.8.0",
     "tailwindcss": "3.4.17"
+  },
+  "_comment_overrides": "next 15.5.25 bundles postcss 8.4.31, which carries 4 HIGH advisories (sourceMappingURL path traversal / arbitrary .map disclosure, </style> XSS) fixed in 8.5.23+. npm's only suggested fix is next@16. postcss 8.x is semver-compatible, so we force the nested copy up instead; build and tests verified against it. Drop this once Next ships a patched postcss.",
+  "overrides": {
+    "postcss": "8.5.28"
   },
   "devDependencies": {
     "@capacitor/assets": "3.0.5",
@@ -58,9 +62,9 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "10.4.21",
     "eslint": "^8.57.1",
-    "eslint-config-next": "14.2.35",
+    "eslint-config-next": "15.5.25",
     "jsdom": "^29.1.1",
-    "postcss": "8.5.12",
+    "postcss": "8.5.28",
     "typescript": "5.7.3",
     "vitest": "^2.1.9",
     "web-push": "3.6.7"

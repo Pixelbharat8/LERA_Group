@@ -12,11 +12,12 @@ function plain(text: unknown): string {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const canonical = `/blog/${params.slug}`;
+  const { slug } = await params;
+  const canonical = `/blog/${slug}`;
   try {
-    const res = await fetch(`${ACADEMY}/api/blog/slug/${params.slug}`, { cache: "no-store" });
+    const res = await fetch(`${ACADEMY}/api/blog/slug/${slug}`, { cache: "no-store" });
     if (res.ok) {
       const post: any = await res.json();
       const title = post.title || post.titleEn || "Article";
