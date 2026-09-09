@@ -70,6 +70,30 @@ async function stubPublicApis(page: import('@playwright/test').Page) {
     await route.continue();
   });
 
+  // The public pages animate (gradient buttons with `transition-all hover:scale-105`,
+  // hero aurora, scroll reveals). Playwright's click waits for an element to be
+  // "stable" — i.e. to stop moving between two animation frames — so a element that
+  // is still easing can burn the whole 30s budget and time out even though it is
+  // visible and enabled. That made the course-registration test flaky: it passed
+  // locally and failed in CI on the same commit. Collapsing animation/transition
+  // durations to zero removes the timing dependency without weakening any assertion.
+  await page.addInitScript(() => {
+    const css = `*, *::before, *::after {
+      animation-duration: 0s !important;
+      animation-delay: 0s !important;
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+      scroll-behavior: auto !important;
+    }`;
+    const inject = () => {
+      const style = document.createElement('style');
+      style.textContent = css;
+      document.head.appendChild(style);
+    };
+    if (document.head) inject();
+    else document.addEventListener('DOMContentLoaded', inject, { once: true });
+  });
+
   return leads;
 }
 
@@ -122,6 +146,8 @@ test.describe('smoke', () => {
     await fields.nth(4).fill('8');
     await fields.nth(5).fill('Weekday evenings');
     const form = page.locator('form').first();
+    // PDPD consent gates submit (disabled={submitting || !consent}) — see 9861cce.
+    await form.locator('input[type="checkbox"]').check();
     await form.locator('button[type="submit"]').click();
 
     await expect.poll(() => leads.length).toBe(1);
@@ -143,6 +169,9 @@ test.describe('smoke', () => {
     await fields.nth(0).fill('Placement Parent');
     await fields.nth(1).fill('0901234569');
     await fields.nth(2).fill('placement@example.com');
+    // PDPD consent gates submit — without it the button stays disabled and the
+    // `button:not([disabled])` selector below matches something else entirely.
+    await page.locator('main input[type="checkbox"]').check();
     await page.locator('main button:not([disabled])').last().click();
 
     await expect.poll(() => leads.length).toBe(1);
@@ -164,6 +193,8 @@ test.describe('smoke', () => {
     await fields.nth(1).fill('contact@example.com');
     await fields.nth(2).fill('Course enquiry');
     await fields.nth(3).fill('Please contact me about classes.');
+    // PDPD consent gates submit (disabled={isSubmitting || !consent}).
+    await form.locator('input[type="checkbox"]').check();
     await form.locator('button[type="submit"]').click();
 
     await expect.poll(() => leads.length).toBe(1);
