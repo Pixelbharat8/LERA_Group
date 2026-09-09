@@ -9,10 +9,57 @@
 # Prefer not to manage certs yourself? Skip this file and put the domain behind
 # Cloudflare (orange-cloud) pointing at the server — the base gateway on :80 is enough.
 
+# =============================================================================
+# PROFILE: this overlay switches every backend from `docker` to `prod`.
+#
+# The base compose runs SPRING_PROFILES_ACTIVE=docker, which is right for local
+# containerised development but NOT for a public deployment:
+#
+#   * 8 of the 9 services inherit `spring.sql.init.mode=always` from
+#     application.properties (only identity overrides it in the docker profile),
+#     so every boot re-runs data.sql — which inserts FAKE students, teachers,
+#     payments, refunds, ledger entries and salaries. Because those rows use
+#     gen_random_uuid() ids, ON CONFLICT never matches and the fake data
+#     MULTIPLIES on each restart (this is what put 14x duplicate payments in the
+#     dev database). The prod profile sets sql.init.mode=never.
+#   * Only identity's docker profile pins `lera.cookies.secure` and
+#     `lera.security.trusted-proxy`; the prod profile sets them everywhere, which
+#     matters because Caddy terminates TLS and forwards X-Forwarded-For.
+#   * prod also drops logging to WARN and keeps API-docs off across the board.
+#
+# The base compose already supplies DB_HOST/DB_NAME/DB_USER/DB_PASSWORD/JWT_SECRET,
+# which is everything the prod profile requires.
+# =============================================================================
+x-prod-profile: &prod-profile
+  SPRING_PROFILES_ACTIVE: prod
+  # Service-to-service /api/internal/* calls are rejected in prod unless this is set.
+  LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?set LERA_INTERNAL_API_KEY (openssl rand -base64 24)}
+  # prod trusts no localhost origin; the mobile shell schemes stay allowed.
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://${DOMAIN},capacitor://localhost,ionic://localhost}
+
 services:
   # The gateway no longer needs a host port; Caddy fronts it on the internal network.
   gateway:
     ports: !reset []
+
+  identity_service:
+    environment: *prod-profile
+  academy_service:
+    environment: *prod-profile
+  payment_service:
+    environment: *prod-profile
+  payroll_service:
+    environment: *prod-profile
+  attendance_service:
+    environment: *prod-profile
+  connect_service:
+    environment: *prod-profile
+  ai_gateway:
+    environment: *prod-profile
+  rule_engine:
+    environment: *prod-profile
+  social_media_service:
+    environment: *prod-profile
 
   caddy:
     image: caddy:2
