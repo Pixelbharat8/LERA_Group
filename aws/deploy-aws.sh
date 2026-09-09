@@ -1,135 +1,147 @@
-#!/bin/bash
-# AWS Deployment Script for LERA Platform
-# Run this script from the project root
+#!/usr/bin/env bash
+#
+# Deploy the LERA platform to AWS (CloudFormation + ECS Fargate).
+#
+# Secrets come from the environment — nothing is hard-coded here. Export these
+# before running:
+#
+#   export DB_PASSWORD='…'              # RDS master password (min 8 chars)
+#   export JWT_SECRET='…'               # min 32 chars: openssl rand -base64 48
+#   export LERA_INTERNAL_API_KEY='…'    # min 16 chars: openssl rand -base64 24
+#   export IMAGE_REGISTRY='…'           # Docker Hub namespace CI pushes to
+#
+# Optional: ENVIRONMENT (prod), IMAGE_TAG (latest), DESIRED_COUNT (1),
+#           DB_NAME (postgres), REGION (us-east-1).
+#
+# FIRST DEPLOY ON AN EMPTY DATABASE runs in two phases automatically. No
+# migration in this repo creates the base tables — all 56 are overlays on a
+# schema Hibernate builds — so a first boot with Flyway enabled dies on
+#   ERROR: relation "course_programs" does not exist
+# Phase 1 therefore runs with Flyway off so ddl-auto=update can build the shared
+# schema; phase 2 turns Flyway on to apply the overlays. See
+# docs/GO_LIVE_CHECKLIST.md §3a. Subsequent deploys skip phase 1.
+#
+set -euo pipefail
 
-set -e
+ENVIRONMENT="${ENVIRONMENT:-prod}"
+STACK_NAME="${STACK_NAME:-lera-${ENVIRONMENT}}"
+# WAFv2 WebACL is Scope=CLOUDFRONT, which AWS only allows in us-east-1.
+REGION="${REGION:-us-east-1}"
+IMAGE_TAG="${IMAGE_TAG:-latest}"
+DESIRED_COUNT="${DESIRED_COUNT:-1}"
+DB_NAME="${DB_NAME:-postgres}"
 
-echo "🚀 LERA Platform - AWS Deployment Script"
-echo "=========================================="
+RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[1;33m'; NC=$'\033[0m'
+say()  { printf '%s\n' "${YELLOW}$*${NC}"; }
+ok()   { printf '%s\n' "${GREEN}✓ $*${NC}"; }
+die()  { printf '%s\n' "${RED}✗ $*${NC}" >&2; exit 1; }
 
-# Configuration
-REGION="ap-south-1"  # Mumbai region, change as needed
-ENVIRONMENT="prod"
-DB_PASSWORD="YourSecurePassword123!"  # CHANGE THIS!
-JWT_SECRET="your-super-secret-jwt-key-minimum-256-bits-long"  # CHANGE THIS!
+BACKEND_SERVICES=(identity_service academy_service payment_service payroll_service
+                  attendance_service connect_service ai_gateway rule_engine
+                  social_media_service)
+ALL_SERVICES=("${BACKEND_SERVICES[@]}" frontend gateway)
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+# ---------------------------------------------------------------- preflight --
+command -v aws >/dev/null 2>&1 || die "AWS CLI not found. Install it, then re-run."
 
-echo -e "${YELLOW}Step 1: Checking AWS CLI...${NC}"
-if ! command -v aws &> /dev/null; then
-    echo -e "${RED}AWS CLI not found. Installing...${NC}"
-    brew install awscli
-fi
+for var in DB_PASSWORD JWT_SECRET LERA_INTERNAL_API_KEY IMAGE_REGISTRY; do
+  [[ -n "${!var:-}" ]] || die "$var is not set. See the header of this script."
+done
+(( ${#JWT_SECRET} >= 32 )) || die "JWT_SECRET must be at least 32 characters."
+(( ${#LERA_INTERNAL_API_KEY} >= 16 )) || die "LERA_INTERNAL_API_KEY must be at least 16 characters."
 
-echo -e "${YELLOW}Step 2: Checking EB CLI...${NC}"
-if ! command -v eb &> /dev/null; then
-    echo -e "${RED}EB CLI not found. Installing...${NC}"
-    pip install awsebcli
-fi
+aws sts get-caller-identity --region "$REGION" >/dev/null 2>&1 \
+  || die "AWS credentials are not configured for region $REGION."
+ok "Preflight passed (stack $STACK_NAME, region $REGION)"
 
-echo -e "${GREEN}✓ Prerequisites installed${NC}"
-
-# Deploy CloudFormation Stack
-echo -e "${YELLOW}Step 3: Deploying AWS Infrastructure...${NC}"
-aws cloudformation deploy \
+# --------------------------------------------------------------- deploy fn ---
+deploy_stack() {
+  local flyway_enabled=$1
+  aws cloudformation deploy \
     --template-file aws/cloudformation-template.yaml \
-    --stack-name lera-platform-${ENVIRONMENT} \
+    --stack-name "$STACK_NAME" \
+    --capabilities CAPABILITY_NAMED_IAM \
+    --no-fail-on-empty-changeset \
+    --region "$REGION" \
     --parameter-overrides \
-        Environment=${ENVIRONMENT} \
-        DBPassword=${DB_PASSWORD} \
-        JWTSecret=${JWT_SECRET} \
-    --capabilities CAPABILITY_IAM \
-    --region ${REGION}
+      Environment="$ENVIRONMENT" \
+      DBPassword="$DB_PASSWORD" \
+      JWTSecret="$JWT_SECRET" \
+      LeraInternalApiKey="$LERA_INTERNAL_API_KEY" \
+      ImageRegistry="$IMAGE_REGISTRY" \
+      ImageTag="$IMAGE_TAG" \
+      ServiceDesiredCount="$DESIRED_COUNT" \
+      DBName="$DB_NAME" \
+      FlywayEnabled="$flyway_enabled"
+}
 
-# Get outputs
-DB_ENDPOINT=$(aws cloudformation describe-stacks \
-    --stack-name lera-platform-${ENVIRONMENT} \
-    --query 'Stacks[0].Outputs[?OutputKey==`DatabaseEndpoint`].OutputValue' \
-    --output text \
-    --region ${REGION})
+stack_output() {
+  aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" \
+    --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" --output text
+}
 
-S3_BUCKET=$(aws cloudformation describe-stacks \
-    --stack-name lera-platform-${ENVIRONMENT} \
-    --query 'Stacks[0].Outputs[?OutputKey==`S3BucketName`].OutputValue' \
-    --output text \
-    --region ${REGION})
+wait_for() {   # wait_for <service…> — ECS allows at most 10 per call
+  local cluster=$1; shift
+  local batch=()
+  for svc in "$@"; do
+    batch+=("$svc")
+    if (( ${#batch[@]} == 10 )); then
+      aws ecs wait services-stable --cluster "$cluster" --services "${batch[@]}" --region "$REGION"
+      batch=()
+    fi
+  done
+  # `if` rather than `(( … )) && …`: when the service count is an exact multiple
+  # of 10 the trailing batch is empty, `(( 0 ))` returns non-zero, and under
+  # `set -e` that would abort the deploy just as it finished waiting.
+  if (( ${#batch[@]} )); then
+    aws ecs wait services-stable --cluster "$cluster" --services "${batch[@]}" --region "$REGION"
+  fi
+}
 
-CLOUDFRONT_URL=$(aws cloudformation describe-stacks \
-    --stack-name lera-platform-${ENVIRONMENT} \
-    --query 'Stacks[0].Outputs[?OutputKey==`FrontendURL`].OutputValue' \
-    --output text \
-    --region ${REGION})
-
-echo -e "${GREEN}✓ Infrastructure deployed${NC}"
-echo "  Database: ${DB_ENDPOINT}"
-echo "  S3 Bucket: ${S3_BUCKET}"
-echo "  CloudFront: ${CLOUDFRONT_URL}"
-
-# Build and deploy backend
-echo -e "${YELLOW}Step 4: Building Identity Service...${NC}"
-cd backend/identity_service
-mvn clean package -DskipTests
-
-echo -e "${YELLOW}Step 5: Deploying to Elastic Beanstalk...${NC}"
-eb init lera-identity --platform java-17 --region ${REGION} || true
-eb create lera-identity-${ENVIRONMENT} --single || eb deploy lera-identity-${ENVIRONMENT}
-
-eb setenv \
-    SPRING_DATASOURCE_URL=jdbc:postgresql://${DB_ENDPOINT}:5432/postgres \
-    SPRING_DATASOURCE_USERNAME=lera \
-    SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD} \
-    JWT_SECRET=${JWT_SECRET} \
-    SPRING_PROFILES_ACTIVE=prod \
-    FRONTEND_URL=https://${CLOUDFRONT_URL}
-
-cd ../..
-
-# Build and deploy frontend
-echo -e "${YELLOW}Step 6: Building Frontend...${NC}"
-cd frontend
-
-# Update environment
-cat > .env.production << EOF
-NEXT_PUBLIC_API_URL=https://lera-identity-${ENVIRONMENT}.${REGION}.elasticbeanstalk.com
-NEXT_PUBLIC_IDENTITY_API=https://lera-identity-${ENVIRONMENT}.${REGION}.elasticbeanstalk.com
-NEXT_PUBLIC_APP_URL=https://${CLOUDFRONT_URL}
-EOF
-
-npm run build
-npm run export 2>/dev/null || npm run build
-
-echo -e "${YELLOW}Step 7: Deploying to S3...${NC}"
-aws s3 sync out/ s3://${S3_BUCKET} --delete --region ${REGION}
-
-# Invalidate CloudFront cache
-echo -e "${YELLOW}Step 8: Invalidating CloudFront cache...${NC}"
-DISTRIBUTION_ID=$(aws cloudfront list-distributions \
-    --query "DistributionList.Items[?Origins.Items[0].DomainName=='${S3_BUCKET}.s3.${REGION}.amazonaws.com'].Id" \
-    --output text)
-
-if [ -n "$DISTRIBUTION_ID" ]; then
-    aws cloudfront create-invalidation \
-        --distribution-id ${DISTRIBUTION_ID} \
-        --paths "/*"
+# ------------------------------------------------------------------ deploy ---
+if aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" >/dev/null 2>&1; then
+  FIRST_DEPLOY=false
+  say "Stack $STACK_NAME exists — incremental deploy (Flyway on)."
+else
+  FIRST_DEPLOY=true
+  say "Stack $STACK_NAME does not exist — first deploy, running the two-phase bootstrap."
 fi
 
-cd ..
+if [[ "$FIRST_DEPLOY" == true ]]; then
+  say "Phase 1/2 — creating the stack with Flyway DISABLED so Hibernate can build the base schema…"
+  deploy_stack false
+  CLUSTER=$(stack_output EcsClusterName)
+  say "Waiting for the 9 backend services to report stable (this builds the shared schema)…"
+  wait_for "$CLUSTER" "${BACKEND_SERVICES[@]}"
+  ok "Phase 1 complete — base schema built."
 
-echo ""
-echo -e "${GREEN}=========================================="
-echo "🎉 DEPLOYMENT COMPLETE!"
-echo "==========================================${NC}"
-echo ""
-echo "Frontend URL: https://${CLOUDFRONT_URL}"
-echo "Backend URL:  https://lera-identity-${ENVIRONMENT}.${REGION}.elasticbeanstalk.com"
-echo "Database:     ${DB_ENDPOINT}"
-echo ""
-echo -e "${YELLOW}Next Steps:${NC}"
-echo "1. Update DNS to point to CloudFront"
-echo "2. Add SSL certificate via AWS Certificate Manager"
-echo "3. Test all endpoints"
-echo ""
+  say "Phase 2/2 — re-deploying with Flyway ENABLED to apply the migration overlays…"
+  deploy_stack true
+else
+  deploy_stack true
+fi
+
+CLUSTER=$(stack_output EcsClusterName)
+
+# `cloudformation deploy` is a no-op when only the :latest image content changed,
+# so force a fresh task set per service.
+say "Rolling all services onto ${IMAGE_REGISTRY}/*:${IMAGE_TAG}…"
+for svc in "${ALL_SERVICES[@]}"; do
+  aws ecs update-service --cluster "$CLUSTER" --service "$svc" \
+    --force-new-deployment --region "$REGION" --no-cli-pager >/dev/null
+  printf '  rolling %s\n' "$svc"
+done
+
+say "Waiting for every service to stabilise…"
+wait_for "$CLUSTER" "${ALL_SERVICES[@]}"
+
+ok "Deployment complete"
+printf '  Public URL : %s\n' "$(stack_output FrontendURL)"
+printf '  ALB        : %s\n' "$(stack_output LoadBalancerDNS)"
+printf '  Database   : %s\n' "$(stack_output DatabaseEndpoint)"
+printf '  ECS cluster: %s\n' "$CLUSTER"
+
+if [[ "$FIRST_DEPLOY" == true ]]; then
+  printf '\n%s\n' "${YELLOW}First deploy: seed accounts were created with passwords from LERA_SEED_* (or"
+  printf '%s\n' "randomly generated and logged once — check CloudWatch). Sign in and change them.${NC}"
+fi
