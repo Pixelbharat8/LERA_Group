@@ -98,7 +98,34 @@ environment** — they were edited, so a stale Flyway history would fail on a ch
 ---
 
 ## 🔴 2. Rotate secrets + scrub git history
-The old JWT/DB secrets are still in history. Tracked source is already clean (0 `lera123`).
+The old JWT/DB secrets are still in history.
+
+> **CORRECTION (2026-09-09).** This line previously read *"Tracked source is already clean
+> (0 `lera123`)"*. That is false. A scan of every blob on every ref (masked results):
+>
+> | Pattern | Paths in history | **Still tracked at HEAD** |
+> |---|---|---|
+> | `lera123` (local DB password) | 77 | **59** |
+> | `admin123` | 103 | **100** |
+> | `password123` | 5 | **4** |
+> | bcrypt hashes (`$2a$…`) | several | **12** |
+> | AWS keys / OpenAI / Anthropic keys | 0 | 0 |
+> | Real private key blocks | 0 | 0 (the two `ApnsClient`/`FcmClient` hits are PEM *parsing* code) |
+>
+> `lera123` is live in 24 non-doc files — `setup-db.sh`, `setup-database.sh`,
+> `setup-local-postgres*.sh`, `test-database.sh`, `verify-config.sh`, `verify-schema.sh`,
+> `scripts/ensure-local-db.sh`, and in `README.md` / `QUICKSTART.md` — mostly as
+> `PGPASSWORD=lera123`.
+>
+> **Severity:** this is the LOCAL development database password, not a production one, so it
+> is embarrassing rather than urgent. But the "already clean" claim would have led someone to
+> skip remediation entirely, which is why it is corrected here rather than quietly fixed.
+>
+> The credentials that actually matter were removed from the seed data separately: identity's
+> `data.sql` created working CHAIRMAN/CEO logins documented as `admin123`. Those rows are
+> deleted and the file no longer auto-loads — see `backend/README-DEMO-DATA.md`. **Rotating the
+> live Chairman/CEO passwords matters more than scrubbing history**: a hash for a password you
+> no longer use is inert, whereas a scrub that leaves the password in use fixes nothing.
 
 ```bash
 # (a) rotate the live values first (generate strong ones)
