@@ -36,29 +36,73 @@ x-prod-profile: &prod-profile
   LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?set LERA_INTERNAL_API_KEY (openssl rand -base64 24)}
   # prod trusts no localhost origin; the mobile shell schemes stay allowed.
   CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://${DOMAIN},capacitor://localhost,ionic://localhost}
+  # FIRST BOOT ON AN EMPTY DATABASE: run once with SPRING_FLYWAY_ENABLED=false so
+  # ddl-auto=update can build the base schema, then again with the default (true)
+  # to apply the migration overlays. No migration in this repo creates the base
+  # tables, so a first boot with Flyway on dies on
+  #   ERROR: relation "course_programs" does not exist
+  # `scripts/vps-first-deploy.sh` does both phases for you. See GO_LIVE §3a.
+  SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED:-true}
+
+# SECURITY: the base compose publishes every service to the host — Postgres on
+# 5432, pgAdmin on 5050, MinIO on 9000/9001, all nine APIs on 8081-8089 and the
+# frontend on 3000. On a public VPS that puts the production database and admin
+# consoles straight on the internet.
+#
+# A host firewall is NOT sufficient on its own: Docker publishes ports by writing
+# its own iptables DOCKER chain, which is evaluated BEFORE ufw's rules, so a
+# server "locked down to 80/443 with ufw" still answers on 5432. The reliable fix
+# is to not publish the ports at all — containers still reach each other by
+# service name on the internal network, which is how the gateway already routes.
+#
+# Reach an admin console over SSH instead, e.g.:
+#   ssh -L 5050:localhost:5050 user@server   # then http://localhost:5050
+x-no-published-ports: &no-published-ports
+  ports: !reset []
 
 services:
   # The gateway no longer needs a host port; Caddy fronts it on the internal network.
   gateway:
     ports: !reset []
 
+  # Datastores and admin consoles: internal network only.
+  postgres:
+    <<: *no-published-ports
+  pgadmin:
+    <<: *no-published-ports
+  minio:
+    <<: *no-published-ports
+
+  # The frontend is reached through the gateway, never directly.
+  frontend:
+    <<: *no-published-ports
+
   identity_service:
+    <<: *no-published-ports
     environment: *prod-profile
   academy_service:
+    <<: *no-published-ports
     environment: *prod-profile
   payment_service:
+    <<: *no-published-ports
     environment: *prod-profile
   payroll_service:
+    <<: *no-published-ports
     environment: *prod-profile
   attendance_service:
+    <<: *no-published-ports
     environment: *prod-profile
   connect_service:
+    <<: *no-published-ports
     environment: *prod-profile
   ai_gateway:
+    <<: *no-published-ports
     environment: *prod-profile
   rule_engine:
+    <<: *no-published-ports
     environment: *prod-profile
   social_media_service:
+    <<: *no-published-ports
     environment: *prod-profile
 
   caddy:
