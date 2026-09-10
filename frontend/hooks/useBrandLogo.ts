@@ -34,7 +34,10 @@ export function useBrandLogo() {
         get("branding_logo_alt_text_vi"),
       ]);
       if (!active) return;
-      if (url) setLogoUrl(url);
+      // Only accept something that can actually be an image source. The endpoint returns the
+      // raw setting text, so a JSON/error body served with 200 (seen as "{}" in an audit) would
+      // otherwise become <img src="{}"> — a broken logo in the header and footer of every page.
+      if (url && /^(https?:\/\/|\/|data:image\/)/i.test(url)) setLogoUrl(url);
       if (ae) setAltEn(ae);
       if (av) setAltVi(av);
     })();
