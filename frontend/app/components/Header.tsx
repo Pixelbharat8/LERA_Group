@@ -198,8 +198,10 @@ export default function Header() {
         <div className={`bg-gradient-to-r from-brand-navy via-[#1e3a8a] to-brand-navy text-white text-sm transition-all duration-300 ${scrolled ? 'py-1' : 'py-2'}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
             <div className="flex items-center gap-4">
+              {/* min-h-[44px] on the phone link: it is the most-tapped element on mobile and
+                  was only text-height (~20px). Costs the top bar ~8px on phones. */}
               {settings.showPhone && (
-                <a href={`tel:${settings.phone.replace(/\s/g, '')}`} className="flex items-center gap-1 hover:text-yellow-300 transition-colors group">
+                <a href={`tel:${settings.phone.replace(/\s/g, '')}`} className="flex items-center gap-1 min-h-[44px] lg:min-h-0 hover:text-yellow-300 transition-colors group">
                   <span className="group-hover:animate-bounce">📞</span> {settings.phone}
                 </a>
               )}
@@ -283,7 +285,8 @@ export default function Header() {
               <div className="flex items-center bg-gray-100 rounded-full p-1">
                 <button
                   onClick={() => setLanguage("EN")}
-                  className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                  aria-pressed={language === "EN"}
+                  className={`px-3 py-1.5 min-h-[44px] min-w-[44px] lg:min-h-0 lg:min-w-0 rounded-full text-sm font-semibold transition-all ${
                     language === "EN"
                       ? "bg-white text-blue-600 shadow-sm"
                       : "text-gray-500 hover:text-gray-700"
@@ -293,7 +296,8 @@ export default function Header() {
                 </button>
                 <button
                   onClick={() => setLanguage("VI")}
-                  className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                  aria-pressed={language === "VI"}
+                  className={`px-3 py-1.5 min-h-[44px] min-w-[44px] lg:min-h-0 lg:min-w-0 rounded-full text-sm font-semibold transition-all ${
                     language === "VI"
                       ? "bg-white text-blue-600 shadow-sm"
                       : "text-gray-500 hover:text-gray-700"
@@ -375,7 +379,7 @@ export default function Header() {
 
               {/* Mobile menu button */}
               <button
-                className="lg:hidden p-2"
+                className="lg:hidden p-2.5"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
                 aria-expanded={mobileMenuOpen}

@@ -457,8 +457,13 @@ export default function Home() {
                       aria-hidden="true"
                     />
                     <div>
+                      <label htmlFor="home-lead-name" className="sr-only">
+                        {language === "EN" ? "Full name" : "Họ và tên"}
+                      </label>
                       <input
+                        id="home-lead-name"
                         type="text"
+                        autoComplete="name"
                         placeholder={language === "EN" ? "Full Name (*)" : "Họ và tên (*)"}
                         value={formData.fullName}
                         onChange={(e) => setFormData({...formData, fullName: e.target.value})}
@@ -467,8 +472,13 @@ export default function Home() {
                       />
                     </div>
                     <div>
+                      <label htmlFor="home-lead-phone" className="sr-only">
+                        {language === "EN" ? "Phone number" : "Số điện thoại"}
+                      </label>
                       <input
+                        id="home-lead-phone"
                         type="tel"
+                        autoComplete="tel"
                         placeholder={language === "EN" ? "Phone Number (*)" : "Số điện thoại (*)"}
                         value={formData.phone}
                         onChange={(e) => setFormData({...formData, phone: e.target.value})}
@@ -477,7 +487,11 @@ export default function Home() {
                       />
                     </div>
                     <div>
+                      <label htmlFor="home-lead-course" className="sr-only">
+                        {language === "EN" ? "Course" : "Khoá học"}
+                      </label>
                       <select
+                        id="home-lead-course"
                         value={formData.course}
                         onChange={(e) => setFormData({...formData, course: e.target.value})}
                         required
@@ -493,7 +507,11 @@ export default function Home() {
                       </select>
                     </div>
                     <div>
+                      <label htmlFor="home-lead-city" className="sr-only">
+                        {language === "EN" ? "City / province" : "Tỉnh / thành phố"}
+                      </label>
                       <select
+                        id="home-lead-city"
                         value={formData.city}
                         onChange={(e) => setFormData({...formData, city: e.target.value})}
                         required
@@ -517,14 +535,16 @@ export default function Home() {
                       </select>
                     </div>
                     
-                    <div className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm lg:text-base text-gray-600">
+                    {/* A <label> (not a div) so the whole sentence is the tap target — the box
+                        alone is 16px, which is hard to hit on a phone. Wording unchanged. */}
+                    <label className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm lg:text-base text-gray-600 cursor-pointer">
                       <input type="checkbox" required className="mt-0.5 sm:mt-1 w-4 h-4 lg:w-5 lg:h-5 text-blue-600 rounded flex-shrink-0" />
-                      <p>
-                        {language === "EN" 
+                      <span>
+                        {language === "EN"
                           ? "By registering, you agree to allow LERA Academy to contact you via phone, message, and email for consultation purposes."
                           : "Bằng việc đăng ký thông tin, bạn đồng ý cho phép LERA liên lạc thông qua các hình thức: cuộc gọi, tin nhắn, email nhằm mục đích tư vấn các chương trình Anh ngữ."}
-                      </p>
-                    </div>
+                      </span>
+                    </label>
 
                     <button
                       type="submit"

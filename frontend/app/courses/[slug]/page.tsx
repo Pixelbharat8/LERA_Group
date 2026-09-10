@@ -541,8 +541,13 @@ export default function CourseDetailPage() {
                       aria-hidden="true"
                     />
                     <div>
+                      <label htmlFor="course-reg-name" className="sr-only">
+                        {language === "EN" ? "Parent's name" : "Tên phụ huynh"}
+                      </label>
                       <input
+                        id="course-reg-name"
                         type="text"
+                        autoComplete="name"
                         placeholder={language === "EN" ? "Parent's name *" : "Tên phụ huynh *"}
                         required
                         value={formData.name}
@@ -551,8 +556,13 @@ export default function CourseDetailPage() {
                       />
                     </div>
                     <div>
+                      <label htmlFor="course-reg-phone" className="sr-only">
+                        {language === "EN" ? "Phone number" : "Số điện thoại"}
+                      </label>
                       <input
+                        id="course-reg-phone"
                         type="tel"
+                        autoComplete="tel"
                         placeholder={language === "EN" ? "Phone number *" : "Số điện thoại *"}
                         required
                         value={formData.phone}
@@ -561,8 +571,11 @@ export default function CourseDetailPage() {
                       />
                     </div>
                     <div>
+                      <label htmlFor="course-reg-email" className="sr-only">Email</label>
                       <input
+                        id="course-reg-email"
                         type="email"
+                        autoComplete="email"
                         placeholder="Email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -570,7 +583,11 @@ export default function CourseDetailPage() {
                       />
                     </div>
                     <div>
+                      <label htmlFor="course-reg-child" className="sr-only">
+                        {language === "EN" ? "Child's name" : "Tên con"}
+                      </label>
                       <input
+                        id="course-reg-child"
                         type="text"
                         placeholder={language === "EN" ? "Child's name" : "Tên con"}
                         value={formData.childName}
@@ -579,8 +596,13 @@ export default function CourseDetailPage() {
                       />
                     </div>
                     <div>
+                      <label htmlFor="course-reg-age" className="sr-only">
+                        {language === "EN" ? "Child's age" : "Tuổi con"}
+                      </label>
                       <input
+                        id="course-reg-age"
                         type="text"
+                        inputMode="numeric"
                         placeholder={language === "EN" ? "Child's age" : "Tuổi con"}
                         value={formData.age}
                         onChange={(e) => setFormData({ ...formData, age: e.target.value })}
