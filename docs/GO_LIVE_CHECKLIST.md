@@ -238,6 +238,35 @@ first, then let update+Flyway adopt it. Either way the **full** schema must exis
 first Flyway boot. (This `pg_dump --schema-only` base + docker-profile boot is exactly how the
 2026-07-04 verification was run — all 9 services clean.)
 
+#### ✅ 3a-verified. The two-phase bootstrap now has an end-to-end proof (2026-09-11)
+
+Previous verifications ran service-by-service, or against a `pg_dump` of an already-correct
+schema. This one ran the **actual deploy sequence** against a real, empty Postgres in an isolated
+Docker project — identity + academy together (academy carries the `V999` failure; identity's
+migrations reach across into academy's `students`), with a **control arm** so the result means
+something:
+
+| Arm | Setup | Result |
+|---|---|---|
+| **Control** | Flyway ON from the start, empty DB | **FAILED**, exactly as predicted: `Script V999__replace_sports_with_english_courses.sql failed` → `ERROR: relation "course_programs" does not exist`; academy container exited; 2 tables in the DB |
+| **Phase 1** | `ddl-auto=update`, `SPRING_FLYWAY_ENABLED=false` | 2/2 healthy; **111 tables** built by Hibernate; `users` ✓ `course_programs` ✓; 0 flyway history tables |
+| **Phase 2** | same DB, Flyway ON | 2/2 healthy; **academy 22 migrations applied, all successful**; **identity 9, all successful**; 0 failed rows; 113 tables |
+
+Two things the run also confirmed:
+- **`DataLoader` seeds correctly on a fresh DB** — 14 roles created, so the app is usable
+  immediately after bootstrap without any SQL seed file.
+- **No fabricated data reached the database** — `students` = 0. Note the mechanism: the
+  deliberately stale images used here still contain the old `data.sql`, and it did not load
+  because the **prod profile sets `spring.sql.init.mode=never`**. The rename to `data-demo.sql`
+  (on `chore/real-data-only`) is the belt to that braces — it protects the profiles that do *not*
+  set `never`, which is where the real exposure was.
+
+Caveats, stated plainly: this covered **2 of 9 services**, and used images that predate the
+`ddl-auto` fix with `SPRING_JPA_HIBERNATE_DDL_AUTO=update` supplied by environment — the same
+override the deploy performs. The remaining seven are expected to behave identically (same base
+config, same Flyway setup) but that is inference, not measurement. Harmless `constraint … does
+not exist, skipping` warnings appear in phase 2; that is `ddl-auto` reconciling, not an error.
+
 **This must be dry-run on an empty staging DB before prod** — verified 2026-06-28 with a
 single-service fresh-DB test, which already surfaced real baseline bugs (now fixed):
 - identity `V1__baseline.sql` indexed a non-existent `user_activities` table (the activity entity
