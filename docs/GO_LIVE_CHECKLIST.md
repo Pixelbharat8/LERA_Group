@@ -261,11 +261,29 @@ Two things the run also confirmed:
   (on `chore/real-data-only`) is the belt to that braces — it protects the profiles that do *not*
   set `never`, which is where the real exposure was.
 
-Caveats, stated plainly: this covered **2 of 9 services**, and used images that predate the
-`ddl-auto` fix with `SPRING_JPA_HIBERNATE_DDL_AUTO=update` supplied by environment — the same
-override the deploy performs. The remaining seven are expected to behave identically (same base
-config, same Flyway setup) but that is inference, not measurement. Harmless `constraint … does
-not exist, skipping` warnings appear in phase 2; that is `ddl-auto` reconciling, not an error.
+That run covered 2 of 9 services on an **empty** database. Harmless `constraint … does not
+exist, skipping` warnings appear in phase 2; that is `ddl-auto` reconciling, not an error.
+
+**Extended to all 9 services the same day**, on the real local dev database — which turned out
+to be **partially** built (89 tables, missing `student_skill_levels` and `activity_logs`, which
+is exactly why 3 services were crash-looping). The same two phases were applied:
+
+| | Result |
+|---|---|
+| Phase 1 — Flyway off, all 9 | **89 → 238 tables**; the missing tables appeared |
+| Phase 2 — Flyway on, all 9 | **65 migrations applied, every one successful** — academy 22, identity 9, connect 8, payment 6, payroll 6, attendance 5, ai_gateway 4, social_media 3, rule_engine 2 |
+| Stack afterwards | 13/13 containers healthy; `GET /api/courses/active` through nginx → 200 |
+
+So the procedure is now measured, not inferred, for **all nine services**, against both an empty
+database (2-service run, with the control) and a partially-built one (9-service run). The
+partial case matters more than it sounds: a first deploy that fails halfway leaves exactly that
+state, and re-running the two phases recovers it without touching data.
+
+**Three Docker blockers were found in the process** (see `fix/docker-stack-blockers`) —
+`LERA_INTERNAL_API_KEY` was passed to none of the 9 services, academy/connect could not write
+`/var/lera/uploads` as uid 1001, and the gateway could not write `/run/nginx.pid`. The stack had
+never served a request. None of these are visible to `docker compose config`; they require
+actually starting the stack.
 
 **This must be dry-run on an empty staging DB before prod** — verified 2026-06-28 with a
 single-service fresh-DB test, which already surfaced real baseline bugs (now fixed):
