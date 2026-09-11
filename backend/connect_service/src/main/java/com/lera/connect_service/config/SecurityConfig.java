@@ -60,7 +60,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> {
-                auth.requestMatchers("/actuator/health", "/actuator/info").permitAll();
+                // prometheus: scraped on the internal network only — service ports are never published (see docker-compose.https.yml)
+                auth.requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll();
                 auth.requestMatchers("/api/public/**").permitAll();
                 auth.requestMatchers("/actuator/**").authenticated();
                 if (prod) {

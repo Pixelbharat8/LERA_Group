@@ -51,7 +51,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/centers/code/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/website-settings/**").permitAll()
                 // Actuator (health checks)
-                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll() // prometheus: scraped on the internal network only — service ports are never published (see docker-compose.https.yml)
                 .requestMatchers("/actuator/**").authenticated()
                 // Everything else requires authentication
                 .anyRequest().authenticated()

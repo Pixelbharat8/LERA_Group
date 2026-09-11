@@ -1,0 +1,58 @@
+# Alert rules for the LERA services. Every expression uses metrics Spring Boot Actuator +
+# Micrometer already emit with the current config — no histogram buckets are assumed
+# (percentile histograms are off by default, so latency uses sum/count = mean).
+#
+# Firing alerts are visible in Prometheus (/alerts) and on the Grafana dashboard.
+# Delivering them by email/Zalo needs an Alertmanager receiver, which needs the same SMTP or
+# Zalo credentials the app itself is still waiting on — see observability/README.md.
+groups:
+  - name: lera-services
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.job }} is down"
+          description: "Prometheus has not been able to scrape {{ $labels.job }} for 2 minutes."
+
+      - alert: High5xxRate
+        expr: |
+          sum by (job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+            /
+          sum by (job) (rate(http_server_requests_seconds_count[5m])) > 0.05
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.job }}: more than 5% of requests are 5xx"
+          description: "Sustained server errors for 5 minutes. Check the service logs for the traceId."
+
+      - alert: SlowRequests
+        expr: |
+          sum by (job) (rate(http_server_requests_seconds_sum[5m]))
+            /
+          sum by (job) (rate(http_server_requests_seconds_count[5m])) > 1
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.job }}: mean request time above 1 s"
+          description: "Average over the last 5 minutes has been above 1 second for 10 minutes."
+
+      - alert: HeapNearFull
+        expr: |
+          sum by (job) (jvm_memory_used_bytes{area="heap"})
+            /
+          sum by (job) (jvm_memory_max_bytes{area="heap"}) > 0.9
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.job }}: JVM heap above 90%"
+          description: "The service is close to running out of memory; expect GC pauses or an OOM restart."
+
+      - alert: DbPoolExhausted
+        expr: hikaricp_connections_pending > 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.job }}: requests are waiting for a database connection"
+          description: "The HikariCP pool (max 10 in prod) has been saturated for 2 minutes."

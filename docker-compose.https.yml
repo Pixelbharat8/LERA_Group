@@ -55,8 +55,10 @@ x-prod-profile: &prod-profile
 # is to not publish the ports at all — containers still reach each other by
 # service name on the internal network, which is how the gateway already routes.
 #
-# Reach an admin console over SSH instead, e.g.:
-#   ssh -L 5050:localhost:5050 user@server   # then http://localhost:5050
+# Admin consoles (pgAdmin, MinIO console, Grafana, Prometheus) are bound to 127.0.0.1 on the
+# host only — unreachable from the internet, reachable over an SSH tunnel:
+#   ssh -L 5050:127.0.0.1:5050 -L 3300:127.0.0.1:3300 user@server
+#   then http://localhost:5050 (pgAdmin) and http://localhost:3300 (Grafana)
 x-no-published-ports: &no-published-ports
   ports: !reset []
 
@@ -68,10 +70,15 @@ services:
   # Datastores and admin consoles: internal network only.
   postgres:
     <<: *no-published-ports
+  # Loopback-only: the earlier revision removed these ports entirely while telling you to
+  # SSH-tunnel to them — a tunnel needs a host port to land on. 127.0.0.1 binding gives the
+  # tunnel its target without exposing anything to the network.
+  # !override, NOT !reset: `!reset` discards whatever value follows it (it means "reset to
+  # empty"), so `!reset ["127.0.0.1:5050:80"]` silently publishes nothing at all.
   pgadmin:
-    <<: *no-published-ports
+    ports: !override ["127.0.0.1:5050:80"]
   minio:
-    <<: *no-published-ports
+    ports: !override ["127.0.0.1:9001:9001"]   # console only; the S3 API on 9000 stays internal
 
   # The frontend is reached through the gateway, never directly.
   frontend:
@@ -181,7 +188,60 @@ services:
           sleep "$$BACKUP_INTERVAL_SECONDS"
         done
 
+  # ---------------------------------------------------------------------------
+  # Metrics + alerting, on this host, inside Vietnam. GO_LIVE §4 said metrics were emitted
+  # but nothing collected them — and /actuator/prometheus was auth-gated, so nothing could.
+  # Prometheus scrapes all 9 services over lera-net; Grafana is provisioned with the
+  # datasource and a LERA dashboard; alert rules cover down/5xx/latency/heap/db-pool.
+  #
+  # Alerts are visible in Prometheus and Grafana. DELIVERING them (email/Zalo) needs an
+  # Alertmanager receiver, which needs the same SMTP/Zalo credentials the app is waiting on.
+  #
+  # Logs: observability/docker-compose.observability.yml already ships container logs via an
+  # OpenTelemetry Collector to any OTLP sink. It is optional and separate — and note its
+  # example sink (Axiom) is US-hosted; application logs carry names and emails, so a sink
+  # outside Vietnam has the same localisation question as the database itself.
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: lera-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - lera-net
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: lera-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD (openssl rand -base64 18)}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_SERVER_ROOT_URL: http://localhost:3300/
+    ports:
+      - "127.0.0.1:3300:3000"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - lera-net
+
 volumes:
   caddy_data:
   caddy_config:
   postgres_backups:
+  prometheus_data:
+  grafana_data:
