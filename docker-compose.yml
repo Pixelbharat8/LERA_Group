@@ -130,6 +130,9 @@ services:
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
       LERA_STORAGE_BACKEND: ${LERA_STORAGE_BACKEND:-local}
       LERA_UPLOAD_DIR: /var/lera/uploads/
@@ -158,6 +161,9 @@ services:
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
     ports:
       - "8085:8085"   # attendance_service runs on port 8085
@@ -181,6 +187,9 @@ services:
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
       LERA_ATTACHMENTS_DIR: /var/lera/uploads/
     volumes:
@@ -207,6 +216,9 @@ services:
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
     ports:
       - "8081:8081"   # identity_service runs on port 8081
@@ -230,6 +242,9 @@ services:
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
     ports:
       - "8083:8083"   # payment_service runs on port 8083
@@ -253,6 +268,9 @@ services:
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
     ports:
       - "8084:8084"   # payroll_service runs on port 8084
@@ -276,6 +294,9 @@ services:
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
     ports:
       - "8088:8088"   # rule_engine runs on port 8088
@@ -299,6 +320,9 @@ services:
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
     ports:
       - "8087:8087"   # ai_gateway runs on port 8087
@@ -322,6 +346,9 @@ services:
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
     ports:
       - "8089:8089"   # social_media_service runs on port 8089
@@ -370,7 +397,11 @@ services:
     ports:
       - "80:8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/healthz >/dev/null 2>&1 || exit 1"]
+      # 127.0.0.1, not localhost: nginx listens on 0.0.0.0:8080 (IPv4 only — the base image's
+      # ipv6 hook skips a replaced nginx.conf), while `localhost` resolves to ::1 first inside
+      # the container, so the check got "connection refused" and reported the gateway unhealthy
+      # while it was happily serving traffic.
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8080/healthz >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
