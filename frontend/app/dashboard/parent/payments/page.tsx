@@ -61,24 +61,46 @@ export default function ParentPaymentsPage() {
     }
   };
 
+  /**
+   * What a parent owes is an INVOICE, not a payment. This used to list
+   * `/api/payments?studentId=` and map each payment row as though it were an invoice, which got
+   * everything wrong at once: a payment's status is COMPLETED/FAILED/REFUNDED, so it matched
+   * none of PENDING/PAID/OVERDUE and both totals rendered as ₫0 next to a real ₫3,000,000
+   * payment; the invoice number and due date were fabricated from the payment id and today's
+   * date; a settled payment still offered a "Pay Now" button; and an unpaid invoice — the one
+   * thing a parent most needs to see — never appeared at all, because no payment exists for it
+   * yet. Load invoices and enrich them with their payment, exactly as the student page does.
+   */
   const fetchPayments = async (studentId: string) => {
     try {
       setLoading(true);
-      const data = await apiFetch(`/api/payments?studentId=${studentId}`).catch(() => []);
-      const paymentsArray = Array.isArray(data) ? data : [];
-      if (paymentsArray.length > 0) {
-        setPayments(paymentsArray.map((p: any) => ({
-          id: p.id,
-          invoiceNumber: p.invoiceNumber || p.invoice_number || `INV-${p.id?.substring(0,8) || '0000'}`,
-          amount: Number(p.amount) || 0,
-          dueDate: p.dueDate || p.due_date || new Date().toISOString(),
-          paidDate: p.paidDate || p.paid_date,
-          status: p.status || "PENDING",
-          description: p.description || p.notes || "Payment"
-        })));
-      } else {
-        setPayments([]);
-      }
+      const invoicesData = await apiFetch(`/api/invoices?studentId=${studentId}`).catch(() => []);
+      const invoices = Array.isArray(invoicesData) ? invoicesData : [];
+
+      const paymentsByInvoice = new Map<string, any>();
+      await Promise.all(
+        invoices.map(async (inv: any) => {
+          const rows = await apiFetch(`/api/payments/invoice/${inv.id}`).catch(() => []);
+          if (Array.isArray(rows) && rows.length > 0) paymentsByInvoice.set(String(inv.id), rows[0]);
+        })
+      );
+
+      setPayments(
+        invoices.map((inv: any) => {
+          const payment = paymentsByInvoice.get(String(inv.id));
+          const status = String(inv.status || "PENDING").toUpperCase();
+          const isOverdue = status !== "PAID" && !!inv.dueDate && new Date(inv.dueDate) < new Date();
+          return {
+            id: inv.id,
+            invoiceNumber: inv.invoiceNumber || `INV-${String(inv.id).substring(0, 8)}`,
+            amount: Number(inv.totalAmount ?? inv.amount) || 0,
+            dueDate: inv.dueDate || "",
+            paidDate: payment?.paidAt || inv.paidAt,
+            status: (isOverdue ? "OVERDUE" : status) as Payment["status"],
+            description: inv.description || inv.notes || "Invoice Payment",
+          };
+        })
+      );
     } catch (err) {
       console.error(err);
       setPayments([]);

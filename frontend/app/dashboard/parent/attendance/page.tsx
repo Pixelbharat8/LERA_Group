@@ -81,7 +81,10 @@ export default function ParentAttendancePage() {
 
   const totalDays = attendance.length;
   const presentDays = attendance.filter((a) => a.status === "PRESENT").length;
-  const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+  // (PRESENT + LATE) / total, matching attendance_service and the student-side page. A parent
+  // must not see a different attendance rate for the same child on two screens.
+  const attendedDays = attendance.filter((a) => a.status === "PRESENT" || a.status === "LATE").length;
+  const attendanceRate = totalDays > 0 ? Math.round((attendedDays / totalDays) * 100) : 0;
 
   return (
     <div className="space-y-6">

@@ -17,6 +17,31 @@ x-svc-deploy: &svc-deploy
     reservations:
       memory: 256M
 
+# Inter-service HTTP base URLs.
+#
+# Every service-to-service client defaults to `http://localhost:<port>` (see the @Value
+# annotations in */client/* and */service/*). That default is correct only when all nine run as
+# plain processes on one host, which is how dev runs them. Inside a container `localhost` is the
+# container ITSELF, so without these the call lands on nothing. The clients fail CLOSED, so the
+# symptom is not an error page but a silent denial — a student could not see their own attendance
+# because attendance_service asked academy_service "may this user view this student?" and the
+# request never arrived. Compose previously set none of these.
+# NOTE the hyphens. The compose service names contain underscores, and an underscore is illegal
+# in a hostname (RFC 952/1123), so Tomcat rejects any request whose Host header contains one with
+# a bare `400 Bad Request` before the request ever reaches Spring. Every service-to-service call
+# in the stack hit that. Each backend therefore also publishes a hyphenated network alias (see
+# `networks:` in each service block) and these URLs use it.
+x-service-urls: &service-urls
+  IDENTITY_SERVICE_URL: http://identity-service:8081
+  ACADEMY_SERVICE_URL: http://academy-service:8082
+  PAYMENT_SERVICE_URL: http://payment-service:8083
+  PAYROLL_SERVICE_URL: http://payroll-service:8084
+  ATTENDANCE_SERVICE_URL: http://attendance-service:8085
+  CONNECT_SERVICE_URL: http://connect-service:8086
+  AI_GATEWAY_URL: http://ai-gateway:8087
+  RULE_ENGINE_URL: http://rule-engine:8088
+  SOCIAL_MEDIA_SERVICE_URL: http://social-media-service:8089
+
 # Common bits every backend service shares.
 x-backend: &backend-common
   restart: unless-stopped
@@ -122,7 +147,12 @@ services:
     <<: *backend-common
     build: ./backend/academy_service
     container_name: academy_service
+    networks:
+      lera-net:
+        aliases:
+          - academy-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
@@ -153,7 +183,12 @@ services:
     <<: *backend-common
     build: ./backend/attendance_service
     container_name: attendance_service
+    networks:
+      lera-net:
+        aliases:
+          - attendance-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
@@ -179,7 +214,12 @@ services:
     <<: *backend-common
     build: ./backend/connect_service
     container_name: connect_service
+    networks:
+      lera-net:
+        aliases:
+          - connect-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
@@ -208,7 +248,12 @@ services:
     <<: *backend-common
     build: ./backend/identity_service
     container_name: identity_service
+    networks:
+      lera-net:
+        aliases:
+          - identity-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
@@ -234,7 +279,12 @@ services:
     <<: *backend-common
     build: ./backend/payment_service
     container_name: payment_service
+    networks:
+      lera-net:
+        aliases:
+          - payment-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
@@ -260,7 +310,12 @@ services:
     <<: *backend-common
     build: ./backend/payroll_service
     container_name: payroll_service
+    networks:
+      lera-net:
+        aliases:
+          - payroll-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
@@ -286,7 +341,12 @@ services:
     <<: *backend-common
     build: ./backend/rule_engine
     container_name: rule_engine
+    networks:
+      lera-net:
+        aliases:
+          - rule-engine   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
@@ -312,7 +372,12 @@ services:
     <<: *backend-common
     build: ./backend/ai_gateway
     container_name: ai_gateway
+    networks:
+      lera-net:
+        aliases:
+          - ai-gateway   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
@@ -338,7 +403,12 @@ services:
     <<: *backend-common
     build: ./backend/social_media_service
     container_name: social_media_service
+    networks:
+      lera-net:
+        aliases:
+          - social-media-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera

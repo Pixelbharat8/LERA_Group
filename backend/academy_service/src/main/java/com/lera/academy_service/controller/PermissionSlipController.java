@@ -88,8 +88,13 @@ public class PermissionSlipController {
             UUID effCenter = authz.effectiveListCenterId(centerId);
             base = slipRepo.findByCenterIdOrderByCreatedAtDesc(effCenter);
         } else if (status != null) {
-            authz.assertStaff();
-            if (!authz.isOrgWide()) {
+            if (!CurrentUser.isStaff()) {
+                // A parent's own permission-slip page asks for ?status=OPEN. Filtering by status is
+                // not a staff privilege: the VisibilityScope filter below still narrows the result
+                // to slips for this user's own children, so nothing extra is exposed. The
+                // assertStaff() that used to sit here 403'd that page for every parent.
+                base = slipRepo.findByStatusOrderByCreatedAtDesc(status);
+            } else if (!authz.isOrgWide()) {
                 UUID effCenter = authz.effectiveListCenterId(null);
                 base = slipRepo.findByCenterIdOrderByCreatedAtDesc(effCenter).stream()
                         .filter(s -> status.equalsIgnoreCase(s.getStatus()))

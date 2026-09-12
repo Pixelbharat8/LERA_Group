@@ -32,7 +32,13 @@ public class ExcelImportController {
     private final TeacherRepository teacherRepository;
     private final RestTemplate restTemplate;
     
-    private static final String IDENTITY_SERVICE_URL = "http://localhost:8081";
+    /**
+     * Bulk Excel import creates the login for each imported student via identity_service. This was
+     * a hardcoded localhost constant with no override, so the call could only ever work when both
+     * services ran as processes on one host — in any container it hit academy_service itself.
+     */
+    @Value("${identity.service.url:http://localhost:8081}")
+    private String identityServiceUrl;
     
     @Value("${lera.internal.api-key:#{null}}")
     private String internalApiKey;
@@ -389,7 +395,7 @@ public class ExcelImportController {
             
             @SuppressWarnings("unchecked")
             Map<String, Object> response = restTemplate.postForObject(
-                IDENTITY_SERVICE_URL + "/api/auth/register",
+                identityServiceUrl + "/api/auth/register",
                 entity,
                 Map.class
             );
