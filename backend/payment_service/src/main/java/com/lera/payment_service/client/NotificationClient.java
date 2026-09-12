@@ -9,8 +9,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,9 +50,14 @@ public class NotificationClient {
         return h;
     }
 
-    private void postTriggerPath(String pathWithQuery) {
-        String url = connectServiceUrl + pathWithQuery;
-        restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(connectHeaders()), Object.class);
+    /**
+     * Takes a fully-built {@link URI}, never a String. RestTemplate runs a String through its
+     * UriTemplateHandler, which encodes it AGAIN — so a value already percent-encoded by the
+     * caller arrives double-encoded ("%20" -> "%2520" -> the literal text "%20"). A URI is passed
+     * through untouched, so the encoding done by UriComponentsBuilder is the only encoding.
+     */
+    private void postTriggerPath(URI uri) {
+        restTemplate.exchange(uri, HttpMethod.POST, new HttpEntity<>(connectHeaders()), Object.class);
     }
 
     /**
@@ -60,15 +66,20 @@ public class NotificationClient {
     public void notifyPaymentReceived(UUID parentId, String studentName,
                                       Double amount, String currency, UUID paymentId) {
         try {
-            String encName = UriUtils.encodeQueryParam(studentName != null ? studentName : "", StandardCharsets.UTF_8);
-            String encCur = UriUtils.encodeQueryParam(currency != null ? currency : "VND", StandardCharsets.UTF_8);
-            String url = "/api/notifications/trigger/payment-received"
-                    + "?parentId=" + parentId
-                    + "&studentName=" + encName
-                    + "&amount=" + amount
-                    + "&currency=" + encCur
-                    + (paymentId != null ? "&paymentId=" + paymentId : "");
-            postTriggerPath(url);
+            // Build once, encode once. This previously encoded the name by hand and then handed
+            // RestTemplate a String, which encoded it a second time: a parent's receipt read
+            // "Payment received for Nguyen%20Van%20An." UriComponentsBuilder also escapes "&"
+            // and "=" correctly, which hand-concatenation does not.
+            UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(connectServiceUrl)
+                    .path("/api/notifications/trigger/payment-received")
+                    .queryParam("parentId", parentId)
+                    .queryParam("studentName", studentName != null ? studentName : "")
+                    .queryParam("amount", amount)
+                    .queryParam("currency", currency != null ? currency : "VND");
+            if (paymentId != null) {
+                b.queryParam("paymentId", paymentId);
+            }
+            postTriggerPath(b.build().encode(StandardCharsets.UTF_8).toUri());
             log.info("Sent payment notification for student: {} amount: {} {}", studentName, amount, currency);
         } catch (Exception e) {
             log.error("Failed to send payment received notification", e);
