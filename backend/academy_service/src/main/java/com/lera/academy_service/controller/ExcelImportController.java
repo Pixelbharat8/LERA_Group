@@ -20,6 +20,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
 import java.time.LocalDate;
 import java.util.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.web.client.HttpStatusCodeException;
 
 @RestController
 @RequestMapping("/api/import")
@@ -86,16 +89,27 @@ public class ExcelImportController {
                     
                     Student saved = studentRepository.save(student);
                     
-                    // Create login account in identity service if requested
+                    // Create login account in identity service if requested. accountCreated below
+                    // reports the OUTCOME, not the intention: it used to be set from
+                    // `createAccounts && email != null`, so a re-import of the same sheet — where
+                    // identity correctly answers "Email already exists" — still reported
+                    // "accountCreated": true with errors: 0, while the student row was saved with a
+                    // null user_id and no login. The admin was told it worked.
+                    boolean accountCreated = false;
+                    String accountError = null;
                     if (createAccounts && email != null && !email.isEmpty()) {
                         try {
                             UUID userId = createUserAccount(email, phone, fullname, "STUDENT", saved.getCenterId());
                             if (userId != null) {
                                 saved.setUserId(userId);
                                 studentRepository.save(saved);
+                                accountCreated = true;
+                            } else {
+                                accountError = "identity_service returned no user id";
                             }
-                        } catch (Exception accountError) {
-                            log.warn("Student saved but account creation failed for {}: {}", email, accountError.getMessage());
+                        } catch (Exception ex) {
+                            accountError = accountFailureReason(ex);
+                            log.warn("Student saved but account creation failed for {}: {}", email, ex.getMessage());
                         }
                     }
                     
@@ -104,7 +118,12 @@ public class ExcelImportController {
                     success.put("id", saved.getId());
                     success.put("studentCode", saved.getStudentCode());
                     success.put("fullname", saved.getFullname());
-                    success.put("accountCreated", createAccounts && email != null && !email.isEmpty());
+                    success.put("accountCreated", accountCreated);
+                    if (accountError != null) {
+                        // Surface it in the response, not just the log: the row IS imported, but
+                        // the person cannot sign in, and whoever ran the import needs to know.
+                        success.put("accountError", accountError);
+                    }
                     imported.add(success);
                     
                 } catch (Exception e) {
@@ -132,6 +151,27 @@ public class ExcelImportController {
         }
     }
     
+    /**
+     * A short, safe reason for the import report. The raw RestTemplate message carries the
+     * internal service URL and identity's whole response body; this file sanitises elsewhere
+     * ("An unexpected error occurred"), so it should not leak internals here either. Identity's
+     * own {@code message} ("Email already exists") is the part an administrator can act on.
+     */
+    private String accountFailureReason(Exception ex) {
+        if (ex instanceof HttpStatusCodeException httpEx) {
+            try {
+                JsonNode body = new ObjectMapper().readTree(httpEx.getResponseBodyAsString());
+                String msg = body.path("message").asText(null);
+                if (msg != null && !msg.isBlank()) {
+                    return msg;
+                }
+            } catch (Exception ignored) {
+                // fall through to the generic reason
+            }
+        }
+        return "Account creation failed";
+    }
+
     /**
      * Import teachers from Excel file
      */
@@ -175,16 +215,27 @@ public class ExcelImportController {
                     
                     Teacher saved = teacherRepository.save(teacher);
                     
-                    // Create login account in identity service if requested
+                    // Create login account in identity service if requested. accountCreated below
+                    // reports the OUTCOME, not the intention: it used to be set from
+                    // `createAccounts && email != null`, so a re-import of the same sheet — where
+                    // identity correctly answers "Email already exists" — still reported
+                    // "accountCreated": true with errors: 0, while the teacher row was saved with a
+                    // null user_id and no login. The admin was told it worked.
+                    boolean accountCreated = false;
+                    String accountError = null;
                     if (createAccounts && email != null && !email.isEmpty()) {
                         try {
                             UUID userId = createUserAccount(email, phone, fullname, "TEACHER", saved.getCenterId());
                             if (userId != null) {
                                 saved.setUserId(userId);
                                 teacherRepository.save(saved);
+                                accountCreated = true;
+                            } else {
+                                accountError = "identity_service returned no user id";
                             }
-                        } catch (Exception accountError) {
-                            log.warn("Teacher saved but account creation failed for {}: {}", email, accountError.getMessage());
+                        } catch (Exception ex) {
+                            accountError = accountFailureReason(ex);
+                            log.warn("Teacher saved but account creation failed for {}: {}", email, ex.getMessage());
                         }
                     }
                     
@@ -192,7 +243,12 @@ public class ExcelImportController {
                     success.put("row", rowNum);
                     success.put("id", saved.getId());
                     success.put("teacherCode", saved.getTeacherCode());
-                    success.put("accountCreated", createAccounts && email != null && !email.isEmpty());
+                    success.put("accountCreated", accountCreated);
+                    if (accountError != null) {
+                        // Surface it in the response, not just the log: the row IS imported, but
+                        // the person cannot sign in, and whoever ran the import needs to know.
+                        success.put("accountError", accountError);
+                    }
                     imported.add(success);
                     
                 } catch (Exception e) {
