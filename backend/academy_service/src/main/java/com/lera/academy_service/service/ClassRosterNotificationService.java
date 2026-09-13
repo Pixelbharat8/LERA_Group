@@ -5,8 +5,11 @@ import com.lera.academy_service.entity.ClassEntity;
 import com.lera.academy_service.entity.ClassSession;
 import com.lera.academy_service.entity.Enrollment;
 import com.lera.academy_service.entity.Student;
+import com.lera.academy_service.entity.Teacher;
 import com.lera.academy_service.repository.EnrollmentRepository;
+import com.lera.academy_service.repository.StudentParentRepository;
 import com.lera.academy_service.repository.StudentRepository;
+import com.lera.academy_service.repository.TeacherRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,8 @@ import java.util.UUID;
 public class ClassRosterNotificationService {
 
     private final EnrollmentRepository enrollmentRepository;
+    private final TeacherRepository teacherRepository;
+    private final StudentParentRepository studentParentRepository;
     private final StudentRepository studentRepository;
     private final NotificationClient notificationClient;
 
@@ -45,20 +50,43 @@ public class ClassRosterNotificationService {
      */
     public List<UUID> resolveRecipientUserIds(UUID classId, UUID teacherId, UUID assistantTeacherId) {
         Set<UUID> ids = new LinkedHashSet<>();
-        if (teacherId != null) ids.add(teacherId);
-        if (assistantTeacherId != null) ids.add(assistantTeacherId);
+        // classes.teacher_id is a teachers.id, but this method returns USER ids — notifications
+        // are addressed by user_id, which is a foreign key to users. Passing the teacher entity id
+        // straight through made connect reject the INSERT, and because the roster is written as
+        // one batch, that single bad id took the whole notification down: the students and parents
+        // in the same class were never told their class was cancelled either.
+        addTeacherUserId(ids, teacherId);
+        addTeacherUserId(ids, assistantTeacherId);
         if (classId == null) return new ArrayList<>(ids);
 
         List<Enrollment> enrollments = enrollmentRepository.findByClassId(classId);
+        List<UUID> studentIds = new ArrayList<>();
         for (Enrollment e : enrollments) {
             if (e.getStatus() != null && !"ACTIVE".equalsIgnoreCase(e.getStatus())) continue;
             Optional<Student> st = studentRepository.findById(e.getStudentId());
             if (st.isEmpty()) continue;
             Student s = st.get();
+            studentIds.add(s.getId());
             if (s.getUserId() != null) ids.add(s.getUserId());
+            // students.parent_id is the older single-parent column; the admin "Link a child" UI
+            // writes student_parents, so reading only the column silently excluded every parent
+            // linked through the UI, and every second parent of a child.
             if (s.getParentId() != null) ids.add(s.getParentId());
         }
+        if (!studentIds.isEmpty()) {
+            for (var link : studentParentRepository.findByStudentIdIn(studentIds)) {
+                if (link.getParentId() != null) ids.add(link.getParentId());
+            }
+        }
         return new ArrayList<>(ids);
+    }
+
+    /** Resolve a teachers.id to the user account it belongs to; skip it if there is none. */
+    private void addTeacherUserId(Set<UUID> ids, UUID teacherEntityId) {
+        if (teacherEntityId == null) return;
+        teacherRepository.findById(teacherEntityId)
+                .map(Teacher::getUserId)
+                .ifPresent(ids::add);
     }
 
     public void notifyScheduleChange(ClassEntity cls, String changeDescription) {
