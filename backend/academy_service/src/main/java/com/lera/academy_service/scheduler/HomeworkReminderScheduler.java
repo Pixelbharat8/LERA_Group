@@ -67,14 +67,17 @@ public class HomeworkReminderScheduler {
                 UUID uid = s.getUserId();
                 if (uid == null) continue;
                 try {
-                    notificationClient.triggerNotification(Map.of(
+                    // Count what was actually delivered. This used to increment regardless, so the
+                    // job reported "sent N homework reminders" even when every call was refused.
+                    if (notificationClient.triggerNotification(Map.of(
                             "notificationType", "TASK_ASSIGNED",
                             "userId", uid,
                             "title", "Homework due " + target,
                             "message", "Homework for " + className + " is due " + target + ": "
                                     + truncate(lp.getHomeworkDescription(), 120),
-                            "referenceId", lp.getId()));
-                    sent++;
+                            "referenceId", lp.getId()))) {
+                        sent++;
+                    }
                 } catch (Exception ignored) { /* non-blocking */ }
             }
         }

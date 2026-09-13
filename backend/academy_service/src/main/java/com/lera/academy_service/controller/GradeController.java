@@ -7,6 +7,7 @@ import com.lera.academy_service.entity.Student;
 import com.lera.academy_service.repository.EnrollmentRepository;
 import com.lera.academy_service.repository.ExamRepository;
 import com.lera.academy_service.repository.ExamResultRepository;
+import com.lera.academy_service.repository.StudentParentRepository;
 import com.lera.academy_service.repository.StudentRepository;
 import com.lera.academy_service.security.AcademyAuthorizationService;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class GradeController {
     private final ExamRepository examRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final StudentRepository studentRepository;
+    private final StudentParentRepository studentParentRepository;
     private final AcademyAuthorizationService authz;
     private final com.lera.academy_service.client.NotificationClient notificationClient;
 
@@ -179,11 +181,29 @@ public class GradeController {
             gradedStudentIds.add(sid);
         }
         // Notify parents that grades were posted (skips students with no linked parent).
+        //
+        // Resolve through student_parents FIRST. That link table is what the admin "Link a child"
+        // UI writes and what payment_service reads; students.parent_id is the older single-parent
+        // column and is null for anyone linked through the UI. Reading only the column meant a
+        // parent could receive payment receipts for a child whose exam results they never heard
+        // about — and a second parent on the same child was never notified at all.
         String examName = exam.getName() != null ? exam.getName() : "an assessment";
+        Map<UUID, List<UUID>> parentsByStudent = new java.util.HashMap<>();
+        for (var link : studentParentRepository.findByStudentIdIn(gradedStudentIds)) {
+            if (link.getParentId() != null) {
+                parentsByStudent.computeIfAbsent(link.getStudentId(), k -> new java.util.ArrayList<>())
+                        .add(link.getParentId());
+            }
+        }
         for (Student st : studentRepository.findAllById(gradedStudentIds)) {
-            if (st.getParentId() != null) {
+            List<UUID> parents = new java.util.ArrayList<>(
+                    parentsByStudent.getOrDefault(st.getId(), List.of()));
+            if (st.getParentId() != null && !parents.contains(st.getParentId())) {
+                parents.add(st.getParentId());
+            }
+            for (UUID parentId : parents) {
                 try {
-                    notificationClient.notifyExamResults(st.getParentId(), st.getFullname(), examName, examId);
+                    notificationClient.notifyExamResults(parentId, st.getFullname(), examName, examId);
                 } catch (Exception ignored) { /* non-blocking */ }
             }
         }
