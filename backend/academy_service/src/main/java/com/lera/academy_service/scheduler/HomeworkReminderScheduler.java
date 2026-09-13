@@ -69,12 +69,19 @@ public class HomeworkReminderScheduler {
                 try {
                     // Count what was actually delivered. This used to increment regardless, so the
                     // job reported "sent N homework reminders" even when every call was refused.
+                    // NOT "TASK_ASSIGNED": connect's handler for that type renders its own
+                    // template from (title, senderName) and discards `message` entirely, so the
+                    // homework detail composed just below was thrown away and the student read
+                    // "null has assigned you a task: Homework due 2026-09-14". An unrecognised
+                    // type falls through to connect's generic branch, which keeps title and
+                    // message verbatim; referenceType preserves the existing deep link.
                     if (notificationClient.triggerNotification(Map.of(
-                            "notificationType", "TASK_ASSIGNED",
+                            "notificationType", "HOMEWORK_DUE",
                             "userId", uid,
                             "title", "Homework due " + target,
                             "message", "Homework for " + className + " is due " + target + ": "
                                     + truncate(lp.getHomeworkDescription(), 120),
+                            "referenceType", "task",
                             "referenceId", lp.getId()))) {
                         sent++;
                     }
