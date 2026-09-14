@@ -43,6 +43,14 @@ export default function DashboardPage() {
       STUDENT: "/dashboard/student",
       PARENT: "/dashboard/parent",
       STAFF: "/dashboard/staff",
+      // Four roles that exist in the database, have their own dashboard built, and were missing
+      // from this map — so signing in as any of them landed on the GUEST page. An accountant
+      // reached /dashboard/guest rather than the finance dashboard the product built for them.
+      ACCOUNTANT: "/dashboard/finance",
+      ACADEMIC_MANAGER: "/dashboard/academicmanager",
+      TEACHING_ASSISTANT: "/dashboard/ta",
+      TA: "/dashboard/ta",
+      ADMIN: "/dashboard/admin",
       USER: "/dashboard/guest",
       GUEST: "/dashboard/guest",
       PENDING: "/dashboard/guest",

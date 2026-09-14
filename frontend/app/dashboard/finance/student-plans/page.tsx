@@ -86,7 +86,13 @@ export default function StudentFeePlansPage() {
     try {
       const plansUrl = buildCenterFilterUrl('/api/student-fee-plans', shouldFilterByCenter ? userCenterId : null);
       const studentsUrl = buildCenterFilterUrl('/api/students', shouldFilterByCenter ? userCenterId : null);
-      const coursesUrl = buildCenterFilterUrl('/api/courses', shouldFilterByCenter ? userCenterId : null);
+      // `/api/courses` is staff-only (AcademyRoles.STAFF, which excludes ACCOUNTANT), so this page
+      // 403'd for the very role that uses it — an accountant building a payment plan could not see
+      // the courses to attach it to. `/api/courses/active` serves the same catalogue and is public;
+      // it is also the right list here, since a plan should only reference a course still on offer.
+      // Course programmes are not centre-scoped (course_programs has no center_id), so the centre
+      // filter was a no-op anyway.
+      const coursesUrl = '/api/courses/active';
       const [plansData, studentsData, coursesData, centersData] = await Promise.all([
         apiFetch(plansUrl).catch(() => []),
         apiFetch(studentsUrl).catch(() => []),
