@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -49,7 +50,19 @@ public class ExcelImportController {
     /**
      * Import students from Excel file
      */
+    /**
+     * Bulk import writes through the repositories directly, bypassing StudentService and
+     * TeacherService — and with them their {@code @CacheEvict}. The list caches ("students",
+     * "teachers") are Caffeine with a ten-minute expireAfterWrite, so without this the people you
+     * just imported stayed invisible on the Students and Teachers pages for up to ten minutes.
+     * Measured: 3 students in the database, the list endpoint still answering 2.
+     *
+     * That matters more than a stale list, because the natural reaction is to import the sheet
+     * again — and this importer does not skip existing rows by default, so the second attempt
+     * duplicates every student.
+     */
     @PostMapping("/students")
+    @CacheEvict(value = {"students", "teachers"}, allEntries = true)
     public ResponseEntity<Map<String, Object>> importStudents(
             @RequestParam("file") MultipartFile file,
             @RequestParam(defaultValue = "true") boolean createAccounts,
@@ -175,7 +188,19 @@ public class ExcelImportController {
     /**
      * Import teachers from Excel file
      */
+    /**
+     * Bulk import writes through the repositories directly, bypassing StudentService and
+     * TeacherService — and with them their {@code @CacheEvict}. The list caches ("students",
+     * "teachers") are Caffeine with a ten-minute expireAfterWrite, so without this the people you
+     * just imported stayed invisible on the Students and Teachers pages for up to ten minutes.
+     * Measured: 3 students in the database, the list endpoint still answering 2.
+     *
+     * That matters more than a stale list, because the natural reaction is to import the sheet
+     * again — and this importer does not skip existing rows by default, so the second attempt
+     * duplicates every student.
+     */
     @PostMapping("/teachers")
+    @CacheEvict(value = {"students", "teachers"}, allEntries = true)
     public ResponseEntity<Map<String, Object>> importTeachers(
             @RequestParam("file") MultipartFile file,
             @RequestParam(defaultValue = "true") boolean createAccounts,
