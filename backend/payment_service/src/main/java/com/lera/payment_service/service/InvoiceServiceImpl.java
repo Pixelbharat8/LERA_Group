@@ -67,11 +67,45 @@ public class InvoiceServiceImpl {
         return invoiceRepository.findByParentIdJoinStudents(parentId);
     }
 
+    /** subtotal - discount + tax, treating absent parts as zero. */
+    private static BigDecimal expectedTotal(BigDecimal subtotal, BigDecimal discount, BigDecimal tax) {
+        BigDecimal sub = subtotal != null ? subtotal : BigDecimal.ZERO;
+        BigDecimal dis = discount != null ? discount : BigDecimal.ZERO;
+        BigDecimal tx = tax != null ? tax : BigDecimal.ZERO;
+        return sub.subtract(dis).add(tx);
+    }
+
+    /**
+     * An invoice's total is fully determined by its own parts: subtotal - discount + tax. There is
+     * no adjustment column, so no legitimate invoice disagrees with that sum.
+     *
+     * Nothing checked it. Posting subtotal 5,000,000 with discount 500,000, tax 250,000 and
+     * totalAmount 1 stored a total of 1 — and everything downstream believes that number,
+     * including the guard that refuses to mark an invoice PAID until recorded payments cover the
+     * total. A single mistyped or miscomputed field therefore produced an invoice a parent could
+     * settle for one dong.
+     *
+     * Fill the total in when it is absent; reject it loudly when it contradicts the parts. This
+     * cannot silently change a correct amount — it either computes a missing one or refuses.
+     */
     @Transactional
     public Invoice createInvoice(Invoice invoice) {
         if (invoice.getInvoiceNumber() == null || invoice.getInvoiceNumber().isEmpty()) {
             invoice.setInvoiceNumber("INV-" + System.currentTimeMillis());
         }
+
+        BigDecimal expected = expectedTotal(
+                invoice.getSubtotal(), invoice.getDiscountAmount(), invoice.getTaxAmount());
+
+        if (invoice.getTotalAmount() == null || invoice.getTotalAmount().signum() == 0) {
+            invoice.setTotalAmount(expected);
+        } else if (invoice.getTotalAmount().compareTo(expected) != 0) {
+            throw new IllegalArgumentException(
+                    "Invoice total " + invoice.getTotalAmount() + " does not match its parts: "
+                            + "subtotal " + invoice.getSubtotal() + " - discount " + invoice.getDiscountAmount()
+                            + " + tax " + invoice.getTaxAmount() + " = " + expected);
+        }
+
         log.info("Creating invoice: {} for student: {}", invoice.getInvoiceNumber(), invoice.getStudentId());
         return invoiceRepository.save(invoice);
     }
@@ -91,6 +125,28 @@ public class InvoiceServiceImpl {
             if (details.getDiscountAmount() != null) existing.setDiscountAmount(details.getDiscountAmount());
             if (details.getTaxAmount() != null) existing.setTaxAmount(details.getTaxAmount());
             if (details.getTotalAmount() != null) existing.setTotalAmount(details.getTotalAmount());
+            // The create guard is worthless if an update can walk the total away from its parts.
+            // Only money fields trigger this; the record-payment flow (paidAmount/status/paidAt)
+            // touches none of them and is unaffected. If the caller asserted a total, it must be
+            // right; if they changed a component without restating the total, recompute it so the
+            // invoice cannot be left internally inconsistent.
+            boolean touchedMoney = details.getSubtotal() != null || details.getDiscountAmount() != null
+                    || details.getTaxAmount() != null || details.getTotalAmount() != null;
+            if (touchedMoney) {
+                BigDecimal expectedNow = expectedTotal(
+                        existing.getSubtotal(), existing.getDiscountAmount(), existing.getTaxAmount());
+                if (details.getTotalAmount() != null) {
+                    if (existing.getTotalAmount().compareTo(expectedNow) != 0) {
+                        throw new IllegalArgumentException(
+                                "Invoice total " + existing.getTotalAmount() + " does not match its parts: "
+                                        + "subtotal " + existing.getSubtotal() + " - discount "
+                                        + existing.getDiscountAmount() + " + tax " + existing.getTaxAmount()
+                                        + " = " + expectedNow);
+                    }
+                } else {
+                    existing.setTotalAmount(expectedNow);
+                }
+            }
             if (details.getCurrency() != null) existing.setCurrency(details.getCurrency());
             if (details.getDueDate() != null) existing.setDueDate(details.getDueDate());
             if (details.getNotes() != null) existing.setNotes(details.getNotes());

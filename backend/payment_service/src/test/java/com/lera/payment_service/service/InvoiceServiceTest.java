@@ -134,4 +134,84 @@ class InvoiceServiceTest {
         assertTrue(result.isPresent());
         assertEquals("PAID", result.get().getStatus());
     }
+
+    // ---- invoice total must agree with its own parts -------------------------------------------
+    // Nothing checked this. Posting subtotal 5,000,000 with discount 500,000, tax 250,000 and a
+    // totalAmount of 1 stored a total of 1 — and the PAID guard then accepts payments covering 1
+    // as settling the invoice. These pin the arithmetic so it cannot drift back.
+
+    private Invoice parts(BigDecimal subtotal, BigDecimal discount, BigDecimal tax, BigDecimal total) {
+        Invoice inv = new Invoice();
+        inv.setInvoiceNumber("INV-TEST");
+        inv.setSubtotal(subtotal);
+        inv.setDiscountAmount(discount);
+        inv.setTaxAmount(tax);
+        inv.setTotalAmount(total);
+        return inv;
+    }
+
+    @Test
+    void createInvoice_rejectsATotalThatContradictsItsParts() {
+        Invoice inv = parts(new BigDecimal("5000000"), new BigDecimal("500000"),
+                new BigDecimal("250000"), BigDecimal.ONE);
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> invoiceService.createInvoice(inv));
+        assertTrue(e.getMessage().contains("4750000"), "should name the correct total: " + e.getMessage());
+        verify(invoiceRepository, never()).save(any());
+    }
+
+    @Test
+    void createInvoice_computesTheTotalWhenItIsMissing() {
+        Invoice inv = parts(new BigDecimal("5000000"), new BigDecimal("500000"),
+                new BigDecimal("250000"), null);
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(a -> a.getArgument(0));
+
+        Invoice saved = invoiceService.createInvoice(inv);
+        assertEquals(0, new BigDecimal("4750000").compareTo(saved.getTotalAmount()));
+    }
+
+    @Test
+    void createInvoice_acceptsACorrectTotal() {
+        Invoice inv = parts(new BigDecimal("5000000"), new BigDecimal("500000"),
+                new BigDecimal("250000"), new BigDecimal("4750000"));
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(a -> a.getArgument(0));
+
+        assertEquals(0, new BigDecimal("4750000").compareTo(
+                invoiceService.createInvoice(inv).getTotalAmount()));
+    }
+
+    @Test
+    void updateInvoice_recomputesTheTotalWhenAComponentChanges() {
+        // The create guard is worthless if an update can walk the total away from its parts.
+        Invoice existing = parts(new BigDecimal("5000000"), BigDecimal.ZERO,
+                BigDecimal.ZERO, new BigDecimal("5000000"));
+        existing.setId(UUID.randomUUID());
+        when(invoiceRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(a -> a.getArgument(0));
+
+        Invoice change = new Invoice();
+        change.setDiscountAmount(new BigDecimal("1000000"));   // total not restated
+
+        Invoice updated = invoiceService.updateInvoice(existing.getId(), change).orElseThrow();
+        assertEquals(0, new BigDecimal("4000000").compareTo(updated.getTotalAmount()));
+    }
+
+    @Test
+    void updateInvoice_leavesANonMoneyUpdateAlone() {
+        // The record-payment flow sends only paidAt/status; it must not trip the guard.
+        Invoice existing = parts(new BigDecimal("5000000"), BigDecimal.ZERO,
+                BigDecimal.ZERO, new BigDecimal("5000000"));
+        existing.setId(UUID.randomUUID());
+        existing.setStatus("PENDING");
+        when(invoiceRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(a -> a.getArgument(0));
+
+        Invoice change = new Invoice();
+        change.setNotes("payment recorded");
+
+        Invoice updated = invoiceService.updateInvoice(existing.getId(), change).orElseThrow();
+        assertEquals(0, new BigDecimal("5000000").compareTo(updated.getTotalAmount()));
+        assertEquals("payment recorded", updated.getNotes());
+    }
 }
