@@ -58,7 +58,7 @@ public class OpenAIService {
                 "success", false,
                 "error", "AI provider not configured. Add an API key in Super Admin → AI Gateway "
                     + "(or set ANTHROPIC_API_KEY / AI_BASE_URL).",
-                "message", generateFallbackResponse(message, systemPrompt)
+                "message", unavailableMessage(false)
             );
         }
         try {
@@ -70,7 +70,7 @@ public class OpenAIService {
             return Map.of(
                 "success", false,
                 "error", e.getMessage(),
-                "message", generateFallbackResponse(message, systemPrompt)
+                "message", unavailableMessage(true)
             );
         }
     }
@@ -122,7 +122,7 @@ public class OpenAIService {
             );
         }
         return Map.of("success", false, "error", "Empty response from Claude",
-            "message", generateFallbackResponse(message, systemPrompt));
+            "message", unavailableMessage(true));
     }
 
     /** OpenAI-compatible /chat/completions (also covers in-house gateways like Axiom). */
@@ -168,7 +168,7 @@ public class OpenAIService {
             }
         }
         return Map.of("success", false, "error", "Empty response from provider",
-            "message", generateFallbackResponse(message, systemPrompt));
+            "message", unavailableMessage(true));
     }
 
     /**
@@ -270,49 +270,25 @@ public class OpenAIService {
     }
 
     /**
-     * Fallback response when API is not available
+     * What to say when no answer was produced. This replaces the old fallback generator: a pattern
+     * matcher over the student's question that returned plausible, confident-sounding tutoring
+     * content — a grammar lesson, a vocabulary method — whenever no provider was configured or a
+     * call failed.
+     *
+     * That content was written here, not by any model, and it reached students as an answer. The
+     * reply even carried {@code model: gpt-4o-mini}, naming a model that had never run. Honest
+     * signals existed alongside it ({@code usingRealAI: false}, and a note that the provider was
+     * unconfigured), but the student-facing page renders {@code message} — so what a child saw was
+     * invented teaching material presented as the AI's reply.
+     *
+     * Never fabricate subject-matter content. Say what is true and what would fix it. The wording
+     * matches connect_service's AI tutor, which already answered honestly.
      */
-    private String generateFallbackResponse(String message, String systemPrompt) {
-        // Basic pattern matching for common educational questions
-        String lowerMessage = message.toLowerCase();
-        
-        if (lowerMessage.contains("present simple") && lowerMessage.contains("present continuous")) {
-            return "**Present Simple vs Present Continuous:**\n\n" +
-                   "**Present Simple:** Used for habits, facts, and general truths.\n" +
-                   "- Example: \"I study English every day.\"\n" +
-                   "- Example: \"The sun rises in the east.\"\n\n" +
-                   "**Present Continuous:** Used for actions happening right now.\n" +
-                   "- Example: \"I am studying English now.\"\n" +
-                   "- Example: \"She is reading a book at the moment.\"\n\n" +
-                   "💡 **Tip:** Look for time markers like 'every day' (simple) vs 'now/at the moment' (continuous).";
+    private String unavailableMessage(boolean configured) {
+        if (!configured) {
+            return "The AI tutor isn't available yet. An administrator needs to configure an AI "
+                    + "provider key in Super Admin → AI Gateway before live tutoring works.";
         }
-        
-        if (lowerMessage.contains("grammar") || lowerMessage.contains("tense")) {
-            return "Great question about grammar! Here are some key points:\n\n" +
-                   "1. **Understand the concept first** - know when to use each form\n" +
-                   "2. **Practice with examples** - make your own sentences\n" +
-                   "3. **Learn time markers** - they help you choose the right tense\n\n" +
-                   "Would you like me to explain a specific grammar topic in detail?";
-        }
-        
-        if (lowerMessage.contains("vocabulary") || lowerMessage.contains("word")) {
-            return "Building vocabulary is essential! Here's how:\n\n" +
-                   "1. **Learn in context** - read sentences, not just word lists\n" +
-                   "2. **Use spaced repetition** - review words at increasing intervals\n" +
-                   "3. **Practice actively** - use new words in speaking and writing\n\n" +
-                   "What specific vocabulary topic would you like help with?";
-        }
-        
-        // Default educational response
-        return String.format(
-            "Thank you for your question! Let me help you understand this better.\n\n" +
-            "**Your question:** %s\n\n" +
-            "**Key points to consider:**\n" +
-            "1. Start with the fundamentals and build understanding step by step\n" +
-            "2. Practice regularly with real examples\n" +
-            "3. Don't hesitate to ask for clarification\n\n" +
-            "Would you like me to explain any specific aspect in more detail?",
-            message.length() > 100 ? message.substring(0, 100) + "..." : message
-        );
+        return "The AI tutor is temporarily unavailable. Please try again in a few minutes.";
     }
 }

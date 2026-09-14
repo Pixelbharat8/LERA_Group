@@ -168,7 +168,12 @@ public class AiController {
             if (Boolean.TRUE.equals(result.get("success"))) aiUsage.record(me, tokensOf(result));
 
             response.put("message", result.get("message"));
-            response.put("model", model);
+            // Only name a model when one actually answered. This used to echo the requested model
+            // unconditionally, so an unconfigured gateway replied `model: gpt-4o-mini` beside
+            // `usingRealAI: false` — claiming provenance for text no model produced.
+            if (Boolean.TRUE.equals(result.get("success"))) {
+                response.put("model", model);
+            }
             response.put("timestamp", LocalDateTime.now().toString());
             response.put("tokensUsed", result.getOrDefault("tokensUsed", 0));
             response.put("usingRealAI", result.getOrDefault("success", false));
