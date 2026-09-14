@@ -57,7 +57,8 @@ interface PayrollRecord {
   teachingAmount: number;
   bonus: number;
   deductions: number;
-  netSalary: number;
+  netSalary?: number;
+  totalAmount?: number;
   status: string;
   paidDate: string;
 }
@@ -150,8 +151,29 @@ export default function TeacherProfilePage() {
 
   const fetchPayroll = async () => {
     try {
-      // Real payroll records from payroll_service (visible to finance/admin roles; empty otherwise).
-      const data = await apiFetch(`/api/payroll?teacherId=${teacherId}`);
+      // Two things were wrong here and they cancelled each other out into something worse.
+      //
+      // `/api/payroll` takes only centerId — it has no teacherId parameter, so `?teacherId=` was
+      // silently ignored and an org-wide viewer got EVERY payslip in the system. Opening one
+      // teacher's profile listed every colleague's salary under their name.
+      //
+      // The filtering endpoint is /api/payroll-records, and it keys on the staff member's USER
+      // id: payroll_service stores the login account id in teacher_id throughout (salary config,
+      // bonuses, deductions, overtime all agree). This page's route parameter is the TEACHER
+      // record id, which matches nothing there — passing it returns an empty list.
+      //
+      // So: resolve the teacher's user account, then ask the endpoint that actually filters.
+      // Resolved here rather than read from `profile` because both run in the same Promise.all.
+      const teacher = (await apiFetch(`/api/teachers/${teacherId}`).catch(() => null)) as
+        | { userId?: string; data?: { userId?: string } }
+        | null;
+      const userId = teacher?.userId ?? teacher?.data?.userId;
+      if (!userId) {
+        // No login account means no payslips can exist against them.
+        setPayroll([]);
+        return;
+      }
+      const data = await apiFetch(`/api/payroll-records?userId=${encodeURIComponent(userId)}`);
       setPayroll(Array.isArray(data) ? data : (data?.data || data?.content || []));
     } catch (error) {
       console.error("Error fetching payroll:", error);
@@ -195,7 +217,10 @@ export default function TeacherProfilePage() {
   const classesArray = Array.isArray(classes) ? classes : [];
   const studentsArray = Array.isArray(students) ? students : [];
   
-  const totalEarnings = payrollArray.reduce((sum, p) => sum + (p.netSalary || 0), 0);
+  // Payroll records expose totalAmount; netSalary is a teacher_salaries column and is
+  // never present here, so this used to total 0đ for every teacher.
+  const totalEarnings = payrollArray.reduce(
+    (sum, p) => sum + (p.totalAmount ?? p.netSalary ?? 0), 0);
   const totalHours = payrollArray.reduce((sum, p) => sum + (p.teachingHours || 0), 0);
   const activeClasses = classesArray.filter(c => c.status === 'ONGOING').length;
   const totalStudents = studentsArray.length;
@@ -581,7 +606,7 @@ export default function TeacherProfilePage() {
                         <td className="px-4 py-3">{record.teachingAmount?.toLocaleString()}đ</td>
                         <td className="px-4 py-3 text-green-600">+{record.bonus?.toLocaleString()}đ</td>
                         <td className="px-4 py-3 text-red-600">-{record.deductions?.toLocaleString()}đ</td>
-                        <td className="px-4 py-3 font-bold">{record.netSalary?.toLocaleString()}đ</td>
+                        <td className="px-4 py-3 font-bold">{(record.totalAmount ?? record.netSalary ?? 0).toLocaleString()}đ</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-1 rounded text-sm ${
                             record.status === 'PAID' ? 'bg-green-100 text-green-800' :

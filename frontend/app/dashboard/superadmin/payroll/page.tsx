@@ -32,7 +32,8 @@ interface PayrollRecord {
   overtimePay?: number;
   deductions?: number;
   bonus?: number;
-  netSalary: number;
+  netSalary?: number;
+  totalAmount?: number;
   status: string;
   paidAt?: string;
   createdAt?: string;
@@ -164,7 +165,12 @@ export default function PayrollPage() {
   ];
 
   // Calculate totals
-  const totalEarnings = payrollRecords.reduce((sum, r) => sum + (r.netSalary || 0), 0);
+  // `/api/payroll/user/{id}` returns totalAmount, never netSalary — net_salary is a column
+  // on the separate teacher_salaries table. Summing netSalary made Total Earnings read 0
+  // on every payslip this page has ever shown.
+  const payslipAmount = (r: { totalAmount?: number; netSalary?: number }) =>
+    r.totalAmount ?? r.netSalary ?? 0;
+  const totalEarnings = payrollRecords.reduce((sum, r) => sum + payslipAmount(r), 0);
   const totalDeductions = payrollRecords.reduce((sum, r) => sum + (r.deductions || 0), 0);
   const totalBonus = payrollRecords.reduce((sum, r) => sum + (r.bonus || 0), 0);
 
@@ -296,7 +302,7 @@ export default function PayrollPage() {
               ` : ''}
               <tr>
                 <td><strong>Net Salary</strong></td>
-                <td class="total" style="text-align: right;">${formatCurrency(record.netSalary)}</td>
+                <td class="total" style="text-align: right;">${formatCurrency(record.totalAmount ?? record.netSalary ?? 0)}</td>
               </tr>
             </table>
 
@@ -552,7 +558,7 @@ export default function PayrollPage() {
                             -{formatCurrency(record.deductions || 0)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">
-                            {formatCurrency(record.netSalary)}
+                            {formatCurrency(payslipAmount(record))}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(record.status)}`}>

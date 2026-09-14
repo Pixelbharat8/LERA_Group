@@ -48,6 +48,7 @@ interface PayrollRecord {
   deductions?: number;
   totalDeductions?: number;
   netSalary?: number;
+  totalAmount?: number;
   netPay?: number;
   status: string;
 }
@@ -465,7 +466,7 @@ export default function StaffProfilePage() {
                       <td className="px-4 py-3">${(p.baseSalary || 0).toLocaleString()}</td>
                       <td className="px-4 py-3 text-green-600">+${(p.totalBonus || p.bonus || 0).toLocaleString()}</td>
                       <td className="px-4 py-3 text-red-600">-${(p.totalDeductions || p.deductions || 0).toLocaleString()}</td>
-                      <td className="px-4 py-3 font-bold">${(p.netSalary || p.netPay || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 font-bold">${(p.totalAmount ?? p.netSalary ?? p.netPay ?? 0).toLocaleString()}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-1 text-xs rounded-full ${
                           p.status === "PAID" ? "bg-green-100 text-green-800" :
