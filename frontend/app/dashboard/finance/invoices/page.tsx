@@ -99,6 +99,24 @@ export default function InvoicesPage() {
 
       setStudents(Array.isArray(studentsData) ? studentsData : []);
       setCenters(Array.isArray(centersData) ? centersData : []);
+
+      // `/api/invoices` returns studentId and centerId, never studentName or centerName — so
+      // `inv.studentName || 'Unknown Student'` labelled EVERY invoice "Unknown Student" and
+      // "Unknown Center", and the search box below (which filters on studentName) could never
+      // match anything. Both lists are already fetched above; join against them, as the
+      // /dashboard/payments page does.
+      const studentNameById = new Map<string, string>(
+        (Array.isArray(studentsData) ? studentsData : []).map((st: any) => [
+          String(st.id),
+          st.fullname || st.fullName || st.name || '',
+        ])
+      );
+      const centerNameById = new Map<string, string>(
+        (Array.isArray(centersData) ? centersData : []).map((c: any) => [
+          String(c.id),
+          c.name || c.nameVi || '',
+        ])
+      );
       
       // Backend returns a Spring Page for the org-wide (unpaginated-by-center) path; normalize.
       const invoiceList = Array.isArray(invoicesData) ? invoicesData : ((invoicesData as any)?.content || []);
@@ -108,9 +126,9 @@ export default function InvoicesPage() {
           id: inv.id,
           invoiceNumber: inv.invoiceNumber || `INV-${inv.id?.slice(0, 8)}`,
           studentId: inv.studentId,
-          studentName: inv.studentName || 'Unknown Student',
+          studentName: inv.studentName || studentNameById.get(String(inv.studentId)) || 'Unknown Student',
           centerId: inv.centerId,
-          centerName: inv.centerName || 'Unknown Center',
+          centerName: inv.centerName || centerNameById.get(String(inv.centerId)) || 'Unknown Center',
           courseName: inv.courseName,
           invoiceDate: inv.invoiceDate || inv.createdAt?.split('T')[0],
           dueDate: inv.dueDate,
