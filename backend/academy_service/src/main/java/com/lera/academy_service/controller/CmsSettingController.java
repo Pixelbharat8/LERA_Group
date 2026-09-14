@@ -45,10 +45,22 @@ public class CmsSettingController {
     
     // SECURITY: the value/{key} and map/{category} reads are public (no auth), so they must only
     // expose website-display content — never allow dumping an arbitrary admin key/category.
+    /**
+     * Categories a logged-out visitor may read, because a public page renders them. Anything not
+     * listed here returns 403 to anonymous callers.
+     *
+     * `scholarships` was missing: /scholarships calls usePageContent("scholarships"), so the fetch
+     * 403'd and the page silently fell back to its hardcoded defaults — meaning anything staff
+     * edited under Chairman → Website Content → Scholarships never appeared on the site. The CMS
+     * feature looked like it worked and did nothing.
+     *
+     * Guarded by frontend/lib/cms-public-categories.test.ts, which fails if a public page asks for
+     * a category this list does not contain.
+     */
     private static final java.util.Set<String> PUBLIC_CATEGORIES = java.util.Set.of(
             "homepage", "hero", "about", "contact", "courses", "gallery", "achievements", "header",
             "privacy", "terms", "social", "branding", "seo", "footer",
-            "corporate", "portal", "placement", "book_trial", "enroll");
+            "corporate", "portal", "placement", "book_trial", "enroll", "scholarships");
 
     private static final java.util.Set<String> PUBLIC_KEYS = java.util.Set.of(
             "footer_settings", "header_menu_items", "seo_settings", "seo_pages", "branding_settings",
