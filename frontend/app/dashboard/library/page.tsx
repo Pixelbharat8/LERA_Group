@@ -8,10 +8,14 @@ import { apiFetch } from "../../../lib/api";
 interface Book {
   id: string;
   title: string;
-  author: string;
+  // author/category are resolved server-side from authorId/categoryId; a book whose
+  // author or category row is missing comes back null, so both are optional here.
+  author?: string | null;
   isbn?: string;
-  category: string;
-  available: boolean;
+  category?: string | null;
+  // The API key is isAvailable, not available — reading the wrong one marked every
+  // in-stock book "Unavailable".
+  isAvailable?: boolean;
   totalCopies: number;
   availableCopies: number;
   coverImage?: string;
@@ -73,7 +77,10 @@ export default function LibraryPage() {
     }
   };
 
-  const categories = ["all", ...Array.from(new Set(books.map(b => b.category)))];
+  const categories = [
+    "all",
+    ...Array.from(new Set(books.map(b => b.category).filter((c): c is string => !!c))).sort(),
+  ];
 
   const filteredBooks = books.filter(book => {
     const matchesSearch = (book.title ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -201,8 +208,8 @@ export default function LibraryPage() {
                   </div>
                 </div>
                 <div className="mt-4 flex items-center justify-between">
-                  <span className={`text-sm ${book.available ? 'text-green-600' : 'text-red-600'}`}>
-                    {book.available ? `✓ ${book.availableCopies} ${t.available}` : `✗ ${isVietnamese ? 'Hết' : 'Unavailable'}`}
+                  <span className={`text-sm ${book.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                    {book.isAvailable ? `✓ ${book.availableCopies} ${t.available}` : `✗ ${isVietnamese ? 'Hết' : 'Unavailable'}`}
                   </span>
                   <button
                     disabled
