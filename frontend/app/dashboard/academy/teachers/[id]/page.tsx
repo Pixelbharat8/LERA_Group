@@ -50,8 +50,12 @@ interface ClassTaught {
 
 interface PayrollRecord {
   id: string;
-  month: string;
-  year: number;
+  // Payroll records are stored as a pay PERIOD; month/year are not fields on them, so reading
+  // them rendered "undefined/undefined" in the period column.
+  month?: string;
+  year?: number;
+  payPeriodStart?: string;
+  payPeriodEnd?: string;
   baseSalary: number;
   teachingHours: number;
   teachingAmount: number;
@@ -86,6 +90,21 @@ export default function TeacherProfilePage() {
   const params = useParams();
   const router = useRouter();
   const teacherId = params.id as string;
+
+  /**
+   * Payroll records carry payPeriodStart/payPeriodEnd, never month/year, so the period column
+   * printed "undefined/undefined". Falls back to month/year if a caller ever supplies them.
+   */
+  const payPeriod = (r: PayrollRecord) => {
+    if (r.month && r.year) return `${r.month}/${r.year}`;
+    if (!r.payPeriodStart) return "—";
+    const start = new Date(r.payPeriodStart);
+    if (Number.isNaN(start.getTime())) return "—";
+    const end = r.payPeriodEnd ? new Date(r.payPeriodEnd) : null;
+    return end && !Number.isNaN(end.getTime())
+      ? `${start.toLocaleDateString()} – ${end.toLocaleDateString()}`
+      : start.toLocaleDateString();
+  };
 
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
   const [attendanceStats, setAttendanceStats] = useState<AttendanceStats | null>(null);
@@ -600,7 +619,7 @@ export default function TeacherProfilePage() {
                   <tbody>
                     {payrollArray.length > 0 ? payrollArray.map((record) => (
                       <tr key={record.id} className="border-b hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium">{record.month}/{record.year}</td>
+                        <td className="px-4 py-3 font-medium">{payPeriod(record)}</td>
                         <td className="px-4 py-3">{record.baseSalary?.toLocaleString()}đ</td>
                         <td className="px-4 py-3">{record.teachingHours}h</td>
                         <td className="px-4 py-3">{record.teachingAmount?.toLocaleString()}đ</td>

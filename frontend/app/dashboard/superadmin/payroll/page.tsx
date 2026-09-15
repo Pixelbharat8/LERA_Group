@@ -23,8 +23,14 @@ interface User {
 interface PayrollRecord {
   id: string;
   userId: string;
-  month: number;
-  year: number;
+  // A payroll record is stored as a pay PERIOD, not a month/year pair. These two are kept
+  // optional because nothing sends them — see periodLabel below.
+  month?: number;
+  year?: number;
+  payPeriodStart?: string;
+  payPeriodEnd?: string;
+  teacherName?: string;
+  overtime?: number;
   baseSalary: number;
   hourlyRate?: number;
   hoursWorked?: number;
@@ -159,6 +165,33 @@ export default function PayrollPage() {
     }).format(amount || 0);
   };
 
+  /**
+   * Payroll records carry payPeriodStart/payPeriodEnd; they have never carried month/year. Reading
+   * those printed "undefined undefined" as the period — on the payslip document itself, which is
+   * the thing an employee is handed. Prefer the real period, and keep month/year as a fallback in
+   * case a caller ever supplies them.
+   */
+  const periodLabel = (r: { month?: number; year?: number; payPeriodStart?: string; payPeriodEnd?: string }) => {
+    if (typeof r.month === "number" && typeof r.year === "number" && r.month >= 1 && r.month <= 12) {
+      return `${months[r.month - 1]} ${r.year}`;
+    }
+    if (r.payPeriodStart) {
+      const start = new Date(r.payPeriodStart);
+      if (!Number.isNaN(start.getTime())) {
+        const end = r.payPeriodEnd ? new Date(r.payPeriodEnd) : null;
+        // A period inside one calendar month reads better as "September 2026" than as a range.
+        if (end && !Number.isNaN(end.getTime())
+            && start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+          return `${months[start.getMonth()]} ${start.getFullYear()}`;
+        }
+        return end && !Number.isNaN(end.getTime())
+          ? `${start.toLocaleDateString()} – ${end.toLocaleDateString()}`
+          : `${months[start.getMonth()]} ${start.getFullYear()}`;
+      }
+    }
+    return "—";
+  };
+
   const months = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
@@ -231,7 +264,7 @@ export default function PayrollPage() {
       printWindow.document.write(`
         <html>
           <head>
-            <title>Payslip - ${months[record.month - 1]} ${record.year}</title>
+            <title>Payslip - ${periodLabel(record)}</title>
             <style>
               body { font-family: Arial, sans-serif; padding: 40px; }
               .header { text-align: center; margin-bottom: 30px; }
@@ -251,7 +284,7 @@ export default function PayrollPage() {
           <body>
             <div class="header">
               <div class="title">LERA Academy</div>
-              <div class="subtitle">Payslip for ${months[record.month - 1]} ${record.year}</div>
+              <div class="subtitle">Payslip for ${periodLabel(record)}</div>
             </div>
             
             <div class="info-grid">
@@ -543,7 +576,7 @@ export default function PayrollPage() {
                       payrollRecords.map((record) => (
                         <tr key={record.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap font-medium">
-                            {months[record.month - 1]} {record.year}
+                            {periodLabel(record)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-gray-500">
                             {formatCurrency(record.baseSalary)}
@@ -594,7 +627,7 @@ export default function PayrollPage() {
           <div className="bg-white rounded-lg p-6 w-full max-w-lg">
             <div className="flex justify-between items-start mb-6">
               <h2 className="text-xl font-bold text-gray-900">
-                💰 Payslip - {months[viewingRecord.month - 1]} {viewingRecord.year}
+                💰 Payslip - {periodLabel(viewingRecord)}
               </h2>
               <button onClick={() => setViewingRecord(null)} className="text-gray-500 hover:text-gray-800 text-xl">&times;</button>
             </div>

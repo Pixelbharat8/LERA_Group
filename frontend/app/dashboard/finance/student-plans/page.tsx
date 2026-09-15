@@ -106,12 +106,24 @@ export default function StudentFeePlansPage() {
       // Map the StudentFeePlan entity (totalAmount/installments/planName) to the fields this page
       // reads (finalAmount/baseAmount/planType/studentName) — sending them raw rendered ₫NaN and
       // crashed the search on undefined studentName.
+      //
+      // A plan row carries studentId, never a name, so `p.studentName` was always "" — the Student
+      // column was blank on every row and the search box, which filters on studentName, could
+      // never match anything. The student list is already loaded here, so join it (same fix as
+      // finance/invoices). courseName has no equivalent: StudentFeePlan has no courseId to join
+      // on, so that column stays empty until the model carries one.
+      const studentNameById = new Map<string, string>(
+        (Array.isArray(studentsData) ? studentsData : []).map((s: any) => [
+          String(s.id),
+          s.fullname || s.fullName || s.name || "",
+        ])
+      );
       setFeePlans(Array.isArray(plansData) ? plansData.map((p: any) => ({
         ...p,
         finalAmount: p.finalAmount ?? p.totalAmount ?? 0,
         baseAmount: p.baseAmount ?? p.totalAmount ?? 0,
         planType: p.planType ?? "CUSTOM",
-        studentName: p.studentName ?? "",
+        studentName: p.studentName || studentNameById.get(String(p.studentId)) || "",
       })) : []);
     } catch (err) {
       console.error("Error fetching data:", err);
