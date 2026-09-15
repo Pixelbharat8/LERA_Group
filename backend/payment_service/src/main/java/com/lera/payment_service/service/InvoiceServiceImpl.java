@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -36,35 +38,75 @@ public class InvoiceServiceImpl {
     private static final List<String> SETTLED_PAYMENT_STATUSES =
             List.of("COMPLETED", "SUCCESS", "PAID", "SETTLED");
 
+    /**
+     * Fill in each invoice's settled paid amount. Payments live in their own table, so this is the
+     * same sum {@link #assertSufficientPayments} already trusts to gate the PAID transition — the
+     * read path simply never reported it, which is why the UI's balance, its "collected" tile and
+     * its instalment arithmetic were all working from zero.
+     *
+     * One query for the whole page rather than one per invoice.
+     */
+    private List<Invoice> withPaidAmounts(List<Invoice> invoices) {
+        if (invoices == null || invoices.isEmpty()) return invoices;
+        List<UUID> ids = invoices.stream().map(Invoice::getId).filter(Objects::nonNull).distinct().toList();
+        Map<UUID, BigDecimal> settled = new HashMap<>();
+        if (!ids.isEmpty()) {
+            String ph = ids.stream().map(x -> "?").collect(java.util.stream.Collectors.joining(","));
+            String statuses = SETTLED_PAYMENT_STATUSES.stream()
+                    .map(x -> "?").collect(java.util.stream.Collectors.joining(","));
+            List<Object> args = new java.util.ArrayList<>(ids);
+            args.addAll(SETTLED_PAYMENT_STATUSES);
+            jdbcTemplate.query(
+                    "SELECT invoice_id, COALESCE(SUM(amount), 0) AS paid FROM payments"
+                            + " WHERE invoice_id IN (" + ph + ")"
+                            + " AND (status IS NULL OR UPPER(status) IN (" + statuses + "))"
+                            + " GROUP BY invoice_id",
+                    (java.sql.ResultSet rs) -> {
+                        settled.put(rs.getObject("invoice_id", UUID.class), rs.getBigDecimal("paid"));
+                    }, args.toArray());
+        }
+        for (Invoice inv : invoices) {
+            inv.setPaidAmount(settled.getOrDefault(inv.getId(), BigDecimal.ZERO));
+        }
+        return invoices;
+    }
+
+    private Optional<Invoice> withPaidAmount(Optional<Invoice> invoice) {
+        invoice.ifPresent(inv -> withPaidAmounts(List.of(inv)));
+        return invoice;
+    }
+
     public Page<Invoice> getAllInvoices(Pageable pageable) {
-        return invoiceRepository.findAll(pageable);
+        Page<Invoice> page = invoiceRepository.findAll(pageable);
+        withPaidAmounts(page.getContent());
+        return page;
     }
 
     public Optional<Invoice> getInvoiceById(UUID id) {
-        return invoiceRepository.findById(id);
+        return withPaidAmount(invoiceRepository.findById(id));
     }
 
     public Optional<Invoice> getInvoiceByNumber(String invoiceNumber) {
-        return invoiceRepository.findByInvoiceNumber(invoiceNumber);
+        return withPaidAmount(invoiceRepository.findByInvoiceNumber(invoiceNumber));
     }
 
     public List<Invoice> getInvoicesByStudent(UUID studentId) {
-        return invoiceRepository.findByStudentId(studentId);
+        return withPaidAmounts(invoiceRepository.findByStudentId(studentId));
     }
 
     public List<Invoice> getInvoicesByCenter(UUID centerId) {
-        return invoiceRepository.findByCenterId(centerId);
+        return withPaidAmounts(invoiceRepository.findByCenterId(centerId));
     }
 
     public List<Invoice> getInvoicesByStatus(String status) {
-        return invoiceRepository.findByStatus(status);
+        return withPaidAmounts(invoiceRepository.findByStatus(status));
     }
 
     /**
      * Invoices for all children linked to a parent (via the student_parents link table).
      */
     public List<Invoice> getInvoicesForParent(UUID parentId) {
-        return invoiceRepository.findByParentIdJoinStudents(parentId);
+        return withPaidAmounts(invoiceRepository.findByParentIdJoinStudents(parentId));
     }
 
     /** subtotal - discount + tax, treating absent parts as zero. */

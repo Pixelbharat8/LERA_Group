@@ -136,8 +136,11 @@ export default function InvoicesPage() {
           discountAmount: inv.discountAmount || 0,
           taxAmount: inv.taxAmount || 0,
           totalAmount: inv.totalAmount || 0,
-          paidAmount: inv.paidAmount || 0,
-          balance: (inv.totalAmount || 0) - (inv.paidAmount || 0),
+          // Both are resolved server-side from the settled payment rows; there is no
+          // paid_amount column, so these used to read 0 and the balance showed the full total
+          // on an invoice that had been part-paid.
+          paidAmount: inv.paidAmount ?? 0,
+          balance: inv.balance ?? ((inv.totalAmount || 0) - (inv.paidAmount || 0)),
           status: inv.status || 'PENDING',
           items: inv.items || [],
           createdAt: inv.createdAt
@@ -288,14 +291,15 @@ export default function InvoicesPage() {
         })
       });
 
-      // Update invoice paid amount and status
+      // Move the invoice on. paidAmount is derived from the payment rows, so it is not sent —
+      // the payment posted above IS the record. The backend re-sums the settled payments before
+      // it will accept PAID, so this cannot mark an invoice paid that has not been.
       const newPaidAmount = (selectedInvoice.paidAmount || 0) + amount;
       const newStatus = newPaidAmount >= selectedInvoice.totalAmount ? "PAID" : "PARTIAL";
-      
+
       await apiFetch(`/api/invoices/${selectedInvoice.id}`, {
         method: "PUT",
         body: JSON.stringify({
-          paidAmount: newPaidAmount,
           status: newStatus,
           paidAt: newStatus === "PAID" ? new Date().toISOString() : null
         })

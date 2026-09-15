@@ -141,4 +141,28 @@ public class Invoice {
 
     public UUID getTenantId() { return tenantId; }
     public void setTenantId(UUID tenantId) { this.tenantId = tenantId; }
+
+    /**
+     * Money actually received against this invoice, summed from settled payment rows. Not a
+     * column — payments live in their own table and the invoice has never had a paid_amount.
+     *
+     * The finance page read `inv.paidAmount` regardless, which came back undefined every time:
+     * the balance column therefore showed the FULL total on a part-paid invoice, the "collected"
+     * tile read 0, and recording a second instalment computed `0 + amount` — so an invoice paid
+     * in instalments could never reach PAID, however much had been received.
+     */
+    @Transient
+    private BigDecimal paidAmount;
+
+    public BigDecimal getPaidAmount() { return paidAmount; }
+    public void setPaidAmount(BigDecimal paidAmount) { this.paidAmount = paidAmount; }
+
+    /** totalAmount - paidAmount, floored at zero; null until paidAmount has been resolved. */
+    @Transient
+    public BigDecimal getBalance() {
+        if (paidAmount == null) return null;
+        BigDecimal total = totalAmount != null ? totalAmount : BigDecimal.ZERO;
+        BigDecimal remaining = total.subtract(paidAmount);
+        return remaining.signum() < 0 ? BigDecimal.ZERO : remaining;
+    }
 }

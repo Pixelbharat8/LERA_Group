@@ -4,6 +4,8 @@ import com.lera.payment_service.entity.Invoice;
 import com.lera.payment_service.entity.Payment;
 import com.lera.payment_service.repository.InvoiceRepository;
 import com.lera.payment_service.repository.PaymentRepository;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,6 +29,9 @@ class InvoiceServiceTest {
 
     @Mock
     private PaymentRepository paymentRepository;
+
+    @Mock
+    private JdbcTemplate jdbcTemplate;
 
     @InjectMocks
     private InvoiceServiceImpl invoiceService;
@@ -213,5 +218,80 @@ class InvoiceServiceTest {
         Invoice updated = invoiceService.updateInvoice(existing.getId(), change).orElseThrow();
         assertEquals(0, new BigDecimal("5000000").compareTo(updated.getTotalAmount()));
         assertEquals("payment recorded", updated.getNotes());
+    }
+
+    // ---- paid amount / balance, resolved from the payment rows ----
+
+    /**
+     * Stand in for the "SUM(amount) GROUP BY invoice_id" query: hand the service one row saying
+     * this invoice has `paid` settled against it.
+     */
+    private void stubSettled(UUID invoiceId, String paid) {
+        doAnswer(inv -> {
+            RowCallbackHandler handler = inv.getArgument(1);
+            java.sql.ResultSet rs = mock(java.sql.ResultSet.class);
+            when(rs.getObject("invoice_id", UUID.class)).thenReturn(invoiceId);
+            when(rs.getBigDecimal("paid")).thenReturn(new BigDecimal(paid));
+            handler.processRow(rs);
+            return null;
+        }).when(jdbcTemplate).query(anyString(), any(RowCallbackHandler.class), any(Object[].class));
+    }
+
+    @Test
+    void partPaidInvoice_reportsWhatWasPaidAndWhatIsLeft() {
+        Invoice inv = pendingInvoice(new BigDecimal("5000000"));
+        when(invoiceRepository.findById(inv.getId())).thenReturn(Optional.of(inv));
+        stubSettled(inv.getId(), "2000000");
+
+        Invoice found = invoiceService.getInvoiceById(inv.getId()).orElseThrow();
+
+        assertEquals(0, new BigDecimal("2000000").compareTo(found.getPaidAmount()),
+                "paid amount must come from the settled payments, not a column that does not exist");
+        assertEquals(0, new BigDecimal("3000000").compareTo(found.getBalance()),
+                "balance showed the FULL total on a part-paid invoice while paidAmount read 0");
+    }
+
+    @Test
+    void invoiceWithNoPayments_reportsZeroPaid_notNull() {
+        Invoice inv = pendingInvoice(new BigDecimal("5000000"));
+        when(invoiceRepository.findById(inv.getId())).thenReturn(Optional.of(inv));
+        doNothing().when(jdbcTemplate).query(anyString(), any(RowCallbackHandler.class), any(Object[].class));
+
+        Invoice found = invoiceService.getInvoiceById(inv.getId()).orElseThrow();
+
+        assertEquals(0, BigDecimal.ZERO.compareTo(found.getPaidAmount()));
+        assertEquals(0, new BigDecimal("5000000").compareTo(found.getBalance()));
+    }
+
+    @Test
+    void overpaidInvoice_reportsZeroBalance_notANegativeOne() {
+        Invoice inv = pendingInvoice(new BigDecimal("5000000"));
+        when(invoiceRepository.findById(inv.getId())).thenReturn(Optional.of(inv));
+        stubSettled(inv.getId(), "6000000");
+
+        Invoice found = invoiceService.getInvoiceById(inv.getId()).orElseThrow();
+
+        assertEquals(0, BigDecimal.ZERO.compareTo(found.getBalance()),
+                "a balance owing cannot be negative");
+    }
+
+    /**
+     * The case that could never complete: two instalments against one invoice. The page computes
+     * the new paid total as `paidAmount + amount`, so with paidAmount always reading 0 the second
+     * instalment recomputed to just itself and the invoice stayed PARTIAL however much had been
+     * received.
+     */
+    @Test
+    void secondInstalment_addsToTheFirst_soTheInvoiceCanReachPaid() {
+        Invoice inv = pendingInvoice(new BigDecimal("5000000"));
+        when(invoiceRepository.findById(inv.getId())).thenReturn(Optional.of(inv));
+        stubSettled(inv.getId(), "2500000");
+
+        Invoice afterFirst = invoiceService.getInvoiceById(inv.getId()).orElseThrow();
+        BigDecimal secondInstalment = new BigDecimal("2500000");
+        BigDecimal newPaidTotal = afterFirst.getPaidAmount().add(secondInstalment);
+
+        assertTrue(newPaidTotal.compareTo(inv.getTotalAmount()) >= 0,
+                "2,500,000 already paid plus another 2,500,000 covers a 5,000,000 invoice");
     }
 }
