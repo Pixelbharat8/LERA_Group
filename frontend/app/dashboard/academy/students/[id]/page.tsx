@@ -47,6 +47,13 @@ interface ClassHistory {
   grade: string;
 }
 
+/**
+ * This table's columns are invoice-shaped — invoice number, amount, paid so far, due date — so it
+ * reads INVOICES, not payment rows. It used to call /api/payments, whose rows carry `amount`
+ * (money received) and an invoiceId, and have no invoiceNumber, no paidAmount, no dueDate and no
+ * description. Every one of those columns was blank, and "Total Spent", which summed the
+ * non-existent paidAmount, read 0đ however much the family had paid.
+ */
 interface Payment {
   id: string;
   invoiceNumber: string;
@@ -153,11 +160,24 @@ export default function StudentProfilePage() {
 
   const fetchPayments = async () => {
     try {
-      // Real payments from payment_service (visible to finance-capable roles; empty otherwise).
-      const data = await apiFetch(`/api/payments?studentId=${studentId}`);
-      setPayments(Array.isArray(data) ? data : (data?.data || data?.content || []));
+      // Invoices, not payment rows — see the comment on the Payment interface. Invoices carry the
+      // invoice number, the total, the due date and (resolved server-side from the settled payment
+      // rows) how much has been paid against them, which is exactly this table's columns.
+      // Visible to finance-capable roles; empty otherwise.
+      const data = await apiFetch(`/api/invoices?studentId=${studentId}`);
+      const rows = Array.isArray(data) ? data : (data?.data || data?.content || []);
+      setPayments(rows.map((inv: any) => ({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        amount: inv.totalAmount ?? 0,
+        paidAmount: inv.paidAmount ?? 0,
+        status: inv.status,
+        dueDate: inv.dueDate,
+        paidDate: inv.paidAt,
+        description: inv.notes || "",
+      })));
     } catch (error) {
-      console.error("Error fetching payments:", error);
+      console.error("Error fetching invoices:", error);
     }
   };
 
