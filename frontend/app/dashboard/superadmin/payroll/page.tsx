@@ -30,10 +30,19 @@ interface PayrollRecord {
   payPeriodStart?: string;
   payPeriodEnd?: string;
   teacherName?: string;
-  overtime?: number;
   baseSalary: number;
-  hourlyRate?: number;
   hoursWorked?: number;
+  // The record's own fields. overtimeHours/overtimePay are NOT among them — the amount is
+  // `overtime` — so the Overtime row never printed. teachingAmount was missing from the payslip
+  // altogether, which matters because the net is
+  // baseSalary + teachingAmount + bonus + overtime - deductions: without it the itemised lines
+  // did not add up to the total shown, and for a teacher paid mostly on hours the largest part
+  // of their pay was simply absent from the document they are handed.
+  teachingHours?: number;
+  hourlyRate?: number;
+  teachingAmount?: number;
+  overtime?: number;
+  // Kept only as fallbacks; nothing sends them.
   overtimeHours?: number;
   overtimePay?: number;
   deductions?: number;
@@ -315,10 +324,16 @@ export default function PayrollPage() {
                 <td>Base Salary</td>
                 <td style="text-align: right;">${formatCurrency(record.baseSalary)}</td>
               </tr>
-              ${record.overtimePay ? `
+              ${record.teachingAmount ? `
+              <tr>
+                <td>Teaching${record.teachingHours ? ` (${esc(String(record.teachingHours))} h${record.hourlyRate ? ` @ ${formatCurrency(record.hourlyRate)}` : ''})` : ''}</td>
+                <td style="text-align: right;">${formatCurrency(record.teachingAmount)}</td>
+              </tr>
+              ` : ''}
+              ${(record.overtime ?? record.overtimePay) ? `
               <tr>
                 <td>Overtime Pay</td>
-                <td style="text-align: right;">${formatCurrency(record.overtimePay)}</td>
+                <td style="text-align: right;">${formatCurrency(record.overtime ?? record.overtimePay ?? 0)}</td>
               </tr>
               ` : ''}
               ${record.bonus ? `
@@ -582,7 +597,7 @@ export default function PayrollPage() {
                             {formatCurrency(record.baseSalary)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                            {formatCurrency(record.overtimePay || 0)}
+                            {formatCurrency(record.overtime ?? record.overtimePay ?? 0)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-green-600">
                             +{formatCurrency(record.bonus || 0)}
