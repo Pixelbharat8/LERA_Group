@@ -7,9 +7,11 @@ import com.lera.academy_service.repository.BookstoreProductRepository;
 import com.lera.academy_service.security.AcademyRoles;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -119,15 +121,73 @@ public class BookstoreController {
         if (req.get("customerId") != null) {
             try { o.setCustomerId(UUID.fromString(req.get("customerId").toString())); } catch (IllegalArgumentException ignored) {}
         }
-        if (req.get("total") != null) o.setTotalAmount(new BigDecimal(req.get("total").toString()));
-        else if (req.get("totalAmount") != null) o.setTotalAmount(new BigDecimal(req.get("totalAmount").toString()));
         Object items = req.get("items");
         if (items != null) {
             try { o.setItemsJson(objectMapper.writeValueAsString(items)); }
             catch (Exception e) { o.setItemsJson(items.toString()); }
         }
+
+        // The cart posts each line's price AND the total it worked out. Neither can be trusted:
+        // price the order from the stored product rows instead, the way InvoiceServiceImpl does.
+        BigDecimal computed = priceFromStoredProducts(items);
+        BigDecimal claimed = null;
+        if (req.get("total") != null) claimed = new BigDecimal(req.get("total").toString());
+        else if (req.get("totalAmount") != null) claimed = new BigDecimal(req.get("totalAmount").toString());
+
+        if (computed != null) {
+            if (claimed != null && claimed.compareTo(computed) != 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Order total " + claimed + " does not match the catalogue price of its items ("
+                                + computed + ")");
+            }
+            o.setTotalAmount(computed);
+        } else {
+            // No priceable items (an empty or unrecognised cart) — keep what was sent, if anything.
+            o.setTotalAmount(claimed);
+        }
+
         o.setStatus("PENDING");
         return ResponseEntity.ok(orders.save(o));
+    }
+
+    /**
+     * Sum quantity x the product's stored price. Returns null when no line could be priced, so the
+     * caller can tell "this cart is worth zero" apart from "nothing here was recognised".
+     */
+    @SuppressWarnings("unchecked")
+    private BigDecimal priceFromStoredProducts(Object items) {
+        if (!(items instanceof List<?> lines) || lines.isEmpty()) return null;
+        BigDecimal total = BigDecimal.ZERO;
+        boolean pricedAnything = false;
+        for (Object line : lines) {
+            if (!(line instanceof Map<?, ?> map)) continue;
+            Object rawId = map.get("productId");
+            if (rawId == null) continue;
+            UUID productId;
+            try {
+                productId = UUID.fromString(rawId.toString().trim());
+            } catch (IllegalArgumentException ignored) {
+                continue;
+            }
+            BookstoreProduct product = products.findById(productId).orElse(null);
+            if (product == null || product.getPrice() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Order references a product that is not on sale: " + rawId);
+            }
+            int quantity = 1;
+            Object rawQty = map.get("quantity");
+            if (rawQty != null) {
+                try {
+                    quantity = Integer.parseInt(rawQty.toString().trim());
+                } catch (NumberFormatException ignored) {
+                    quantity = 1;
+                }
+            }
+            if (quantity <= 0) continue;
+            total = total.add(product.getPrice().multiply(BigDecimal.valueOf(quantity)));
+            pricedAnything = true;
+        }
+        return pricedAnything ? total : null;
     }
 
     @PostMapping("/orders/{id}/status")
