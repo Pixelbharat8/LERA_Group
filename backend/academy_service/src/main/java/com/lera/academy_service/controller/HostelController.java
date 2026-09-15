@@ -57,6 +57,46 @@ public class HostelController {
         return m;
     }
 
+    /**
+     * A HostelRegistration row carries roomId and joinDate and nothing about the room itself, but
+     * the student's registration card shows the room number, the room type, the monthly fee and a
+     * check-in date. Reading those straight off the entity produced a blank room, "Invalid Date"
+     * from new Date(undefined) and "NaN ₫" from formatting a field that was not there.
+     *
+     * The status needs translating too: rows hold PENDING / APPROVED / REJECTED, while the card
+     * tested `status === "active"`. It never matched, so an APPROVED registration — and a REJECTED
+     * one — both displayed as "Pending".
+     */
+    private Map<String, Object> registrationDto(HostelRegistration reg) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", reg.getId());
+        m.put("studentId", reg.getStudentId());
+        m.put("studentName", reg.getStudentName());
+        m.put("roomId", reg.getRoomId());
+        m.put("joinDate", reg.getJoinDate());
+        m.put("checkInDate", reg.getJoinDate());
+        m.put("rejectionReason", reg.getRejectionReason());
+        m.put("rawStatus", reg.getStatus());
+        m.put("status", displayStatus(reg.getStatus()));
+
+        HostelRoom room = reg.getRoomId() == null ? null : rooms.findById(reg.getRoomId()).orElse(null);
+        m.put("roomNumber", room == null ? null : room.getRoomNumber());
+        m.put("roomType", room == null ? null : room.getType());
+        m.put("monthlyFee", room == null ? null : room.getMonthlyRent());
+        return m;
+    }
+
+    /** PENDING / APPROVED / REJECTED as the card's own vocabulary. */
+    private static String displayStatus(String stored) {
+        if (stored == null) return "pending";
+        return switch (stored.toUpperCase()) {
+            case "APPROVED", "ACTIVE" -> "active";
+            case "REJECTED" -> "rejected";
+            case "EXPIRED", "ENDED" -> "expired";
+            default -> "pending";
+        };
+    }
+
     // ---- rooms ----
 
     @GetMapping("/rooms")
@@ -106,11 +146,12 @@ public class HostelController {
     // ---- registrations ----
 
     @GetMapping("/my-registration")
-    public ResponseEntity<HostelRegistration> myRegistration(@RequestParam(required = false) UUID studentId) {
+    public ResponseEntity<Map<String, Object>> myRegistration(@RequestParam(required = false) UUID studentId) {
         if (studentId == null) return ResponseEntity.ok(null);
         authz.assertCanViewStudent(studentId);   // only the student's own people / their centre's staff
         return registrations.findByStudentIdOrderByCreatedAtDesc(studentId).stream()
-                .findFirst().map(ResponseEntity::ok).orElse(ResponseEntity.ok(null));
+                .findFirst().map(reg -> ResponseEntity.ok(registrationDto(reg)))
+                .orElse(ResponseEntity.ok(null));
     }
 
     @PostMapping("/register")
@@ -124,6 +165,8 @@ public class HostelController {
     @GetMapping("/registrations")
     @PreAuthorize(ADMIN)
     public ResponseEntity<List<HostelRegistration>> allRegistrations(@RequestParam(required = false) String status) {
+        // Left as the stored rows on purpose: this list has no UI consumer, and its ?status= filter
+        // takes the stored PENDING/APPROVED/REJECTED values, so it should report them unchanged.
         return ResponseEntity.ok(status != null && !status.isBlank()
                 ? registrations.findByStatusOrderByCreatedAtDesc(status)
                 : registrations.findAllByOrderByCreatedAtDesc());
