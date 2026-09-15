@@ -2,8 +2,10 @@ package com.lera.payment_service.service;
 
 import com.lera.payment_service.client.NotificationClient;
 import com.lera.payment_service.entity.Invoice;
+import com.lera.payment_service.entity.InvoiceItem;
 import com.lera.payment_service.entity.Payment;
 import com.lera.payment_service.repository.InvoiceRepository;
+import com.lera.payment_service.repository.InvoiceItemRepository;
 import com.lera.payment_service.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ public class InvoiceServiceImpl {
 
     private final InvoiceRepository invoiceRepository;
     private final PaymentRepository paymentRepository;
+    private final InvoiceItemRepository invoiceItemRepository;
     private final JdbcTemplate jdbcTemplate;
     private final NotificationClient notificationClient;
     private final InvoicePaidMailService invoicePaidMailService;
@@ -68,7 +71,7 @@ public class InvoiceServiceImpl {
         for (Invoice inv : invoices) {
             inv.setPaidAmount(settled.getOrDefault(inv.getId(), BigDecimal.ZERO));
         }
-        return invoices;
+        return withItems(invoices);
     }
 
     private Optional<Invoice> withPaidAmount(Optional<Invoice> invoice) {
@@ -136,6 +139,16 @@ public class InvoiceServiceImpl {
             invoice.setInvoiceNumber("INV-" + System.currentTimeMillis());
         }
 
+        // Price the lines first: the finance form posts items and no subtotal, so without this the
+        // invoice would be stored at a total of 0 while its own lines said something else.
+        List<InvoiceItem> lines = normaliseItems(invoice.getItems());
+        if (!lines.isEmpty() && (invoice.getSubtotal() == null || invoice.getSubtotal().signum() == 0)) {
+            invoice.setSubtotal(lines.stream()
+                    .map(InvoiceItem::getTotalPrice)
+                    .filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add));
+        }
+
         BigDecimal expected = expectedTotal(
                 invoice.getSubtotal(), invoice.getDiscountAmount(), invoice.getTaxAmount());
 
@@ -149,7 +162,52 @@ public class InvoiceServiceImpl {
         }
 
         log.info("Creating invoice: {} for student: {}", invoice.getInvoiceNumber(), invoice.getStudentId());
-        return invoiceRepository.save(invoice);
+        Invoice saved = invoiceRepository.save(invoice);
+        saved.setItems(saveItems(saved.getId(), lines));
+        return saved;
+    }
+
+    /**
+     * Persist the lines that came in with the invoice. Every line needs a description (the column
+     * is NOT NULL) and the line total is recomputed from quantity x unit price by the entity, so a
+     * stated figure cannot disagree with its parts.
+     */
+    private List<InvoiceItem> normaliseItems(List<InvoiceItem> submitted) {
+        if (submitted == null || submitted.isEmpty()) return List.of();
+        List<InvoiceItem> lines = new java.util.ArrayList<>();
+        for (InvoiceItem item : submitted) {
+            if (item == null) continue;
+            if (item.getDescription() == null || item.getDescription().isBlank()) {
+                throw new IllegalArgumentException("Every invoice line needs a description");
+            }
+            item.setId(null);
+            item.reprice();   // the line total comes from quantity x unit price, not from the caller
+            lines.add(item);
+        }
+        return lines;
+    }
+
+    private List<InvoiceItem> saveItems(UUID invoiceId, List<InvoiceItem> lines) {
+        if (lines.isEmpty()) return List.of();
+        for (InvoiceItem item : lines) {
+            item.setInvoiceId(invoiceId);
+        }
+        return invoiceItemRepository.saveAll(lines);
+    }
+
+    /** Attach each invoice's lines, in one query for the whole page. */
+    private List<Invoice> withItems(List<Invoice> invoices) {
+        if (invoices == null || invoices.isEmpty()) return invoices;
+        List<UUID> ids = invoices.stream().map(Invoice::getId).filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) return invoices;
+        Map<UUID, List<InvoiceItem>> byInvoice = new HashMap<>();
+        for (InvoiceItem item : invoiceItemRepository.findByInvoiceIdIn(ids)) {
+            byInvoice.computeIfAbsent(item.getInvoiceId(), k -> new java.util.ArrayList<>()).add(item);
+        }
+        for (Invoice inv : invoices) {
+            inv.setItems(byInvoice.getOrDefault(inv.getId(), List.of()));
+        }
+        return invoices;
     }
 
     @Transactional

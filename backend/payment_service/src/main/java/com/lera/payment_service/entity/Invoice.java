@@ -165,4 +165,19 @@ public class Invoice {
         BigDecimal remaining = total.subtract(paidAmount);
         return remaining.signum() < 0 ? BigDecimal.ZERO : remaining;
     }
+
+    /**
+     * The invoice's line items. Not a mapped relationship — they are loaded and saved alongside
+     * the invoice by InvoiceServiceImpl — but they travel on the wire in both directions, which
+     * is what the finance page's line-item editor has always assumed.
+     *
+     * Nothing persisted them before: there was no repository, and total_price (NOT NULL) had no
+     * field on InvoiceItem, so every line a member of staff typed was quietly dropped on save and
+     * the invoice detail view showed no items at all.
+     */
+    @Transient
+    private java.util.List<InvoiceItem> items;
+
+    public java.util.List<InvoiceItem> getItems() { return items; }
+    public void setItems(java.util.List<InvoiceItem> items) { this.items = items; }
 }
