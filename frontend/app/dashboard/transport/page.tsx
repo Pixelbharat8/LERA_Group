@@ -7,14 +7,18 @@ import { apiFetch } from "../../../lib/api";
 
 interface Route {
   id: string;
-  name: string;
-  startPoint: string;
-  endPoint: string;
-  departureTime: string;
-  arrivalTime: string;
-  driver: string;
-  vehicle: string;
-  capacity: number;
+  routeCode?: string | null;
+  name?: string | null;
+  startPoint?: string | null;
+  endPoint?: string | null;
+  // Times come from the route's schedule and the driver/vehicle from what that schedule
+  // assigns, so a route with no active schedule legitimately has none of them.
+  departureTime?: string | null;
+  arrivalTime?: string | null;
+  driver?: string | null;
+  vehicle?: string | null;
+  // capacity is the assigned vehicle's; null when no vehicle is scheduled.
+  capacity?: number | null;
   enrolled: number;
   status: "active" | "inactive";
 }
@@ -34,6 +38,7 @@ export default function TransportPage() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [myRegistration, setMyRegistration] = useState<TransportRegistration | null>(null);
   const [loading, setLoading] = useState(true);
+  const [registerError, setRegisterError] = useState<string | null>(null);
 
   const t = {
     title: isVietnamese ? "Dịch vụ Đưa đón" : "Transport Service",
@@ -83,8 +88,23 @@ export default function TransportPage() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
+  // With no vehicle assigned there is no capacity to compare against: an unknown capacity is
+  // not a full route, and it must not turn the seats bar into a NaN width.
+  const isFull = (route: Route) =>
+    route.capacity != null && route.capacity > 0 && route.enrolled >= route.capacity;
+
+  const fillPercent = (route: Route) =>
+    route.capacity != null && route.capacity > 0
+      ? Math.min(100, (route.enrolled / route.capacity) * 100)
+      : 0;
+
   const handleRegister = async (route: Route) => {
+    setRegisterError(null);
     try {
+      // NOTE: a registration row requires studentId, stopId and transportType, and this page has
+      // no user context to supply them — self-registration is not wired up yet (the backend's
+      // /my-registration says the same). So this call is expected to come back 400 until it is.
+      // It must fail visibly: swallowing the error into console.error made the button look dead.
       await apiFetch("/api/transport/register", {
         method: "POST",
         body: JSON.stringify({
@@ -97,6 +117,11 @@ export default function TransportPage() {
       await fetchData();
     } catch (error) {
       console.error("Failed to register for transport:", error);
+      setRegisterError(
+        isVietnamese
+          ? "Không thể đăng ký tuyến xe. Vui lòng liên hệ văn phòng để được đăng ký."
+          : "Could not register for this route. Please contact the office to be registered."
+      );
     }
   };
 
@@ -163,6 +188,14 @@ export default function TransportPage() {
           </div>
         ) : (
           <div className="space-y-4">
+            {registerError && (
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                {registerError}
+              </div>
+            )}
             {routes.map(route => (
               <div key={route.id} className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -190,18 +223,18 @@ export default function TransportPage() {
                   <div className="flex items-center gap-4">
                     <div className="text-center">
                       <p className="text-sm text-gray-500">{t.capacity}</p>
-                      <p className="font-bold text-lg">{route.enrolled}/{route.capacity}</p>
+                      <p className="font-bold text-lg">{route.enrolled}/{route.capacity ?? "—"}</p>
                       <div className="w-24 h-2 bg-gray-200 rounded-full mt-1">
-                        <div 
-                          className={`h-full rounded-full ${route.enrolled >= route.capacity ? 'bg-red-500' : 'bg-green-500'}`}
-                          style={{ width: `${(route.enrolled / route.capacity) * 100}%` }}
+                        <div
+                          className={`h-full rounded-full ${isFull(route) ? 'bg-red-500' : 'bg-green-500'}`}
+                          style={{ width: `${fillPercent(route)}%` }}
                         ></div>
                       </div>
                     </div>
                     <button
                       onClick={() => handleRegister(route)}
-                      disabled={route.enrolled >= route.capacity}
-                      className={`px-6 py-3 rounded-lg font-medium ${route.enrolled >= route.capacity ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                      disabled={isFull(route)}
+                      className={`px-6 py-3 rounded-lg font-medium ${isFull(route) ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                     >
                       {t.register}
                     </button>
