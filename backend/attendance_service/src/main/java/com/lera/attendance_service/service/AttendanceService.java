@@ -157,6 +157,15 @@ public class AttendanceService {
     @CacheEvict(value = "attendance", allEntries = true)
     @Transactional
     public AttendanceRecord createAttendance(AttendanceRecord record) {
+        // This table is the STUDENT register. student_id is nullable in the schema, so a caller
+        // sending a body shaped for something else — the staff attendance page posted
+        // {userId, date, checkInTime...}, none of which are fields here — used to save a row
+        // belonging to no student and no session, and be told it had succeeded. Those orphans
+        // then counted towards student attendance figures. Refuse them.
+        if (record.getStudentId() == null) {
+            throw new IllegalArgumentException(
+                    "An attendance record must name the student it is for (studentId)");
+        }
         if (record.getSessionId() != null
                 && attendanceRepository.existsByStudentIdAndSessionId(record.getStudentId(), record.getSessionId())) {
             throw new IllegalStateException("Attendance already marked for this student in this session");
@@ -179,6 +188,12 @@ public class AttendanceService {
         // Skip students already marked for their session — and de-dup within the
         // submitted roster itself — so a re-submitted/double-tapped roster can't
         // insert a duplicate set. The DB unique index backstops true concurrency.
+        for (AttendanceRecord r : records) {
+            if (r.getStudentId() == null) {
+                throw new IllegalArgumentException(
+                        "An attendance record must name the student it is for (studentId)");
+            }
+        }
         Set<String> seen = new HashSet<>();
         List<AttendanceRecord> toSave = records.stream()
                 .filter(r -> {
