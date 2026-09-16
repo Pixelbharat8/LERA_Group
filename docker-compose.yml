@@ -262,6 +262,15 @@ services:
       # Required: identity refuses to start in a deployed profile when this is blank or the
       # legacy default, and service-to-service /api/internal/* calls 503 without it.
       LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
+      # Seed passwords for the Chairman / CEO / admin accounts that DataLoader creates on first
+      # boot. application-docker.properties and .env.example both say these come from LERA_SEED_*
+      # — but they were never passed into the container, so setting them had no effect and
+      # DataLoader always fell through to its "random, logged once" branch. That means the only
+      # record of a deployed Chairman password was a single line in a container log.
+      # Left optional so an existing dev stack still starts; SET THEM for any real deployment.
+      LERA_SEED_CHAIRMAN_PASSWORD: ${LERA_SEED_CHAIRMAN_PASSWORD:-}
+      LERA_SEED_CEO_PASSWORD: ${LERA_SEED_CEO_PASSWORD:-}
+      LERA_SEED_ADMIN_PASSWORD: ${LERA_SEED_ADMIN_PASSWORD:-}
       DB_NAME: lera
     ports:
       - "8081:8081"   # identity_service runs on port 8081
