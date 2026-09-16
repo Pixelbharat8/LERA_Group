@@ -17,8 +17,6 @@ export default function AddCenterPage() {
     address: "",
     city: "",
     status: "Active",
-    adminName: "",
-    adminEmail: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -42,10 +40,6 @@ export default function AddCenterPage() {
           address: formData.address,
           city: formData.city,
           status: formData.status,
-          admin: {
-            name: formData.adminName,
-            email: formData.adminEmail,
-          },
         }),
       });
       router.push("/dashboard/superadmin/centers");
@@ -163,32 +157,19 @@ export default function AddCenterPage() {
             </div>
           </div>
 
-          <h3 className="text-lg font-bold pt-4 border-t">Center Admin</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Admin Name</label>
-              <input 
-                type="text" 
-                name="adminName"
-                value={formData.adminName}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg" 
-                placeholder="Full name" 
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Admin Email</label>
-              <input 
-                type="email" 
-                name="adminEmail"
-                value={formData.adminEmail}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg" 
-                placeholder="admin@center.leraacademy.edu.vn" 
-                required
-              />
-            </div>
+          {/*
+            There was a required "Center Admin" name and email here. A centre record has no such
+            field — it has managerId, the id of an existing user — so both were nested under an
+            `admin` key that the API dropped on the floor: the centre was created with no manager
+            and whoever filled them in had no way to know. Assigning a manager is done on the
+            centre's own page once it exists, which is the only place that actually sets managerId.
+          */}
+          <div className="pt-4 border-t text-sm text-gray-600">
+            <p className="font-medium text-gray-800 mb-1">Center manager</p>
+            <p>
+              Assign the manager from the centre&rsquo;s page after it is created — open it from
+              All Centers and use Edit. Creating a centre does not create a user account.
+            </p>
           </div>
 
           <div className="flex gap-4 pt-4">
