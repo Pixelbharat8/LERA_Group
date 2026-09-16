@@ -5,18 +5,27 @@ import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
 
+/**
+ * A CourseProgram stores `code`, `price` and `isActive`. This page used code,
+ * price and status, none of which the API accepts or returns — so editing a course
+ * silently lost its code and its price, and the active/inactive toggle did nothing at all.
+ *
+ * The Age Group picker's own labels carry the range ("Kids (3-6)"), so they map cleanly onto the
+ * entity's ageFrom/ageTo instead of the free-text ageGroup the API was discarding.
+ */
 interface Course {
   id: string;
-  courseCode: string;
+  code: string;
   name: string;
   nameVi?: string;
   description?: string;
   durationWeeks: number;
   sessionsPerWeek: number;
-  pricePerSession: number;
+  price: number;
   level?: string;
-  ageGroup?: string;
-  status: string;
+  ageFrom?: number | null;
+  ageTo?: number | null;
+  isActive?: boolean;
 }
 
 export default function CoursesPage() {
@@ -28,16 +37,30 @@ export default function CoursesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [saving, setSaving] = useState(false);
+  /** "Kids (3-6)" -> { ageFrom: 3, ageTo: 6 }. "Adults (16+)" has no upper bound. */
+  const AGE_GROUPS: Record<string, { ageFrom: number; ageTo: number | null }> = {
+    "Kids (3-6)": { ageFrom: 3, ageTo: 6 },
+    "Kids (7-10)": { ageFrom: 7, ageTo: 10 },
+    "Teens (11-15)": { ageFrom: 11, ageTo: 15 },
+    "Adults (16+)": { ageFrom: 16, ageTo: null },
+  };
+
+  const ageGroupLabel = (ageFrom?: number | null, ageTo?: number | null) =>
+    Object.keys(AGE_GROUPS).find(
+      (k) => AGE_GROUPS[k].ageFrom === ageFrom && AGE_GROUPS[k].ageTo === (ageTo ?? null)
+    ) ?? "";
+
   const [formData, setFormData] = useState({
-    courseCode: "",
+    code: "",
     name: "",
     nameVi: "",
     description: "",
     durationWeeks: 12,
     sessionsPerWeek: 2,
-    pricePerSession: 200000,
+    price: 200000,
     level: "Beginner",
-    ageGroup: "Kids"
+    ageFrom: 3 as number | null,
+    ageTo: 6 as number | null,
   });
 
   useEffect(() => {
@@ -79,16 +102,16 @@ export default function CoursesPage() {
           method: "POST",
           body: JSON.stringify({
             ...formData,
-            status: "ACTIVE"
+            isActive: true
           })
         });
         setCourses([...courses, newCourse]);
       }
       setShowAddModal(false);
       setFormData({
-        courseCode: "", name: "", nameVi: "", description: "",
-        durationWeeks: 12, sessionsPerWeek: 2, pricePerSession: 200000,
-        level: "Beginner", ageGroup: "Kids"
+        code: "", name: "", nameVi: "", description: "",
+        durationWeeks: 12, sessionsPerWeek: 2, price: 200000,
+        level: "Beginner", ageFrom: 3, ageTo: 6,
       });
     } catch (err: any) {
       setError(err.message);
@@ -100,15 +123,16 @@ export default function CoursesPage() {
   const handleEdit = (course: Course) => {
     setEditingCourse(course);
     setFormData({
-      courseCode: course.courseCode || "",
+      code: course.code || "",
       name: course.name || "",
       nameVi: course.nameVi || "",
       description: course.description || "",
       durationWeeks: course.durationWeeks || 12,
       sessionsPerWeek: course.sessionsPerWeek || 2,
-      pricePerSession: course.pricePerSession || 200000,
+      price: course.price || 200000,
       level: course.level || "Beginner",
-      ageGroup: course.ageGroup || "Kids"
+      ageFrom: course.ageFrom ?? null,
+      ageTo: course.ageTo ?? null
     });
     setShowAddModal(true);
   };
@@ -125,12 +149,12 @@ export default function CoursesPage() {
   };
 
   const handleToggleStatus = async (course: Course) => {
-    const newStatus = course.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-    if (!confirm(`Change status from ${course.status} to ${newStatus}?`)) return;
+    const nextActive = !(course.isActive ?? true);
+    if (!confirm(`Change this course to ${nextActive ? "ACTIVE" : "INACTIVE"}?`)) return;
     try {
       await apiFetch(`/api/courses/${course.id}`, {
         method: "PUT",
-        body: JSON.stringify({ ...course, status: newStatus }),
+        body: JSON.stringify({ ...course, isActive: nextActive }),
       });
       fetchCourses();
     } catch (err) {
@@ -139,7 +163,7 @@ export default function CoursesPage() {
   };
 
   const filteredCourses = courses.filter(course =>
-    course.courseCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     course.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -187,7 +211,7 @@ export default function CoursesPage() {
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-2xl">✅</div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{courses.filter(c => c.status === "ACTIVE").length}</p>
+              <p className="text-2xl font-bold text-gray-900">{courses.filter(c => c.isActive !== false).length}</p>
               <p className="text-sm text-gray-500">Active</p>
             </div>
           </div>
@@ -221,15 +245,15 @@ export default function CoursesPage() {
           filteredCourses.map((course) => (
             <div key={course.id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-4">
-                <span className="px-2 py-1 text-xs font-mono bg-gray-100 rounded">{course.courseCode}</span>
+                <span className="px-2 py-1 text-xs font-mono bg-gray-100 rounded">{course.code}</span>
                 <button 
                   onClick={() => handleToggleStatus(course)}
                   className={`px-2 py-1 text-xs rounded-full cursor-pointer hover:opacity-80 transition-opacity ${
-                  course.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                  course.isActive !== false ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
                 }`}
                   title="Click to toggle status"
                 >
-                  {course.status}
+                  {course.isActive}
                 </button>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{course.name}</h3>
@@ -239,11 +263,10 @@ export default function CoursesPage() {
                 <span className="bg-gray-100 px-2 py-1 rounded">📅 {course.durationWeeks} weeks</span>
                 <span className="bg-gray-100 px-2 py-1 rounded">🔄 {course.sessionsPerWeek}x/week</span>
                 {course.level && <span className="bg-blue-100 px-2 py-1 rounded">{course.level}</span>}
-                {course.ageGroup && <span className="bg-purple-100 px-2 py-1 rounded">{course.ageGroup}</span>}
               </div>
               <div className="flex justify-between items-center pt-4 border-t">
                 <span className="text-lg font-bold text-blue-600">
-                  {course.pricePerSession?.toLocaleString()}đ/session
+                  {course.price?.toLocaleString()}đ/session
                 </span>
                 <div className="flex gap-2">
                   <button onClick={() => handleEdit(course)} className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
@@ -280,8 +303,8 @@ export default function CoursesPage() {
                   <input 
                     type="text" 
                     required
-                    value={formData.courseCode}
-                    onChange={(e) => setFormData({...formData, courseCode: e.target.value})}
+                    value={formData.code}
+                    onChange={(e) => setFormData({...formData, code: e.target.value})}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
                     placeholder="e.g., ENG101" 
                   />
@@ -344,8 +367,8 @@ export default function CoursesPage() {
                   <input 
                     type="number" 
                     min={0}
-                    value={formData.pricePerSession}
-                    onChange={(e) => setFormData({...formData, pricePerSession: parseInt(e.target.value) || 0})}
+                    value={formData.price}
+                    onChange={(e) => setFormData({...formData, price: parseInt(e.target.value) || 0})}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
                   />
                 </div>
@@ -367,8 +390,12 @@ export default function CoursesPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Age Group</label>
                   <select 
-                    value={formData.ageGroup}
-                    onChange={(e) => setFormData({...formData, ageGroup: e.target.value})}
+                    value={ageGroupLabel(formData.ageFrom, formData.ageTo)}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      ageFrom: AGE_GROUPS[e.target.value]?.ageFrom ?? null,
+                      ageTo: AGE_GROUPS[e.target.value]?.ageTo ?? null,
+                    })}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   >
                     <option>Kids (3-6)</option>
