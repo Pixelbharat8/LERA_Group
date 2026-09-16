@@ -13,7 +13,6 @@ interface StudentProfile {
   phone: string;
   dateOfBirth: string;
   gender: string;
-  address: string;
   avatarUrl: string;
   status: string;
   enrollmentDate: string;
@@ -206,7 +205,10 @@ export default function StudentProfilePage() {
         method: "PUT",
         body: JSON.stringify(editData),
       });
-      setProfile({ ...profile, ...editData } as StudentProfile);
+      // Re-read rather than merging editData into the displayed profile. The API silently ignores
+      // any key that is not a field on the student, so merging showed whatever had been typed as
+      // though it had been stored — the screen and the database disagreed until a reload.
+      await fetchProfile();
       setIsEditing(false);
       alert("Profile updated successfully!");
     } catch (error) {
@@ -375,14 +377,15 @@ export default function StudentProfilePage() {
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm text-gray-600">Address</label>
-                      <textarea
-                        value={editData.address || ""}
-                        onChange={(e) => setEditData({ ...editData, address: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                      />
-                    </div>
+                    {/*
+                      There was an Address box here. A student has no address — not on the entity
+                      and not as a column on the students table — so everything typed into it was
+                      dropped by the API on save, while the page merged it into its own state and
+                      said "Profile updated successfully!". It looked saved until the next reload.
+                      Storing a child's home address is a decision about what personal data LERA
+                      holds, not something to add quietly, so the field is removed rather than
+                      given a column.
+                    */}
                     <button
                       onClick={handleSaveProfile}
                       className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -396,7 +399,6 @@ export default function StudentProfilePage() {
                     <p><span className="text-gray-500">Phone:</span> {profile?.phone}</p>
                     <p><span className="text-gray-500">Date of Birth:</span> {profile?.dateOfBirth}</p>
                     <p><span className="text-gray-500">Gender:</span> {profile?.gender}</p>
-                    <p><span className="text-gray-500">Address:</span> {profile?.address}</p>
                     <p><span className="text-gray-500">Enrollment Date:</span> {profile?.enrollmentDate}</p>
                   </div>
                 )}

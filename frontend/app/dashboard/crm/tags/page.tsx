@@ -4,10 +4,15 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 
+/**
+ * The LeadTag entity's own field names. This page used name/color, which the API neither accepts
+ * nor returns — it stores tag_name and color_code. tag_name is NOT NULL, so every attempt to
+ * create a tag failed outright, and every tag listed showed a blank name.
+ */
 interface LeadTag {
   id: string;
-  name: string;
-  color?: string;
+  tagName: string;
+  colorCode?: string;
   description?: string;
   createdAt?: string;
 }
@@ -28,7 +33,8 @@ export default function LeadTagsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingTag, setEditingTag] = useState<LeadTag | null>(null);
-  const [formData, setFormData] = useState({ name: "", color: "#3B82F6", description: "" });
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({ tagName: "", colorCode: "#3B82F6", description: "" });
 
   useEffect(() => {
     fetchTags();
@@ -46,6 +52,7 @@ export default function LeadTagsPage() {
   };
 
   const handleSubmit = async () => {
+    setSaveError(null);
     try {
       if (editingTag) {
         await apiFetch(`/api/lead-tags/${editingTag.id}`, {
@@ -60,16 +67,17 @@ export default function LeadTagsPage() {
       }
       setShowModal(false);
       setEditingTag(null);
-      setFormData({ name: "", color: "#3B82F6", description: "" });
+      setFormData({ tagName: "", colorCode: "#3B82F6", description: "" });
       fetchTags();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving tag:", err);
+      setSaveError(err?.message || "The tag could not be saved.");
     }
   };
 
   const handleEdit = (tag: LeadTag) => {
     setEditingTag(tag);
-    setFormData({ name: tag.name, color: tag.color || "#3B82F6", description: tag.description || "" });
+    setFormData({ tagName: tag.tagName, colorCode: tag.colorCode || "#3B82F6", description: tag.description || "" });
     setShowModal(true);
   };
 
@@ -107,7 +115,7 @@ export default function LeadTagsPage() {
           <p className="text-gray-500">Organize and categorize your leads with tags</p>
         </div>
         <button
-          onClick={() => { setEditingTag(null); setFormData({ name: "", color: "#3B82F6", description: "" }); setShowModal(true); }}
+          onClick={() => { setEditingTag(null); setFormData({ tagName: "", colorCode: "#3B82F6", description: "" }); setShowModal(true); }}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           + Create Tag
@@ -126,9 +134,9 @@ export default function LeadTagsPage() {
               <div className="flex items-center gap-3 mb-3">
                 <div
                   className="w-8 h-8 rounded-full"
-                  style={{ backgroundColor: tag.color || "#3B82F6" }}
+                  style={{ backgroundColor: tag.colorCode || "#3B82F6" }}
                 />
-                <span className="font-semibold text-lg">{tag.name}</span>
+                <span className="font-semibold text-lg">{tag.tagName}</span>
               </div>
               {tag.description && (
                 <p className="text-sm text-gray-500 mb-3">{tag.description}</p>
@@ -162,13 +170,18 @@ export default function LeadTagsPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <h2 className="text-lg font-semibold mb-4">{editingTag ? "Edit Tag" : "Create Tag"}</h2>
+            {saveError && (
+              <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {saveError}
+              </p>
+            )}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Tag Name *</label>
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.tagName}
+                  onChange={(e) => setFormData({ ...formData, tagName: e.target.value })}
                   className="w-full px-4 py-2 border rounded-lg"
                   placeholder="e.g., Hot Lead, VIP, Priority"
                 />
@@ -179,8 +192,8 @@ export default function LeadTagsPage() {
                   {TAG_COLORS.map((color) => (
                     <button
                       key={color.value}
-                      onClick={() => setFormData({ ...formData, color: color.value })}
-                      className={`w-8 h-8 rounded-full border-2 ${formData.color === color.value ? "border-gray-800" : "border-transparent"}`}
+                      onClick={() => setFormData({ ...formData, colorCode: color.value })}
+                      className={`w-8 h-8 rounded-full border-2 ${formData.colorCode === color.value ? "border-gray-800" : "border-transparent"}`}
                       style={{ backgroundColor: color.value }}
                       title={color.name}
                     />
@@ -206,7 +219,7 @@ export default function LeadTagsPage() {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!formData.name.trim()}
+                disabled={!formData.tagName.trim()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 {editingTag ? "Update" : "Create"}

@@ -13,13 +13,18 @@ interface TransportRoute {
   isActive: boolean;
 }
 
+/**
+ * Vehicle stores `vehicleNumber` (the unique fleet identifier, NOT NULL), `registrationNumber`
+ * (the number plate) and `make`. This page used vehicleCode/plateNumber/brand, none of which the
+ * API accepts — and because vehicleNumber is NOT NULL, saving a vehicle failed every time.
+ */
 interface Vehicle {
   id: string;
-  vehicleCode: string;
-  plateNumber: string;
+  vehicleNumber: string;
+  registrationNumber: string;
   vehicleType: string;
   capacity: number;
-  brand?: string;
+  make?: string;
   model?: string;
   year?: number;
   status: string;
@@ -27,17 +32,20 @@ interface Vehicle {
   routeName?: string;
 }
 
+/**
+ * TransportDriver stores `fullname` and `licenseExpiryDate`; this page used name/licenseExpiry,
+ * which the API dropped. It has no vehicleId either — a driver is linked to a vehicle through the
+ * schedule, not on the driver row — so that was discarded too.
+ */
 interface Driver {
   id: string;
   driverCode: string;
-  name: string;
+  fullname: string;
   phone: string;
   email?: string;
   licenseNumber: string;
-  licenseExpiry?: string;
+  licenseExpiryDate?: string;
   status: string;
-  vehicleId?: string;
-  vehiclePlate?: string;
 }
 
 export default function TransportManagement() {
@@ -50,8 +58,8 @@ export default function TransportManagement() {
   const [showDriverModal, setShowDriverModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"routes" | "vehicles" | "drivers">("routes");
   const [formData, setFormData] = useState({ routeCode: "", routeName: "", startLocation: "", endLocation: "", totalDistance: 0, estimatedDuration: 30 });
-  const [vehicleForm, setVehicleForm] = useState({ vehicleCode: "", plateNumber: "", vehicleType: "BUS", capacity: 30, brand: "", model: "", year: new Date().getFullYear(), routeId: "" });
-  const [driverForm, setDriverForm] = useState({ driverCode: "", name: "", phone: "", email: "", licenseNumber: "", licenseExpiry: "", vehicleId: "" });
+  const [vehicleForm, setVehicleForm] = useState({ vehicleNumber: "", registrationNumber: "", vehicleType: "BUS", capacity: 30, make: "", model: "", year: new Date().getFullYear() });
+  const [driverForm, setDriverForm] = useState({ driverCode: "", fullname: "", phone: "", email: "", licenseNumber: "", licenseExpiryDate: "" });
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [editingRoute, setEditingRoute] = useState<TransportRoute | null>(null);
@@ -138,7 +146,7 @@ export default function TransportManagement() {
       setShowVehicleModal(false);
       setEditingVehicle(null);
       fetchAllData();
-      setVehicleForm({ vehicleCode: "", plateNumber: "", vehicleType: "BUS", capacity: 30, brand: "", model: "", year: new Date().getFullYear(), routeId: "" });
+      setVehicleForm({ vehicleNumber: "", registrationNumber: "", vehicleType: "BUS", capacity: 30, make: "", model: "", year: new Date().getFullYear() });
     } catch (error) {
       console.error("Error saving vehicle:", error);
     }
@@ -184,7 +192,7 @@ export default function TransportManagement() {
       setShowDriverModal(false);
       setEditingDriver(null);
       fetchAllData();
-      setDriverForm({ driverCode: "", name: "", phone: "", email: "", licenseNumber: "", licenseExpiry: "", vehicleId: "" });
+      setDriverForm({ driverCode: "", fullname: "", phone: "", email: "", licenseNumber: "", licenseExpiryDate: "" });
     } catch (error) {
       console.error("Error saving driver:", error);
     }
@@ -304,7 +312,7 @@ export default function TransportManagement() {
           <div>
             <div className="p-4 border-b flex justify-between items-center">
               <span className="text-gray-600">{vehicles.length} vehicles registered</span>
-              <button onClick={() => { setEditingVehicle(null); setVehicleForm({ vehicleCode: "", plateNumber: "", vehicleType: "BUS", capacity: 30, brand: "", model: "", year: new Date().getFullYear(), routeId: "" }); setShowVehicleModal(true); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">+ Add Vehicle</button>
+              <button onClick={() => { setEditingVehicle(null); setVehicleForm({ vehicleNumber: "", registrationNumber: "", vehicleType: "BUS", capacity: 30, make: "", model: "", year: new Date().getFullYear() }); setShowVehicleModal(true); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">+ Add Vehicle</button>
             </div>
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -325,11 +333,11 @@ export default function TransportManagement() {
                 ) : (
                   vehicles.map((vehicle) => (
                     <tr key={vehicle.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">{vehicle.vehicleCode}</td>
-                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{vehicle.plateNumber}</td>
+                      <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">{vehicle.vehicleNumber}</td>
+                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{vehicle.registrationNumber}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{vehicle.vehicleType}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{vehicle.capacity} seats</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">{vehicle.brand} {vehicle.model} {vehicle.year && `(${vehicle.year})`}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">{vehicle.make} {vehicle.model} {vehicle.year && `(${vehicle.year})`}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{vehicle.routeName || "-"}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button onClick={() => handleVehicleStatusToggle(vehicle)} className={`px-2 py-1 rounded-full text-xs ${vehicle.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
@@ -337,7 +345,7 @@ export default function TransportManagement() {
                         </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button onClick={() => { setEditingVehicle(vehicle); setVehicleForm({ vehicleCode: vehicle.vehicleCode, plateNumber: vehicle.plateNumber, vehicleType: vehicle.vehicleType, capacity: vehicle.capacity, brand: vehicle.brand || "", model: vehicle.model || "", year: vehicle.year || new Date().getFullYear(), routeId: vehicle.routeId || "" }); setShowVehicleModal(true); }} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                        <button onClick={() => { setEditingVehicle(vehicle); setVehicleForm({ vehicleNumber: vehicle.vehicleNumber, registrationNumber: vehicle.registrationNumber, vehicleType: vehicle.vehicleType, capacity: vehicle.capacity, make: vehicle.make || "", model: vehicle.model || "", year: vehicle.year || new Date().getFullYear() }); setShowVehicleModal(true); }} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
                         <button onClick={() => handleVehicleDelete(vehicle.id)} className="text-red-600 hover:text-red-900">Delete</button>
                       </td>
                     </tr>
@@ -352,7 +360,7 @@ export default function TransportManagement() {
           <div>
             <div className="p-4 border-b flex justify-between items-center">
               <span className="text-gray-600">{drivers.length} drivers registered</span>
-              <button onClick={() => { setEditingDriver(null); setDriverForm({ driverCode: "", name: "", phone: "", email: "", licenseNumber: "", licenseExpiry: "", vehicleId: "" }); setShowDriverModal(true); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">+ Add Driver</button>
+              <button onClick={() => { setEditingDriver(null); setDriverForm({ driverCode: "", fullname: "", phone: "", email: "", licenseNumber: "", licenseExpiryDate: "" }); setShowDriverModal(true); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">+ Add Driver</button>
             </div>
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -362,7 +370,6 @@ export default function TransportManagement() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">License No.</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">License Expiry</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vehicle</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
@@ -374,18 +381,17 @@ export default function TransportManagement() {
                   drivers.map((driver) => (
                     <tr key={driver.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">{driver.driverCode}</td>
-                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{driver.name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{driver.fullname}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{driver.phone}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{driver.licenseNumber}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">{driver.licenseExpiry ? new Date(driver.licenseExpiry).toLocaleDateString() : "-"}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">{driver.vehiclePlate || "-"}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">{driver.licenseExpiryDate ? new Date(driver.licenseExpiryDate).toLocaleDateString() : "-"}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button onClick={() => handleDriverStatusToggle(driver)} className={`px-2 py-1 rounded-full text-xs ${driver.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
                           {driver.status}
                         </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button onClick={() => { setEditingDriver(driver); setDriverForm({ driverCode: driver.driverCode, name: driver.name, phone: driver.phone, email: driver.email || "", licenseNumber: driver.licenseNumber, licenseExpiry: driver.licenseExpiry || "", vehicleId: driver.vehicleId || "" }); setShowDriverModal(true); }} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                        <button onClick={() => { setEditingDriver(driver); setDriverForm({ driverCode: driver.driverCode, fullname: driver.fullname, phone: driver.phone, email: driver.email || "", licenseNumber: driver.licenseNumber, licenseExpiryDate: driver.licenseExpiryDate || "" }); setShowDriverModal(true); }} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
                         <button onClick={() => handleDriverDelete(driver.id)} className="text-red-600 hover:text-red-900">Delete</button>
                       </td>
                     </tr>
@@ -447,11 +453,11 @@ export default function TransportManagement() {
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Code *</label>
-                  <input type="text" required value={vehicleForm.vehicleCode} onChange={(e) => setVehicleForm({ ...vehicleForm, vehicleCode: e.target.value })} className="w-full border rounded-lg px-3 py-2" placeholder="e.g., VH001" />
+                  <input type="text" required value={vehicleForm.vehicleNumber} onChange={(e) => setVehicleForm({ ...vehicleForm, vehicleNumber: e.target.value })} className="w-full border rounded-lg px-3 py-2" placeholder="e.g., VH001" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Plate Number *</label>
-                  <input type="text" required value={vehicleForm.plateNumber} onChange={(e) => setVehicleForm({ ...vehicleForm, plateNumber: e.target.value })} className="w-full border rounded-lg px-3 py-2" placeholder="e.g., ABC-1234" />
+                  <input type="text" required value={vehicleForm.registrationNumber} onChange={(e) => setVehicleForm({ ...vehicleForm, registrationNumber: e.target.value })} className="w-full border rounded-lg px-3 py-2" placeholder="e.g., ABC-1234" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -472,7 +478,7 @@ export default function TransportManagement() {
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-                  <input type="text" value={vehicleForm.brand} onChange={(e) => setVehicleForm({ ...vehicleForm, brand: e.target.value })} className="w-full border rounded-lg px-3 py-2" placeholder="e.g., Toyota" />
+                  <input type="text" value={vehicleForm.make} onChange={(e) => setVehicleForm({ ...vehicleForm, make: e.target.value })} className="w-full border rounded-lg px-3 py-2" placeholder="e.g., Toyota" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
@@ -483,15 +489,11 @@ export default function TransportManagement() {
                   <input type="number" min="1990" max="2030" value={vehicleForm.year} onChange={(e) => setVehicleForm({ ...vehicleForm, year: parseInt(e.target.value) })} className="w-full border rounded-lg px-3 py-2" />
                 </div>
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Route</label>
-                <select value={vehicleForm.routeId} onChange={(e) => setVehicleForm({ ...vehicleForm, routeId: e.target.value })} className="w-full border rounded-lg px-3 py-2">
-                  <option value="">-- No Route Assigned --</option>
-                  {routes.map((route) => (
-                    <option key={route.id} value={route.id}>{route.routeName}</option>
-                  ))}
-                </select>
-              </div>
+              {/*
+                An "Assigned Route" picker used to sit here. A Vehicle has no routeId — a vehicle
+                is put on a route by the schedule, not on the vehicle row — so the choice was
+                dropped on save and the select always reopened empty.
+              */}
               <div className="flex justify-end gap-3">
                 <button type="button" onClick={() => setShowVehicleModal(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{editingVehicle ? "Update Vehicle" : "Add Vehicle"}</button>
@@ -513,7 +515,7 @@ export default function TransportManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                  <input type="text" required value={driverForm.name} onChange={(e) => setDriverForm({ ...driverForm, name: e.target.value })} className="w-full border rounded-lg px-3 py-2" />
+                  <input type="text" required value={driverForm.fullname} onChange={(e) => setDriverForm({ ...driverForm, fullname: e.target.value })} className="w-full border rounded-lg px-3 py-2" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -533,18 +535,14 @@ export default function TransportManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">License Expiry *</label>
-                  <input type="date" required value={driverForm.licenseExpiry} onChange={(e) => setDriverForm({ ...driverForm, licenseExpiry: e.target.value })} className="w-full border rounded-lg px-3 py-2" />
+                  <input type="date" required value={driverForm.licenseExpiryDate} onChange={(e) => setDriverForm({ ...driverForm, licenseExpiryDate: e.target.value })} className="w-full border rounded-lg px-3 py-2" />
                 </div>
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Vehicle</label>
-                <select value={driverForm.vehicleId} onChange={(e) => setDriverForm({ ...driverForm, vehicleId: e.target.value })} className="w-full border rounded-lg px-3 py-2">
-                  <option value="">-- No Vehicle Assigned --</option>
-                  {vehicles.map((vehicle) => (
-                    <option key={vehicle.id} value={vehicle.id}>{vehicle.plateNumber} ({vehicle.vehicleType})</option>
-                  ))}
-                </select>
-              </div>
+              {/*
+                An "Assigned Vehicle" picker used to sit here. A TransportDriver has no vehicle
+                link — a driver is put with a vehicle by the schedule — so the choice was dropped
+                on save and the select always reopened empty.
+              */}
               <div className="flex justify-end gap-3">
                 <button type="button" onClick={() => setShowDriverModal(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{editingDriver ? "Update Driver" : "Add Driver"}</button>
