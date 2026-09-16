@@ -22,6 +22,7 @@ export default function StaffTasksPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [newTask, setNewTask] = useState({ title: "", description: "", priority: "medium", dueDate: "" });
 
   useEffect(() => {
@@ -90,15 +91,17 @@ export default function StaffTasksPage() {
           assigneeId: staffId,
           status: "pending"
         })
-      }).catch(() => null);
+      });
 
-      if (response) {
-        setTasks([...tasks, { id: response.id || Date.now().toString(), ...newTask, status: "pending" } as Task]);
-      }
+      // No .catch above: the task list and the modal should both reflect what actually happened.
+      // Previously a failed save closed the modal and cleared the form, so the task simply
+      // vanished with no error shown.
+      setTasks([...tasks, { id: response?.id || "", ...newTask, status: "pending" } as Task]);
       setShowCreateModal(false);
       setNewTask({ title: "", description: "", priority: "medium", dueDate: "" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating task:", error);
+      setCreateError(error?.message || "The task could not be saved. Please try again.");
     }
   };
 
@@ -252,6 +255,11 @@ export default function StaffTasksPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Create New Task</h2>
+            {createError && (
+              <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {createError}
+              </p>
+            )}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>

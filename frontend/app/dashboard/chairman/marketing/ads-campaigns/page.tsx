@@ -38,6 +38,8 @@ export default function AdsCampaignsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"campaigns" | "accounts" | "analytics">("campaigns");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([
     { id: "1", platform: "Facebook", accountId: "act_123456789", accountName: "LERA Main", status: "ACTIVE", balance: 5000000, currency: "VND" },
     { id: "2", platform: "Google", accountId: "123-456-7890", accountName: "LERA Ads", status: "ACTIVE", balance: 3000000, currency: "VND" },
@@ -85,7 +87,7 @@ export default function AdsCampaignsPage() {
         }));
         setCampaigns(transformedCampaigns);
       } else {
-        setCampaigns(getDemoCampaigns());
+        setCampaigns([]);
       }
       
       // Also fetch ad accounts
@@ -103,105 +105,47 @@ export default function AdsCampaignsPage() {
       }
     } catch (error) {
       console.error("Error fetching campaigns:", error);
-      setCampaigns(getDemoCampaigns());
+      // Show nothing rather than four invented campaigns: this page reports marketing spend and
+      // ROI to the Chairman, and made-up budgets are worse than an empty table.
+      setCampaigns([]);
+      setLoadError("Campaigns could not be loaded.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getDemoCampaigns = (): Campaign[] => [
-    {
-      id: "1",
-      name: "Back to School 2026",
-      description: "Enrollment campaign for new semester",
-      campaignType: "LEAD_GEN",
-      channel: "FACEBOOK",
-      budget: 50000000,
-      spent: 32500000,
-      startDate: "2026-01-01",
-      endDate: "2026-01-31",
-      status: "ACTIVE",
-      leads: 245,
-      conversions: 48,
-      roi: 2.4,
-    },
-    {
-      id: "2",
-      name: "Summer Camp Promo",
-      description: "Early bird registration for summer programs",
-      campaignType: "CONVERSION",
-      channel: "INSTAGRAM",
-      budget: 30000000,
-      spent: 28000000,
-      startDate: "2025-12-15",
-      endDate: "2026-01-15",
-      status: "ACTIVE",
-      leads: 180,
-      conversions: 35,
-      roi: 1.8,
-    },
-    {
-      id: "3",
-      name: "Brand Awareness Q1",
-      description: "General brand visibility campaign",
-      campaignType: "AWARENESS",
-      channel: "TIKTOK",
-      budget: 20000000,
-      spent: 15000000,
-      startDate: "2026-01-01",
-      endDate: "2026-03-31",
-      status: "ACTIVE",
-      leads: 0,
-      conversions: 0,
-      roi: 0,
-    },
-    {
-      id: "4",
-      name: "Holiday Special 2025",
-      description: "Christmas and New Year promotion",
-      campaignType: "CONVERSION",
-      channel: "GOOGLE",
-      budget: 40000000,
-      spent: 40000000,
-      startDate: "2025-12-01",
-      endDate: "2025-12-31",
-      status: "COMPLETED",
-      leads: 320,
-      conversions: 72,
-      roi: 3.2,
-    },
-  ];
-
   const handleCreateCampaign = async () => {
     try {
+      // No .catch here: a campaign that failed to save must not appear in the list as though it
+      // had. It previously fell through to a "local add for demo", so an unsaved campaign was
+      // indistinguishable from a saved one until the page was reloaded.
       const created = await apiFetch("/api/marketing-campaigns", {
         method: "POST",
         body: JSON.stringify(newCampaign),
-      }).catch(() => null);
+      });
 
-      if (created) {
-        setCampaigns([...campaigns, { ...newCampaign, id: created.id || Date.now().toString(), spent: 0, leads: 0, conversions: 0, roi: 0 } as Campaign]);
-      } else {
-        // Local add for demo
-        setCampaigns([...campaigns, { ...newCampaign, id: Date.now().toString(), spent: 0, leads: 0, conversions: 0, roi: 0 } as Campaign]);
-      }
+      setCampaigns([...campaigns, { ...newCampaign, id: created?.id || "", spent: 0, leads: 0, conversions: 0, roi: 0 } as Campaign]);
       setShowCreateModal(false);
       setNewCampaign({ name: "", description: "", campaignType: "LEAD_GEN", channel: "FACEBOOK", budget: 0, startDate: "", endDate: "", status: "DRAFT" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating campaign:", error);
+      setActionError(error?.message || "The campaign could not be saved.");
     }
   };
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
+      // The status only changes on screen if it changed on the server.
       await apiFetch(`/api/marketing-campaigns/${id}/status`, {
         method: "PUT",
         body: JSON.stringify({ status }),
-      }).catch(() => null);
+      });
 
       setCampaigns(campaigns.map((c) => (c.id === id ? { ...c, status } : c)));
-    } catch (error) {
+      setActionError(null);
+    } catch (error: any) {
       console.error("Error updating campaign:", error);
+      setActionError(error?.message || "The campaign status could not be updated.");
     }
   };
 
@@ -264,6 +208,11 @@ export default function AdsCampaignsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {(loadError || actionError) && (
+        <div role="alert" className="bg-red-50 border-b border-red-200 px-6 py-3 text-sm text-red-700">
+          {loadError || actionError}
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4">

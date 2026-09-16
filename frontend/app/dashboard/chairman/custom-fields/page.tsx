@@ -209,17 +209,25 @@ export default function CustomFieldsPage() {
     }
 
     try {
-      await apiFetch(`/api/custom-fields/${field.id}`, { method: "DELETE" }).catch(() => {});
+      // The row only leaves the list if the delete actually happened. It used to be removed
+      // regardless, so a failed delete looked identical to a successful one until a reload
+      // brought the field back.
+      await apiFetch(`/api/custom-fields/${field.id}`, { method: "DELETE" });
       setFields(prev => prev.filter(f => f.id !== field.id));
     } catch (error) {
       console.error("Error deleting field:", error);
+      alert(language === "VI"
+        ? "Không thể xóa trường này. Vui lòng thử lại."
+        : "This field could not be deleted. Please try again.");
     }
   };
 
   const handleToggleActive = async (field: CustomField) => {
     const updatedField = { ...field, isActive: !field.isActive };
+    // Optimistic, but put back if the save fails — otherwise the switch sits in a state the
+    // server never accepted, and only a reload reveals it.
     setFields(prev => prev.map(f => f.id === field.id ? updatedField : f));
-    
+
     try {
       await apiFetch(`/api/custom-fields/${field.id}`, {
         method: "PUT",
@@ -227,6 +235,10 @@ export default function CustomFieldsPage() {
       });
     } catch (error) {
       console.error("Error toggling field:", error);
+      setFields(prev => prev.map(f => f.id === field.id ? field : f));
+      alert(language === "VI"
+        ? "Không thể cập nhật trường này."
+        : "This field could not be updated.");
     }
   };
 
