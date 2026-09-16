@@ -8,11 +8,9 @@ import ExportMenu from "../../../components/ExportMenu";
 interface Parent {
   id: string;
   userId: string;
-  parentCode: string;
   fullName: string;
   email: string;
   phone: string;
-  address?: string;
   occupation?: string;
   centerId?: string;
   status: string;
@@ -43,7 +41,6 @@ export default function ParentsPage() {
     fullName: "",
     email: "",
     phone: "",
-    address: "",
     occupation: "",
     centerId: "",
   });
@@ -81,24 +78,38 @@ export default function ParentsPage() {
 
     try {
       if (editingParent) {
-        const updatedParent = await apiFetch(`/api/parents/${editingParent.id}`, {
+        // A parent's name, email and phone belong to their USER record; a ParentProfile carries
+        // only the profile extras. Posting the whole form to /api/parents meant everything except
+        // occupation was dropped — a centre admin could not change a parent's phone number, which
+        // is the field that matters most for a school, and nothing said so.
+        if (editingParent.userId) {
+          await apiFetch(`/api/users/${editingParent.userId}`, {
+            method: "PUT",
+            body: JSON.stringify({
+              fullname: formData.fullName,
+              email: formData.email,
+              phone: formData.phone,
+              // users.center_id is real, unlike the profile fields this form used to post
+              ...(formData.centerId ? { centerId: formData.centerId } : {}),
+            }),
+          });
+        }
+        await apiFetch(`/api/parents/${editingParent.id}`, {
           method: "PUT",
-          body: JSON.stringify(formData)
+          body: JSON.stringify({ occupation: formData.occupation }),
         });
-        setParents(parents.map(p => p.id === editingParent.id ? updatedParent : p));
         setEditingParent(null);
       } else {
-        const newParent = await apiFetch("/api/parents", {
+        // Creating a parent needs a user account first, which this screen cannot do — see the
+        // note by the Add button.
+        await apiFetch("/api/parents", {
           method: "POST",
-          body: JSON.stringify({
-            ...formData,
-            status: "ACTIVE"
-          })
+          body: JSON.stringify({ occupation: formData.occupation }),
         });
-        setParents([...parents, newParent]);
       }
+      await fetchParents();
       setShowAddModal(false);
-      setFormData({ fullName: "", email: "", phone: "", address: "", occupation: "", centerId: "" });
+      setFormData({ fullName: "", email: "", phone: "", occupation: "", centerId: "" });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -112,7 +123,6 @@ export default function ParentsPage() {
       fullName: parent.fullName || "",
       email: parent.email || "",
       phone: parent.phone || "",
-      address: parent.address || "",
       occupation: parent.occupation || "",
       centerId: parent.centerId || "",
     });
@@ -150,8 +160,7 @@ export default function ParentsPage() {
   };
 
   const filteredParents = parents.filter(parent => {
-    const matchesSearch = parent.parentCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      parent.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = parent.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       parent.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       parent.phone?.includes(searchQuery);
     const matchesCenter = !filters.centerId || parent.centerId === filters.centerId;
@@ -185,11 +194,9 @@ export default function ParentsPage() {
             filename="parents"
             rows={parents}
             columns={[
-              { key: "parentCode", label: "Code" },
               { key: "fullName", label: "Name" },
               { key: "email", label: "Email" },
               { key: "phone", label: "Phone" },
-              { key: "address", label: "Address" },
               { key: "occupation", label: "Occupation" },
               { key: "childrenCount", label: "Children" },
               { key: "status", label: "Status" },
@@ -292,7 +299,6 @@ export default function ParentsPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parent</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Center</th>
@@ -311,7 +317,6 @@ export default function ParentsPage() {
             ) : (
               filteredParents.map((parent) => (
                 <tr key={parent.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-500">{parent.parentCode || "N/A"}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold">
@@ -409,16 +414,12 @@ export default function ParentsPage() {
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <input 
-                  type="text" 
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Full address"
-                />
-              </div>
+              {/*
+                An Address box used to sit here. Nothing stores a parent's address — not the
+                profile, not the user record — so whatever was typed went nowhere. Whether LERA
+                should hold parents' home addresses is a decision about personal data, not
+                something to add a column for quietly.
+              */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Occupation</label>

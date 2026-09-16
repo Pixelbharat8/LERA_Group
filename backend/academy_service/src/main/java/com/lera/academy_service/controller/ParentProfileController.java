@@ -9,6 +9,7 @@ import com.lera.academy_service.repository.StudentRepository;
 import com.lera.academy_service.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +33,70 @@ public class ParentProfileController {
     private final ParentProfileRepository parentProfileRepository;
     private final StudentParentRepository studentParentRepository;
     private final StudentRepository studentRepository;
+    private final JdbcTemplate jdbcTemplate;
+
+    /**
+     * A parent's name, email and phone live on their USER record — a ParentProfile carries only
+     * the profile extras (occupation, company, notes) plus the userId that links the two. The
+     * admin list rendered fullName/email/phone straight off these rows, so every parent appeared
+     * with a blank name, blank email and blank phone.
+     *
+     * Resolve them here in one query, the way ClassController#withDisplayNames does. academy and
+     * identity share the database, and this controller already reaches across it for students.
+     */
+    private List<Map<String, Object>> withUserDetails(List<ParentProfile> profiles) {
+        if (profiles.isEmpty()) return List.of();
+        List<UUID> userIds = profiles.stream().map(ParentProfile::getUserId)
+                .filter(java.util.Objects::nonNull).distinct().toList();
+
+        Map<UUID, Map<String, Object>> users = new java.util.HashMap<>();
+        if (!userIds.isEmpty()) {
+            String ph = userIds.stream().map(x -> "?").collect(Collectors.joining(","));
+            jdbcTemplate.query(
+                    "SELECT id, fullname, email, phone, status FROM users WHERE id IN (" + ph + ")",
+                    (java.sql.ResultSet rs) -> {
+                        Map<String, Object> u = new LinkedHashMap<>();
+                        u.put("fullName", rs.getString("fullname"));
+                        u.put("email", rs.getString("email"));
+                        u.put("phone", rs.getString("phone"));
+                        u.put("status", rs.getString("status"));
+                        users.put(rs.getObject("id", UUID.class), u);
+                    }, userIds.toArray());
+        }
+
+        // How many children each parent is linked to — the list shows a count per row.
+        Map<UUID, Integer> childCounts = new java.util.HashMap<>();
+        if (!userIds.isEmpty()) {
+            String ph = userIds.stream().map(x -> "?").collect(Collectors.joining(","));
+            jdbcTemplate.query(
+                    "SELECT parent_id, COUNT(*) AS n FROM student_parents WHERE parent_id IN (" + ph + ")"
+                            + " GROUP BY parent_id",
+                    (java.sql.ResultSet rs) -> {
+                        childCounts.put(rs.getObject("parent_id", UUID.class), rs.getInt("n"));
+                    }, userIds.toArray());
+        }
+
+        List<Map<String, Object>> out = new java.util.ArrayList<>();
+        for (ParentProfile p : profiles) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", p.getId());
+            m.put("userId", p.getUserId());
+            m.put("occupation", p.getOccupation());
+            m.put("company", p.getCompany());
+            m.put("notes", p.getNotes());
+            m.put("preferredContactMethod", p.getPreferredContactMethod());
+            m.put("preferredLanguage", p.getPreferredLanguage());
+            m.put("createdAt", p.getCreatedAt());
+            Map<String, Object> u = p.getUserId() == null ? Map.of() : users.getOrDefault(p.getUserId(), Map.of());
+            m.put("fullName", u.get("fullName"));
+            m.put("email", u.get("email"));
+            m.put("phone", u.get("phone"));
+            m.put("status", u.get("status"));
+            m.put("childrenCount", p.getUserId() == null ? 0 : childCounts.getOrDefault(p.getUserId(), 0));
+            out.add(m);
+        }
+        return out;
+    }
     
     /** Current user's parent profile (JWT {@code user_id} → {@link ParentProfile}). */
     @GetMapping({"/self", "/me"})
@@ -44,8 +109,8 @@ public class ParentProfileController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF')")
-    public ResponseEntity<List<ParentProfile>> getAllParents(Pageable pageable) {
-        return ResponseEntity.ok(parentProfileRepository.findAll(pageable).getContent());
+    public ResponseEntity<List<Map<String, Object>>> getAllParents(Pageable pageable) {
+        return ResponseEntity.ok(withUserDetails(parentProfileRepository.findAll(pageable).getContent()));
     }
     
     @GetMapping("/{id}")
