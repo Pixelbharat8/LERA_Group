@@ -228,6 +228,27 @@ services:
       # Required: identity refuses to start in a deployed profile when this is blank or the
       # legacy default, and service-to-service /api/internal/* calls 503 without it.
       LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
+      # Outbound mail. /api/auth/forgot-password is the documented recovery path for the seeded
+      # Chairman/CEO accounts, and none of this reached the container before — so mail could not
+      # be configured through compose at all, and password reset could never work.
+      # An EMPTY env var overrides a property default (verified), so every variable whose
+      # property carries a real default repeats that default here. compose-env-defaults.test.ts
+      # fails if the two ever drift apart.
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@leraacademy.edu.vn}
+      # Mobile push. Off unless configured; the service already no-ops and says so when unset.
+      LERA_PUSH_ENABLED: ${LERA_PUSH_ENABLED:-false}
+      APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+      APNS_KEY_ID: ${APNS_KEY_ID:-}
+      APNS_BUNDLE_ID: ${APNS_BUNDLE_ID:-com.lera.app}
+      APNS_KEY_PATH: ${APNS_KEY_PATH:-}
+      APNS_SANDBOX: ${APNS_SANDBOX:-true}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+      FCM_SERVICE_ACCOUNT_PATH: ${FCM_SERVICE_ACCOUNT_PATH:-}
       DB_NAME: lera
       LERA_ATTACHMENTS_DIR: /var/lera/uploads/
     volumes:
@@ -302,6 +323,12 @@ services:
       # Required: identity refuses to start in a deployed profile when this is blank or the
       # legacy default, and service-to-service /api/internal/* calls 503 without it.
       LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
+      # VNPay credentials. VnPayService reads these straight from properties with no database
+      # fallback, so with nothing passed in the gateway simply cannot be configured.
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+      VNPAY_PAY_URL: ${VNPAY_PAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:8083/api/public/payment/vnpay-return}
       DB_NAME: lera
     ports:
       - "8083:8083"   # payment_service runs on port 8083
