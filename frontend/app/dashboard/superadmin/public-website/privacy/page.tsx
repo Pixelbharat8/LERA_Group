@@ -1,13 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { LegalSection, PRIVACY_SECTIONS_EN, PRIVACY_SECTIONS_VI } from "../../../../../lib/legal-content";
 import { apiFetch } from "../../../../../lib/api";
 import Link from "next/link";
-
-interface Section {
-  title: string;
-  content: string;
-}
 
 export default function PrivacyContentPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -20,22 +16,8 @@ export default function PrivacyContentPage() {
   const [lastUpdatedVI, setLastUpdatedVI] = useState("Cập nhật lần cuối: Tháng 1, 2026");
   const [introEN, setIntroEN] = useState("At LERA Academy, we are committed to protecting your privacy.");
   const [introVI, setIntroVI] = useState("Tại LERA Academy, chúng tôi cam kết bảo vệ quyền riêng tư của bạn.");
-  const [sectionsEN, setSectionsEN] = useState<Section[]>([
-    { title: "1. Information We Collect", content: "We collect information you provide directly to us, including name, email, phone number, and other contact details when you register for courses, request information, or communicate with us." },
-    { title: "2. How We Use Your Information", content: "We use the information we collect to provide and improve our educational services, communicate with you about courses and updates, process payments, and personalize your learning experience." },
-    { title: "3. Information Sharing", content: "We do not sell your personal information to third parties. We may share information with service providers who assist in our operations, or when required by law." },
-    { title: "4. Data Security", content: "We implement appropriate security measures to protect your personal information from unauthorized access, alteration, disclosure, or destruction." },
-    { title: "5. Your Rights", content: "You have the right to access, correct, or delete your personal information. You may also opt out of marketing communications at any time." },
-    { title: "6. Contact Us", content: "For privacy inquiries, please contact us at privacy@leraacademy.edu.vn or visit any of our learning centers." }
-  ]);
-  const [sectionsVI, setSectionsVI] = useState<Section[]>([
-    { title: "1. Thông Tin Chúng Tôi Thu Thập", content: "Chúng tôi thu thập thông tin bạn cung cấp trực tiếp, bao gồm tên, email, số điện thoại và các thông tin liên lạc khác khi bạn đăng ký khóa học, yêu cầu thông tin hoặc liên lạc với chúng tôi." },
-    { title: "2. Cách Sử Dụng Thông Tin", content: "Chúng tôi sử dụng thông tin thu thập để cung cấp và cải thiện dịch vụ giáo dục, liên lạc về khóa học và cập nhật, xử lý thanh toán và cá nhân hóa trải nghiệm học tập." },
-    { title: "3. Chia Sẻ Thông Tin", content: "Chúng tôi không bán thông tin cá nhân cho bên thứ ba. Chúng tôi có thể chia sẻ thông tin với nhà cung cấp dịch vụ hỗ trợ hoạt động hoặc khi pháp luật yêu cầu." },
-    { title: "4. Bảo Mật Dữ Liệu", content: "Chúng tôi thực hiện các biện pháp bảo mật phù hợp để bảo vệ thông tin cá nhân khỏi truy cập, sửa đổi, tiết lộ hoặc hủy hoại trái phép." },
-    { title: "5. Quyền Của Bạn", content: "Bạn có quyền truy cập, sửa đổi hoặc xóa thông tin cá nhân. Bạn cũng có thể từ chối nhận thông tin marketing bất cứ lúc nào." },
-    { title: "6. Liên Hệ", content: "Để hỏi về quyền riêng tư, vui lòng liên hệ privacy@leraacademy.edu.vn hoặc đến bất kỳ trung tâm học tập nào của chúng tôi." }
-  ]);
+  const [sectionsEN, setSectionsEN] = useState<LegalSection[]>(PRIVACY_SECTIONS_EN);
+  const [sectionsVI, setSectionsVI] = useState<LegalSection[]>(PRIVACY_SECTIONS_VI);
 
   useEffect(() => {
     fetchContent();

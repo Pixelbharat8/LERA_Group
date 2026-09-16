@@ -41,7 +41,12 @@ function publicCategories(): Map<string, string> {
         walk(full);
       } else if (e.name.endsWith(".tsx")) {
         const src = fs.readFileSync(full, "utf8");
+        // Two idioms reach the same API, and checking only the first left the pages that use
+        // the second — privacy, terms, homepage, contact, header, about — unchecked entirely.
         for (const m of src.matchAll(/usePageContent\("([a-z_]+)"\)/g)) {
+          found.set(m[1], path.relative(APP, full));
+        }
+        for (const m of src.matchAll(/cms-settings\/map\/([a-z_]+)/g)) {
           found.set(m[1], path.relative(APP, full));
         }
         for (const m of src.matchAll(/cms-settings\/map\/([a-z_]+)/g)) {

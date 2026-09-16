@@ -1,13 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { LegalSection, TERMS_SECTIONS_EN, TERMS_SECTIONS_VI } from "../../../../../lib/legal-content";
 import { apiFetch } from "../../../../../lib/api";
 import Link from "next/link";
-
-interface Section {
-  title: string;
-  content: string;
-}
 
 export default function TermsContentPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -20,22 +16,8 @@ export default function TermsContentPage() {
   const [lastUpdatedVI, setLastUpdatedVI] = useState("Cập nhật lần cuối: Tháng 1, 2026");
   const [introEN, setIntroEN] = useState("Please read these Terms of Service carefully before using LERA Academy's services.");
   const [introVI, setIntroVI] = useState("Vui lòng đọc kỹ Điều khoản Sử dụng trước khi sử dụng dịch vụ của LERA Academy.");
-  const [sectionsEN, setSectionsEN] = useState<Section[]>([
-    { title: "1. Acceptance of Terms", content: "By accessing or using LERA Academy's services, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services." },
-    { title: "2. Services", content: "LERA Academy provides English language education services including in-person classes, online courses, tutoring, and related educational materials. We reserve the right to modify or discontinue services at any time." },
-    { title: "3. Registration and Enrollment", content: "To enroll in our courses, you must provide accurate and complete information. Students under 18 must have parental or guardian consent. You are responsible for maintaining the confidentiality of your account." },
-    { title: "4. Payment and Refunds", content: "Course fees are due upon enrollment unless otherwise arranged. Refund requests must be submitted within 7 days of course start date. A processing fee may apply to refunds." },
-    { title: "5. Attendance and Conduct", content: "Students are expected to attend classes regularly and maintain appropriate conduct. LERA Academy reserves the right to dismiss students who violate our code of conduct." },
-    { title: "6. Intellectual Property", content: "All course materials, including textbooks, videos, and online content, are the intellectual property of LERA Academy. Unauthorized reproduction or distribution is prohibited." }
-  ]);
-  const [sectionsVI, setSectionsVI] = useState<Section[]>([
-    { title: "1. Chấp Nhận Điều Khoản", content: "Bằng việc truy cập hoặc sử dụng dịch vụ của LERA Academy, bạn đồng ý tuân theo các Điều khoản Sử dụng này. Nếu bạn không đồng ý, vui lòng không sử dụng dịch vụ của chúng tôi." },
-    { title: "2. Dịch Vụ", content: "LERA Academy cung cấp dịch vụ giáo dục tiếng Anh bao gồm lớp học trực tiếp, khóa học trực tuyến, gia sư và tài liệu giáo dục liên quan. Chúng tôi có quyền sửa đổi hoặc ngừng dịch vụ bất cứ lúc nào." },
-    { title: "3. Đăng Ký và Ghi Danh", content: "Để đăng ký khóa học, bạn phải cung cấp thông tin chính xác và đầy đủ. Học viên dưới 18 tuổi cần có sự đồng ý của phụ huynh hoặc người giám hộ. Bạn có trách nhiệm bảo mật tài khoản của mình." },
-    { title: "4. Thanh Toán và Hoàn Tiền", content: "Học phí phải thanh toán khi ghi danh trừ khi có thỏa thuận khác. Yêu cầu hoàn tiền phải được gửi trong vòng 7 ngày kể từ ngày bắt đầu khóa học. Phí xử lý có thể áp dụng cho hoàn tiền." },
-    { title: "5. Điểm Danh và Nội Quy", content: "Học viên được yêu cầu đi học đều đặn và duy trì hành vi phù hợp. LERA Academy có quyền cho thôi học những học viên vi phạm nội quy." },
-    { title: "6. Sở Hữu Trí Tuệ", content: "Tất cả tài liệu khóa học, bao gồm sách giáo khoa, video và nội dung trực tuyến, là tài sản trí tuệ của LERA Academy. Nghiêm cấm sao chép hoặc phân phối trái phép." }
-  ]);
+  const [sectionsEN, setSectionsEN] = useState<LegalSection[]>(TERMS_SECTIONS_EN);
+  const [sectionsVI, setSectionsVI] = useState<LegalSection[]>(TERMS_SECTIONS_VI);
 
   useEffect(() => {
     fetchContent();
