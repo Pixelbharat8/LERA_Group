@@ -37,4 +37,8 @@ public class UserDTO {
     private Boolean passwordChangeRequired;
     private String lastLogin;
     private String createdAt;
+    /** Registration-approval workflow (superadmin/approvals): PENDING / APPROVED / REJECTED. */
+    private String approvalStatus;
+    private String requestedAt;
+    private String rejectionReason;
 }

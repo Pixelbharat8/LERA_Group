@@ -421,8 +421,10 @@ public class UserController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','CENTER_ADMIN')")
     public ResponseEntity<Map<String, Object>> approveUser(
             @PathVariable UUID id,
-            @AuthenticationPrincipal AuthUser approver) {
+            @AuthenticationPrincipal AuthUser approver,
+            @RequestBody(required = false) Map<String, String> body) {
         Map<String, Object> response = new HashMap<>();
+        AuthUser actor = approver != null ? approver : SecurityUtils.requireUser();
         UUID approverId = approver != null ? approver.getUserId() : null;
         Optional<UserDTO> target = userService.getUserById(id);
         if (target.isEmpty()) {
@@ -431,7 +433,15 @@ public class UserController {
             return ResponseEntity.status(404).body(response);
         }
         accessGuard.assertMayMutateUserByCenter(target.get().getCenterId());
-        return userService.setApprovalStatus(id, "APPROVED", approverId, null)
+        String assignedRole = body != null ? body.get("roleName") : null;
+        // Same rule as PUT /{id}: approving with a role IS a role change, so a centre-scoped
+        // manager must not be able to approve a self-registered account straight into SUPER_ADMIN.
+        if (assignedRole != null && !assignedRole.isBlank() && !SecurityUtils.isOrgWide(actor)) {
+            response.put("success", false);
+            response.put("message", "Only organization-wide roles may assign a role on approval");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        }
+        return userService.setApprovalStatus(id, "APPROVED", approverId, null, assignedRole)
                 .map(user -> {
                     auditService.log("USER_APPROVED", "User", id, approverId, null,
                             "{\"approval_status\":\"APPROVED\"}");

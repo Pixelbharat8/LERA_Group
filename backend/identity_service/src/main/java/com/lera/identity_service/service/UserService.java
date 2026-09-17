@@ -100,6 +100,11 @@ public class UserService {
                 .fullname(request.getFullname())
                 .fullnameVi(request.getFullnameVi())
                 .status(userStatus)
+                // A self-registration is a pending APPROVAL REQUEST, not just a pending account.
+                // The approvals screen queries approval_status; leaving it null made every public
+                // signup invisible to the people who have to approve it.
+                .approvalStatus("PENDING".equals(userStatus) ? "PENDING" : null)
+                .requestedAt("PENDING".equals(userStatus) ? LocalDateTime.now() : null)
                 .emailVerified(false)
                 // Organization hierarchy fields
                 .departmentId(request.getDepartmentId())
@@ -408,7 +413,12 @@ public class UserService {
     }
 
     public List<UserDTO> getUsersByApprovalStatus(String approvalStatus) {
-        return userRepository.findByApprovalStatusWithRelations(approvalStatus).stream()
+        // Accounts created before approval_status was stamped carry the request only in
+        // status='PENDING'. Match those too, or every existing signup stays invisible.
+        List<User> users = "PENDING".equalsIgnoreCase(approvalStatus)
+                ? userRepository.findAwaitingApprovalWithRelations()
+                : userRepository.findByApprovalStatusWithRelations(approvalStatus);
+        return users.stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
@@ -433,7 +443,29 @@ public class UserService {
     @Transactional
     public Optional<UserDTO> setApprovalStatus(UUID userId, String approvalStatus,
                                                UUID approverId, String rejectionReason) {
+        return setApprovalStatus(userId, approvalStatus, approverId, rejectionReason, null);
+    }
+
+    /**
+     * As above, but also assigns the role the approver picked. The approvals screen has always
+     * shown an "Assign Role" select; until this overload existed the chosen role was dropped on
+     * the floor and the UI still reported "approved as X". Caller must authorise the role change.
+     */
+    @CacheEvict(value = "users", allEntries = true)
+    @Transactional
+    public Optional<UserDTO> setApprovalStatus(UUID userId, String approvalStatus,
+                                               UUID approverId, String rejectionReason,
+                                               String assignedRoleName) {
         return userRepository.findById(userId).map(user -> {
+            if (assignedRoleName != null && !assignedRoleName.isBlank()
+                    && "APPROVED".equalsIgnoreCase(approvalStatus)) {
+                Role assigned = roleRepository.findByName(assignedRoleName.toUpperCase())
+                        .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                                org.springframework.http.HttpStatus.BAD_REQUEST,
+                                "Unknown role: " + assignedRoleName));
+                user.setRoleId(assigned.getId());
+                user.setRole(assigned);
+            }
             user.setApprovalStatus(approvalStatus);
             user.setApprovedBy(approverId);
             user.setApprovedAt(LocalDateTime.now());
@@ -516,6 +548,9 @@ public class UserService {
                 .jobTitle(user.getJobTitle())
                 .employmentType(user.getEmploymentType())
                 .orgLevel(user.getOrgLevel())
+                .approvalStatus(user.getApprovalStatus())
+                .requestedAt(user.getRequestedAt() != null ? user.getRequestedAt().format(formatter) : null)
+                .rejectionReason(user.getRejectionReason())
                 .build();
     }
 }

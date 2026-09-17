@@ -9,13 +9,12 @@ interface PendingUser {
   email: string;
   fullname: string;
   phone: string;
-  requestedRole: string;
-  requestedBy: string;
-  requestedByName: string;
+  roleName: string;
   requestedAt: string;
   centerId: string;
   centerName: string;
   status: string;
+  approvalStatus: string;
 }
 
 export default function ApprovalsPage() {
@@ -46,8 +45,10 @@ export default function ApprovalsPage() {
     try {
       const data = await apiFetch("/api/users?approval_status=PENDING");
       // Filter users with PENDING approval status
+      // Registration leaves status='PENDING'; approval_status is stamped PENDING too, but
+      // accounts created before that carry only the status. Accept either.
       const pending = (Array.isArray(data) ? data : data.content || [])
-        .filter((u: any) => u.approvalStatus === "PENDING" || u.status === "PENDING_APPROVAL");
+        .filter((u: any) => u.approvalStatus === "PENDING" || u.status === "PENDING");
       setPendingUsers(pending);
     } catch (err) {
       console.error("Error fetching pending users:", err);
@@ -58,7 +59,7 @@ export default function ApprovalsPage() {
 
   const handleApprove = async (user: PendingUser) => {
     setSelectedUser(user);
-    setAssignedRole(user.requestedRole || "TEACHER");
+    setAssignedRole(user.roleName || "STUDENT");
     setShowModal(true);
   };
 
@@ -86,10 +87,7 @@ export default function ApprovalsPage() {
     try {
       await apiFetch(`/api/users/${selectedUser.id}/approve`, {
         method: "POST",
-        body: JSON.stringify({ 
-          roleId: assignedRole,
-          roleName: assignedRole 
-        })
+        body: JSON.stringify({ roleName: assignedRole })
       });
 
       alert(`User approved as ${assignedRole}`);
@@ -173,7 +171,7 @@ export default function ApprovalsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requested Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requested By</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Center</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
@@ -195,10 +193,10 @@ export default function ApprovalsPage() {
                     <td className="px-6 py-4 text-gray-500">{user.phone || "-"}</td>
                     <td className="px-6 py-4">
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                        {user.requestedRole || "TEACHER"}
+                        {user.roleName || "—"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-500">{user.requestedByName || "Self"}</td>
+                    <td className="px-6 py-4 text-gray-500">{user.centerName || "—"}</td>
                     <td className="px-6 py-4 text-gray-500">
                       {user.requestedAt ? new Date(user.requestedAt).toLocaleDateString() : "-"}
                     </td>

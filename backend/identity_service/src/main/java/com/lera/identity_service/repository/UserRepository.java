@@ -65,4 +65,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.center WHERE u.approvalStatus = :approvalStatus")
     List<User> findByApprovalStatusWithRelations(String approvalStatus);
+
+    /**
+     * Everything awaiting a decision: rows stamped PENDING, plus legacy rows that only ever
+     * got status='PENDING' because registration never wrote approval_status.
+     */
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.center "
+         + "WHERE u.approvalStatus = 'PENDING' OR (u.approvalStatus IS NULL AND u.status = 'PENDING')")
+    List<User> findAwaitingApprovalWithRelations();
 }
