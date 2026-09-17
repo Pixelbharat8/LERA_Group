@@ -43,6 +43,8 @@ interface LeaveRequest {
   appliedAt: string;
   reviewedBy?: string;
   reviewedAt?: string;
+  // The approver's note is stored as `comments`, or `rejectionReason` when refused —
+  // there is no `remarks` column, so the note the approver typed was never read back.
   remarks?: string;
 }
 
@@ -139,8 +141,8 @@ export default function AttendanceApprovalsPage() {
           leaveType: l.leaveType || "CASUAL",
           reason: l.reason,
           status: l.status || "PENDING",
-          appliedAt: l.appliedAt || l.createdAt || new Date().toISOString(),
-          remarks: l.remarks
+          appliedAt: l.requestedAt || l.createdAt || "",
+          remarks: l.status === "REJECTED" ? l.rejectionReason : l.comments
         }));
         setLeaveRequests(mappedLeaves);
       } catch (err) {

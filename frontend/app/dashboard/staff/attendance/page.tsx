@@ -19,18 +19,26 @@ interface AttendanceRecord {
   notes?: string;
 }
 
+/**
+ * Field names come from TeacherStaffLeave (attendance_service). The leave's first day is
+ * `leaveDate`, the submission time is `requestedAt`, and the approver's note is `comments`
+ * (or `rejectionReason` on a refusal). This page previously read startDate / appliedAt /
+ * reviewedAt / remarks — none of which exist — so every row said "Applied: Invalid Date"
+ * and no decision note was ever shown back to the person who applied.
+ */
 interface LeaveRequest {
   id: string;
   userId: string;
-  startDate: string;
+  leaveDate: string;
   endDate: string;
   leaveType: string;
   reason: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  appliedAt: string;
-  reviewedBy?: string;
-  reviewedAt?: string;
-  remarks?: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  requestedAt: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  comments?: string;
+  rejectionReason?: string;
 }
 
 interface UserData {
@@ -38,6 +46,7 @@ interface UserData {
   fullname: string;
   email: string;
   role: string;
+  centerId?: string;
 }
 
 export default function StaffAttendancePage() {
@@ -62,9 +71,9 @@ export default function StaffAttendancePage() {
   });
   
   const [leaveForm, setLeaveForm] = useState({
-    startDate: "",
+    leaveDate: "",
     endDate: "",
-    leaveType: "CASUAL",
+    leaveType: "CASUAL_LEAVE",
     reason: "",
     isAdvanceLeave: false
   });
@@ -320,8 +329,15 @@ export default function StaffAttendancePage() {
   };
 
   const handleApplyLeave = async () => {
-    if (!leaveForm.startDate || !leaveForm.endDate || !leaveForm.reason) {
+    if (!leaveForm.leaveDate || !leaveForm.endDate || !leaveForm.reason) {
       setMessage({ type: "error", text: "Please fill all required fields" });
+      return;
+    }
+    if (!userData?.id || !userData?.centerId) {
+      setMessage({
+        type: "error",
+        text: "Your account has no center assigned, so leave cannot be submitted. Ask an administrator to assign your center.",
+      });
       return;
     }
     
@@ -329,26 +345,35 @@ export default function StaffAttendancePage() {
     setMessage({ type: "", text: "" });
     
     try {
+      // POST /api/leaves/apply binds straight onto the TeacherStaffLeave entity, so the body
+      // must use its column names and carry the identity columns the table marks NOT NULL.
+      // Posting the raw form (startDate, no userId/centerId/userType/requestedBy) meant every
+      // application from this page was rejected — leave_date came through null.
       await apiFetch("/api/leave/apply", {
         method: "POST",
-        body: JSON.stringify(leaveForm)
+        body: JSON.stringify({
+          userId: userData?.id,
+          centerId: userData?.centerId,
+          userType: "STAFF",
+          requestedBy: userData?.id,
+          leaveDate: leaveForm.leaveDate,
+          endDate: leaveForm.endDate || leaveForm.leaveDate,
+          leaveType: leaveForm.leaveType,
+          reason: leaveForm.reason,
+          isAdvanceLeave: leaveForm.isAdvanceLeave
+        })
       });
       
       setMessage({ type: "success", text: "Leave application submitted successfully!" });
       
       // Add to local state
-      const newLeave: LeaveRequest = {
-        id: `leave-${Date.now()}`,
-        userId: userData?.id || "",
-        ...leaveForm,
-        status: "PENDING",
-        appliedAt: new Date().toISOString()
-      };
-      setLeaveRequests(prev => [...prev, newLeave]);
+      // Re-read from the server rather than guessing at the row it created: the service can
+      // set isAdvanceLeave, daysCount and the approver itself.
+      await fetchLeaveRequests();
       
       setTimeout(() => {
         setShowLeaveModal(false);
-        setLeaveForm({ startDate: "", endDate: "", leaveType: "CASUAL", reason: "", isAdvanceLeave: false });
+        setLeaveForm({ leaveDate: "", endDate: "", leaveType: "CASUAL_LEAVE", reason: "", isAdvanceLeave: false });
         setMessage({ type: "", text: "" });
       }, 1500);
     } catch (err) {
@@ -714,12 +739,13 @@ export default function StaffAttendancePage() {
                   onChange={(e) => setLeaveForm(prev => ({ ...prev, leaveType: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="CASUAL">Casual Leave</option>
-                  <option value="SICK">Sick Leave</option>
-                  <option value="EARNED">Earned Leave</option>
+                  <option value="CASUAL_LEAVE">Casual Leave</option>
+                  <option value="SICK_LEAVE">Sick Leave</option>
+                  <option value="ANNUAL_LEAVE">Annual Leave</option>
+                  <option value="EMERGENCY">Emergency</option>
                   <option value="MATERNITY">Maternity Leave</option>
                   <option value="PATERNITY">Paternity Leave</option>
-                  <option value="UNPAID">Unpaid Leave</option>
+                  <option value="BEREAVEMENT">Bereavement Leave</option>
                   <option value="COMPENSATORY">Compensatory Off</option>
                 </select>
               </div>
@@ -729,8 +755,8 @@ export default function StaffAttendancePage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
                   <input
                     type="date"
-                    value={leaveForm.startDate}
-                    onChange={(e) => setLeaveForm(prev => ({ ...prev, startDate: e.target.value }))}
+                    value={leaveForm.leaveDate}
+                    onChange={(e) => setLeaveForm(prev => ({ ...prev, leaveDate: e.target.value }))}
                     min={new Date().toISOString().split("T")[0]}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
@@ -741,7 +767,7 @@ export default function StaffAttendancePage() {
                     type="date"
                     value={leaveForm.endDate}
                     onChange={(e) => setLeaveForm(prev => ({ ...prev, endDate: e.target.value }))}
-                    min={leaveForm.startDate || new Date().toISOString().split("T")[0]}
+                    min={leaveForm.leaveDate || new Date().toISOString().split("T")[0]}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -832,16 +858,19 @@ export default function StaffAttendancePage() {
                         </span>
                         <p className="font-medium text-gray-900 mt-2">{leave.leaveType} Leave</p>
                         <p className="text-sm text-gray-500">
-                          {leave.startDate ? new Date(leave.startDate).toLocaleDateString() : "—"} - {leave.endDate ? new Date(leave.endDate).toLocaleDateString() : "—"}
+                          {leave.leaveDate ? new Date(leave.leaveDate).toLocaleDateString() : "—"} - {leave.endDate ? new Date(leave.endDate).toLocaleDateString() : "—"}
                         </p>
                       </div>
                       <span className="text-xs text-gray-400">
-                        Applied: {new Date(leave.appliedAt).toLocaleDateString()}
+                        Applied: {leave.requestedAt ? new Date(leave.requestedAt).toLocaleDateString() : "—"}
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 mt-2">{leave.reason}</p>
-                    {leave.remarks && (
-                      <p className="text-sm text-gray-500 mt-2 italic">Remarks: {leave.remarks}</p>
+                    {(leave.rejectionReason || leave.comments) && (
+                      <p className="text-sm text-gray-500 mt-2 italic">
+                        {leave.status === "REJECTED" ? "Reason: " : "Remarks: "}
+                        {leave.rejectionReason || leave.comments}
+                      </p>
                     )}
                   </div>
                 ))}
