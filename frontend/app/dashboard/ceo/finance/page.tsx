@@ -67,7 +67,7 @@ export default function CEOFinancePage() {
   const fetchFinancialData = async () => {
     try {
       setLoading(true);
-      const [revenueData, expenseData, centerData, paymentsData, enrollmentsData, studentsData] =
+      const [revenueData, expenseData, centerData, paymentsData, enrollmentsData, studentsData, invoiceData] =
         await Promise.all([
           apiFetch(`/api/finance/revenue?period=${selectedPeriod}&year=${selectedYear}`).catch(() => null),
           apiFetch(`/api/finance/expenses?period=${selectedPeriod}&year=${selectedYear}`).catch(() => null),
@@ -75,12 +75,15 @@ export default function CEOFinancePage() {
           apiFetch("/api/payments").catch(() => []),
           apiFetch("/api/enrollments").catch(() => []),
           apiFetch("/api/students").catch(() => []),
+          // Outstanding is what customers still owe, which lives on invoices — see below.
+          apiFetch("/api/invoices").catch(() => []),
         ]);
 
       const centers = Array.isArray(centerData) ? centerData : [];
       const payments = Array.isArray(paymentsData) ? paymentsData : [];
       const enrollments = Array.isArray(enrollmentsData) ? enrollmentsData : [];
       const students = Array.isArray(studentsData) ? studentsData : [];
+      const invoices = Array.isArray(invoiceData) ? invoiceData : (invoiceData?.content ?? []);
       const isPaid = (p: any) => ["PAID", "paid", "COMPLETED", "completed"].includes(p.status);
 
       const totalRevenue = revenueData?.total ?? payments.filter(isPaid).reduce((s: number, p: any) => s + (p.amount || 0), 0);
@@ -124,9 +127,20 @@ export default function CEOFinancePage() {
       const inYear = (p: any) => new Date(p.createdAt || p.paidAt || p.paymentDate).getFullYear() === selectedYear;
       const yearPaid = payments.filter((p: any) => isPaid(p) && inYear(p));
       const collected = yearPaid.reduce((s: number, p: any) => s + (p.amount || 0), 0);
-      const outstanding = payments
-        .filter((p: any) => inYear(p) && ["PENDING", "pending", "UNPAID", "unpaid"].includes(p.status))
-        .reduce((s: number, p: any) => s + (p.amount || 0), 0);
+      // Outstanding = what is still owed, summed from INVOICE balances.
+      //
+      // This used to sum payment rows whose status was PENDING. A payment row is only created
+      // when a payment is actually recorded, so an invoice nobody has paid has no payment row at
+      // all — and contributed nothing here. The figure therefore counted only part-settled
+      // payments and missed every unpaid invoice, which is most of what "outstanding" means.
+      // Invoices now carry a server-computed balance (total less settled payments).
+      const invoiceYear = (i: any) => {
+        const raw = i.dueDate || i.invoiceDate || i.createdAt;
+        return raw ? new Date(raw).getFullYear() === selectedYear : false;
+      };
+      const outstanding = invoices
+        .filter((i: any) => invoiceYear(i) && !["PAID", "CANCELLED"].includes(String(i.status).toUpperCase()))
+        .reduce((s: number, i: any) => s + Number(i.balance ?? ((i.totalAmount || 0) - (i.paidAmount || 0))), 0);
 
       // Payment-method breakdown (mirrors the sheet's "Payment method" column: Transfer/Cash/…).
       const methodMap: Record<string, { amount: number; count: number }> = {};
