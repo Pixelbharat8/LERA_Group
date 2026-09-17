@@ -15,7 +15,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import jakarta.validation.Valid;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 
@@ -56,17 +62,52 @@ public class EmailLogController {
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot access this email log");
     }
 
+    /**
+     * An email log stores leadId only, so a communications list rendered from it cannot say who
+     * the thread was with. Resolve the leads in one query.
+     */
+    private List<Map<String, Object>> withLeadNames(List<EmailLog> logs) {
+        Set<UUID> leadIds = logs.stream()
+                .map(EmailLog::getLeadId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, Lead> byId = leadIds.isEmpty()
+                ? Map.of()
+                : leadRepository.findAllById(leadIds).stream()
+                        .collect(Collectors.toMap(Lead::getId, l -> l, (a, b) -> a));
+
+        List<Map<String, Object>> out = new ArrayList<>(logs.size());
+        for (EmailLog e : logs) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", e.getId());
+            row.put("leadId", e.getLeadId());
+            row.put("userId", e.getUserId());
+            row.put("emailTo", e.getEmailTo());
+            row.put("emailSubject", e.getEmailSubject());
+            row.put("emailBody", e.getEmailBody());
+            row.put("emailStatus", e.getEmailStatus());
+            row.put("sentAt", e.getSentAt());
+            row.put("openedAt", e.getOpenedAt());
+            row.put("repliedAt", e.getRepliedAt());
+            row.put("errorMessage", e.getErrorMessage());
+            Lead lead = e.getLeadId() != null ? byId.get(e.getLeadId()) : null;
+            row.put("leadName", lead != null ? lead.getParentName() : null);
+            out.add(row);
+        }
+        return out;
+    }
+
     @GetMapping
-    public ResponseEntity<List<EmailLog>> getAllEmailLogs(
+    public ResponseEntity<List<Map<String, Object>>> getAllEmailLogs(
             @RequestParam(required = false) UUID centerId,
             Pageable pageable,
             @AuthenticationPrincipal AuthUser authUser) {
         UUID eff = ConnectSecurity.effectiveCenterId(authUser, centerId);
         if (eff != null) {
-            return ResponseEntity.ok(emailLogRepository.findByLeadCenterId(eff));
+            return ResponseEntity.ok(withLeadNames(emailLogRepository.findByLeadCenterId(eff)));
         }
         if (ConnectSecurity.isOrgWide(authUser)) {
-            return ResponseEntity.ok(emailLogRepository.findAll(pageable).getContent());
+            return ResponseEntity.ok(withLeadNames(emailLogRepository.findAll(pageable).getContent()));
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                 "centerId is required for email log list queries unless you have an org-wide role");
@@ -85,11 +126,11 @@ public class EmailLogController {
     }
 
     @GetMapping("/lead/{leadId}")
-    public ResponseEntity<List<EmailLog>> getEmailLogsByLead(
+    public ResponseEntity<List<Map<String, Object>>> getEmailLogsByLead(
             @PathVariable UUID leadId,
             @AuthenticationPrincipal AuthUser authUser) {
         requireAccessibleLead(authUser, leadId);
-        return ResponseEntity.ok(emailLogRepository.findByLeadId(leadId));
+        return ResponseEntity.ok(withLeadNames(emailLogRepository.findByLeadId(leadId)));
     }
 
     @GetMapping("/user/{userId}")

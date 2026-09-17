@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Call logs — now DB-backed via {@link CallLogRepository} (was an in-memory stub that lost
@@ -59,6 +60,29 @@ public class CallLogController {
     }
 
     /** Map the entity to the JSON shape the frontend expects. */
+    /**
+     * A call log stores leadId only. Resolve the names for a whole list in one query rather
+     * than leaving the CRM's call history unable to say who was called.
+     */
+    private List<Map<String, Object>> withLeadNames(List<CallLog> logs) {
+        Set<UUID> leadIds = logs.stream()
+                .map(CallLog::getLeadId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, Lead> byId = leadIds.isEmpty()
+                ? Map.of()
+                : leadRepository.findAllById(leadIds).stream()
+                        .collect(Collectors.toMap(Lead::getId, l -> l, (a, b) -> a));
+        List<Map<String, Object>> out = new ArrayList<>(logs.size());
+        for (CallLog c : logs) {
+            Map<String, Object> row = toResponse(c);
+            Lead lead = c.getLeadId() != null ? byId.get(c.getLeadId()) : null;
+            row.put("leadName", lead != null ? lead.getParentName() : null);
+            out.add(row);
+        }
+        return out;
+    }
+
     private Map<String, Object> toResponse(CallLog c) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", c.getId());
@@ -72,6 +96,7 @@ public class CallLogController {
         m.put("status", c.getCallStatus());
         m.put("notes", c.getNotes());
         m.put("callDate", c.getCalledAt());
+        m.put("leadName", null);   // filled in by withLeadNames for list responses
         return m;
     }
 
@@ -96,10 +121,10 @@ public class CallLogController {
             s = s.filter(l -> userId.equals(l.getCallerId()));
         }
         if (status != null && !status.isEmpty()) s = s.filter(l -> status.equalsIgnoreCase(l.getCallStatus()));
-        List<Map<String, Object>> out = s
+        List<CallLog> out = s
                 .sorted(Comparator.comparing(CallLog::getCalledAt, Comparator.nullsLast(Comparator.reverseOrder())))
-                .map(this::toResponse).toList();
-        return ResponseEntity.ok(out);
+                .toList();
+        return ResponseEntity.ok(withLeadNames(out));
     }
 
     @GetMapping("/{id}")

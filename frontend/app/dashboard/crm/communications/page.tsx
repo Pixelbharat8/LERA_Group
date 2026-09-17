@@ -19,13 +19,19 @@ interface CallLog {
   createdAt?: string;
 }
 
+/**
+ * Field names are EmailLog's own columns: emailTo / emailSubject / emailStatus. Reading
+ * toEmail / subject / status left the To, Subject and Status columns blank on every row, and
+ * POSTing those names dropped all of them — with email_to NOT NULL, the insert then failed, so
+ * no email could be logged at all.
+ */
 interface EmailLog {
   id: string;
   leadId?: string;
   leadName?: string;
-  toEmail: string;
-  subject: string;
-  status: string;
+  emailTo: string;
+  emailSubject: string;
+  emailStatus: string;
   sentAt?: string;
   openedAt?: string;
   clickedAt?: string;
@@ -40,7 +46,7 @@ export default function CommunicationsPage() {
   const [showCallModal, setShowCallModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [callForm, setCallForm] = useState({ phoneNumber: "", callType: "OUTBOUND", duration: 0, outcome: "", notes: "" });
-  const [emailForm, setEmailForm] = useState({ toEmail: "", subject: "", body: "" });
+  const [emailForm, setEmailForm] = useState({ emailTo: "", emailSubject: "", emailBody: "" });
 
   useEffect(() => {
     if (!userLoading) {
@@ -86,14 +92,15 @@ export default function CommunicationsPage() {
     try {
       await apiFetch("/api/email-logs", {
         method: "POST",
-        body: JSON.stringify({ ...emailForm, status: "SENT" }),
+        body: JSON.stringify({ ...emailForm, emailStatus: "SENT" }),
       });
       setShowEmailModal(false);
-      setEmailForm({ toEmail: "", subject: "", body: "" });
+      setEmailForm({ emailTo: "", emailSubject: "", emailBody: "" });
       fetchLogs();
       toast("Email logged successfully!", "success");
     } catch (err) {
       console.error("Error sending email:", err);
+      toast("Could not log the email. Nothing was saved.", "error");
     }
   };
 
@@ -280,15 +287,15 @@ export default function CommunicationsPage() {
                 ) : (
                   emailLogs.map((email) => (
                     <tr key={email.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">{email.toEmail}</td>
-                      <td className="px-6 py-4 max-w-xs truncate">{email.subject}</td>
+                      <td className="px-6 py-4">{email.emailTo || "—"}</td>
+                      <td className="px-6 py-4 max-w-xs truncate">{email.emailSubject || "—"}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 text-xs rounded-full ${
-                          email.status === "SENT" ? "bg-green-100 text-green-800" :
-                          email.status === "FAILED" ? "bg-red-100 text-red-800" :
+                          email.emailStatus === "SENT" ? "bg-green-100 text-green-800" :
+                          email.emailStatus === "FAILED" ? "bg-red-100 text-red-800" :
                           "bg-gray-100 text-gray-800"
                         }`}>
-                          {email.status}
+                          {email.emailStatus || "—"}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-gray-500 text-sm">
@@ -388,8 +395,8 @@ export default function CommunicationsPage() {
                 <label className="block text-sm font-medium mb-1">To Email *</label>
                 <input
                   type="email"
-                  value={emailForm.toEmail}
-                  onChange={(e) => setEmailForm({ ...emailForm, toEmail: e.target.value })}
+                  value={emailForm.emailTo}
+                  onChange={(e) => setEmailForm({ ...emailForm, emailTo: e.target.value })}
                   className="w-full px-4 py-2 border rounded-lg"
                   placeholder="recipient@example.com"
                 />
@@ -398,8 +405,8 @@ export default function CommunicationsPage() {
                 <label className="block text-sm font-medium mb-1">Subject *</label>
                 <input
                   type="text"
-                  value={emailForm.subject}
-                  onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })}
+                  value={emailForm.emailSubject}
+                  onChange={(e) => setEmailForm({ ...emailForm, emailSubject: e.target.value })}
                   className="w-full px-4 py-2 border rounded-lg"
                   placeholder="Email subject"
                 />
@@ -407,8 +414,8 @@ export default function CommunicationsPage() {
               <div>
                 <label className="block text-sm font-medium mb-1">Message</label>
                 <textarea
-                  value={emailForm.body}
-                  onChange={(e) => setEmailForm({ ...emailForm, body: e.target.value })}
+                  value={emailForm.emailBody}
+                  onChange={(e) => setEmailForm({ ...emailForm, emailBody: e.target.value })}
                   className="w-full px-4 py-2 border rounded-lg h-32 resize-none"
                   placeholder="Email content..."
                 />
