@@ -65,6 +65,9 @@ export default function StudentFeePlansPage() {
 
   const [form, setForm] = useState({
     studentId: "",
+    // A fee plan row is centre-scoped (center_id is NOT NULL). The form never sent one, so the
+    // insert could not succeed whatever else was filled in.
+    centerId: "",
     courseId: "",
     planType: "MONTHLY" as StudentFeePlan["planType"],
     baseAmount: 0,
@@ -190,13 +193,18 @@ export default function StudentFeePlansPage() {
     try {
       await apiFetch("/api/student-fee-plans", {
         method: "POST",
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          // fall back to the signed-in user's own centre when the form has not set one
+          centerId: form.centerId || userCenterId || "",
+        }),
       });
 
       await fetchData();
       setShowModal(false);
       setForm({
         studentId: "",
+        centerId: "",
         courseId: "",
         planType: "MONTHLY",
         baseAmount: 0,

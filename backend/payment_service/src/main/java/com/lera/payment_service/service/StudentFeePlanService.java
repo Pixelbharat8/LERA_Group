@@ -54,13 +54,46 @@ public class StudentFeePlanService {
     @Transactional
     public StudentFeePlan createPlan(StudentFeePlan plan) {
         log.info("Creating fee plan for student: {}", plan.getStudentId());
+        priceAndDefault(plan);
         return studentFeePlanRepository.save(plan);
+    }
+
+    /**
+     * final_amount, plan_type and center_id are NOT NULL on this table. Derive what can be
+     * derived and reject what cannot, so a bad request comes back as a 400 that names the
+     * problem rather than a constraint violation.
+     *
+     * The final amount is computed from the parts rather than taken from the caller — the same
+     * stance InvoiceServiceImpl takes on an invoice total — so a stated figure cannot disagree
+     * with the base and discount it is made of.
+     */
+    private void priceAndDefault(StudentFeePlan plan) {
+        if (plan.getCenterId() == null) {
+            throw new IllegalArgumentException("A fee plan must say which centre it belongs to (centerId)");
+        }
+        if (plan.getPlanType() == null || plan.getPlanType().isBlank()) {
+            throw new IllegalArgumentException("A fee plan must have a planType");
+        }
+        if (plan.getBaseAmount() == null) {
+            throw new IllegalArgumentException("A fee plan must have a baseAmount");
+        }
+        java.math.BigDecimal discount = plan.getDiscountAmount() != null
+                ? plan.getDiscountAmount() : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal computed = plan.getBaseAmount().subtract(discount);
+        if (plan.getFinalAmount() != null && plan.getFinalAmount().compareTo(computed) != 0) {
+            throw new IllegalArgumentException(
+                    "Fee plan final amount " + plan.getFinalAmount() + " does not match base "
+                            + plan.getBaseAmount() + " less discount " + discount + " = " + computed);
+        }
+        plan.setFinalAmount(computed);
+        plan.setDiscountAmount(discount);
     }
 
     @Transactional
     public Optional<StudentFeePlan> updatePlan(UUID id, StudentFeePlan details) {
         return studentFeePlanRepository.findById(id).map(existing -> {
             details.setId(id);
+            priceAndDefault(details);
             return studentFeePlanRepository.save(details);
         });
     }
