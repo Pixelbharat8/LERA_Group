@@ -63,7 +63,11 @@ export default function CentersPage() {
               email: center.email,
               imageUrl: center.imageUrl || center.image || CENTER_IMAGES["default"],
               mapUrl: center.mapUrl || center.googleMapsUrl,
-              workingHours: center.workingHours || "8:00 AM - 9:00 PM",
+              // A centre row has no workingHours column. This used to fall back to a hardcoded
+              // "8:00 AM - 9:00 PM", so the public site stated opening hours for every centre
+              // that nobody had set and nobody could change. The real value is the CMS
+              // working_hours setting, applied below once it has loaded; until then, nothing.
+              workingHours: center.workingHours || "",
               order: center.order || center.sortOrder || 0
             }))
             .sort((a: Center, b: Center) => (a.order || 0) - (b.order || 0));
@@ -81,6 +85,13 @@ export default function CentersPage() {
         const cmsData = await publicFetch("/api/cms-settings/map/contact");
         if (cmsData && cmsData.contact_phone) {
           setContactPhone(cmsData.contact_phone);
+        }
+        // working_hours is editable under Website Content -> Contact. Apply it to the centres
+        // rather than printing an invented time; when it is unset the centres show no hours.
+        if (cmsData && cmsData.working_hours) {
+          setCenters((prev) =>
+            prev.map((c) => ({ ...c, workingHours: c.workingHours || cmsData.working_hours }))
+          );
         }
       } catch (error) {
         console.log("Using default contact phone");
