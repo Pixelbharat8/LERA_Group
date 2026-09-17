@@ -9,7 +9,9 @@ interface AuditLog {
   activityType: string;
   description: string;
   userId: string;
+  // Resolved server-side from userId; the row itself stores only the UUID.
   userEmail?: string;
+  userName?: string;
   ipAddress: string;
   createdAt: string;
   metadata?: string;
@@ -51,11 +53,12 @@ export default function AuditLogsPage() {
     }
   };
 
-  const filteredLogs = logs.filter(log => 
-    !searchTerm || 
-    log.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.userEmail?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLogs = logs.filter(log => {
+    if (!searchTerm) return true;
+    const q = searchTerm.toLowerCase();
+    return [log.description, log.userEmail, log.userName, log.ipAddress]
+      .some(v => v?.toLowerCase().includes(q));
+  });
 
   const getActionColor = (action: string) => {
     switch (action) {
@@ -153,7 +156,20 @@ export default function AuditLogsPage() {
                         {log.activityType}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{log.userEmail || log.userId}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {log.userName || log.userEmail ? (
+                        <>
+                          <p className="text-gray-900">{log.userName || log.userEmail}</p>
+                          {log.userName && log.userEmail && (
+                            <p className="text-xs text-gray-500">{log.userEmail}</p>
+                          )}
+                        </>
+                      ) : (
+                        <span className="font-mono text-xs text-gray-500" title={log.userId}>
+                          {log.userId ? `${log.userId.slice(0, 8)}…` : "—"}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap font-mono text-gray-500">{log.ipAddress || '-'}</td>
                     <td className="px-6 py-4 text-gray-500">{log.description}</td>
                   </tr>
