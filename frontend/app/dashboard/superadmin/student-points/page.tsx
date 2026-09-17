@@ -23,8 +23,9 @@ interface StudentPointsRow {
   centerId?: string | null;
   totalPoints: number;
   currentLevel?: number | null;
-  currentRank?: string | null;
-  experiencePoints?: number | null;
+  // currentRank and experiencePoints used to sit here. A StudentPoints row has neither — it
+  // carries currentLevel and totalPoints, both already shown — so the Rank column was always "—",
+  // the XP column always 0, and searching by rank matched nothing.
   currentStreak?: number | null;
   longestStreak?: number | null;
   lastEarnedAt?: string | null;
@@ -67,8 +68,7 @@ export default function StudentPointsAdminPage() {
     return rows.filter(
       (r) =>
         (r.studentId ?? "").toLowerCase().includes(needle) ||
-        (r.studentName ?? "").toLowerCase().includes(needle) ||
-        (r.currentRank ?? "").toLowerCase().includes(needle)
+        (r.studentName ?? "").toLowerCase().includes(needle)
     );
   }, [rows, search]);
 
@@ -114,8 +114,6 @@ export default function StudentPointsAdminPage() {
                 <th className="px-4 py-2 text-left font-semibold">Student</th>
                 <th className="px-4 py-2 text-right font-semibold">Total</th>
                 <th className="px-4 py-2 text-right font-semibold">Level</th>
-                <th className="px-4 py-2 text-left font-semibold">Rank</th>
-                <th className="px-4 py-2 text-right font-semibold">XP</th>
                 <th className="px-4 py-2 text-right font-semibold">Streak</th>
                 <th className="px-4 py-2 text-right font-semibold">Actions</th>
               </tr>
@@ -147,10 +145,6 @@ export default function StudentPointsAdminPage() {
                       {row.totalPoints?.toLocaleString() ?? 0}
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums">{row.currentLevel ?? "—"}</td>
-                    <td className="px-4 py-2 text-gray-700">{row.currentRank ?? "—"}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">
-                      {row.experiencePoints ?? 0}
-                    </td>
                     <td className="px-4 py-2 text-right tabular-nums">
                       {row.currentStreak ?? 0}
                       {row.longestStreak ? (

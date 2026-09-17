@@ -23,6 +23,42 @@ public class StudentPointsController {
     private final StudentPointsRepository studentPointsRepository;
     private final JdbcAuditWriter auditWriter;
     private final AcademyAuthorizationService authz;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    /**
+     * A StudentPoints row carries only studentId, so the leaderboard showed a truncated UUID where
+     * the student's name belongs, and searching by name matched nothing. Resolve the names in one
+     * query, the way ClassController#withDisplayNames does.
+     */
+    private List<java.util.Map<String, Object>> withStudentNames(List<StudentPoints> rows) {
+        if (rows.isEmpty()) return List.of();
+        List<UUID> ids = rows.stream().map(StudentPoints::getStudentId)
+                .filter(java.util.Objects::nonNull).distinct().toList();
+        java.util.Map<UUID, String> names = new java.util.HashMap<>();
+        if (!ids.isEmpty()) {
+            String ph = ids.stream().map(x -> "?").collect(java.util.stream.Collectors.joining(","));
+            jdbcTemplate.query("SELECT id, fullname FROM students WHERE id IN (" + ph + ")",
+                    (java.sql.ResultSet rs) -> {
+                        names.put(rs.getObject("id", UUID.class), rs.getString("fullname"));
+                    }, ids.toArray());
+        }
+        List<java.util.Map<String, Object>> out = new java.util.ArrayList<>();
+        for (StudentPoints r : rows) {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", r.getId());
+            m.put("studentId", r.getStudentId());
+            m.put("studentName", names.get(r.getStudentId()));
+            m.put("centerId", r.getCenterId());
+            m.put("totalPoints", r.getTotalPoints());
+            m.put("currentLevel", r.getCurrentLevel());
+            m.put("currentStreak", r.getCurrentStreak());
+            m.put("longestStreak", r.getLongestStreak());
+            m.put("badgesEarned", r.getBadgesEarned());
+            m.put("lastActivityDate", r.getLastActivityDate());
+            out.add(m);
+        }
+        return out;
+    }
     
     @GetMapping
     @PreAuthorize(AcademyRoles.STAFF)
@@ -49,15 +85,16 @@ public class StudentPointsController {
     }
     
     @GetMapping("/center/{centerId}/leaderboard")
-    public ResponseEntity<List<StudentPoints>> getLeaderboardByCenter(@PathVariable UUID centerId) {
+    public ResponseEntity<List<java.util.Map<String, Object>>> getLeaderboardByCenter(@PathVariable UUID centerId) {
         authz.assertStaffOrCenter(centerId);
-        return ResponseEntity.ok(studentPointsRepository.findByCenterIdOrderByTotalPointsDesc(centerId));
+        return ResponseEntity.ok(withStudentNames(
+                studentPointsRepository.findByCenterIdOrderByTotalPointsDesc(centerId)));
     }
     
     @GetMapping("/leaderboard")
     @PreAuthorize(AcademyRoles.STAFF)
-    public ResponseEntity<List<StudentPoints>> getGlobalLeaderboard() {
-        return ResponseEntity.ok(studentPointsRepository.findTopStudents());
+    public ResponseEntity<List<java.util.Map<String, Object>>> getGlobalLeaderboard() {
+        return ResponseEntity.ok(withStudentNames(studentPointsRepository.findTopStudents()));
     }
     
     @GetMapping("/center/{centerId}/top")
