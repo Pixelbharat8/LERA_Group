@@ -13,12 +13,9 @@ interface Teacher {
   yearsOfExperience?: number;
   status: string;
   userId?: string;
+  displayName?: string;
   fullName?: string;
   email?: string;
-  user?: {
-    fullName: string;
-    email: string;
-  };
 }
 
 export default function CenterManagerTeachersPage() {
@@ -45,16 +42,21 @@ export default function CenterManagerTeachersPage() {
       const data = await apiFetch(`/api/teachers${centerId ? `?centerId=${centerId}` : ""}`);
       const teachersList = Array.isArray(data) ? data : [];
       
-      // Fetch user details for each teacher to get names
+      // The teacher record already carries displayName; only fall back to the identity
+      // service when it is blank. UserDTO's field is `fullname` (one word) — reading
+      // `fullName` here left every teacher card headed by its teacher code instead of a name.
       const teachersWithNames = await Promise.all(
         teachersList.map(async (teacher: Teacher) => {
+          if (teacher.displayName) {
+            return { ...teacher, fullName: teacher.displayName };
+          }
           if (teacher.userId) {
             try {
               const user = await apiFetch(`/api/users/${teacher.userId}`);
               return {
                 ...teacher,
-                fullName: user.fullName || user.name || "",
-                email: user.email || ""
+                fullName: user.fullname || "",
+                email: teacher.email || user.email || ""
               };
             } catch {
               return teacher;
@@ -63,7 +65,7 @@ export default function CenterManagerTeachersPage() {
           return teacher;
         })
       );
-      
+
       setTeachers(teachersWithNames);
     } catch (err) {
       console.error("Failed to fetch teachers:", err);
@@ -75,7 +77,7 @@ export default function CenterManagerTeachersPage() {
   const filteredTeachers = teachers.filter(t =>
     t.teacherCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.user?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.specialization?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -139,9 +141,9 @@ export default function CenterManagerTeachersPage() {
                   👨‍🏫
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold">{teacher.fullName || teacher.user?.fullName || teacher.teacherCode}</h3>
+                  <h3 className="font-bold">{teacher.fullName || teacher.displayName || teacher.teacherCode}</h3>
                   <p className="text-sm text-gray-500">{teacher.specialization || "No specialization"}</p>
-                  <p className="text-xs text-gray-400">{teacher.email || teacher.user?.email}</p>
+                  <p className="text-xs text-gray-400">{teacher.email || "—"}</p>
                 </div>
                 <span className={`px-2 py-1 text-xs rounded-full ${
                   teacher.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"

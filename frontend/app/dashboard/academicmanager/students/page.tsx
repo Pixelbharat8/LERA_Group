@@ -12,7 +12,10 @@ interface Student {
   fullName?: string;
   email?: string;
   phone?: string;
-  level?: string;
+  // The student record carries `grade` (school year, e.g. "Grade 5") — the same field the
+  // superadmin student screens read and write. There is no `level` on a student; reading one
+  // left this page's Grade column, filter and distribution chart permanently empty.
+  grade?: string;
   status: string;
   centerId?: string;
 }
@@ -30,7 +33,7 @@ export default function AcademicManagerStudentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [levelFilter, setLevelFilter] = useState("");
+  const [gradeFilter, setGradeFilter] = useState("");
 
   useEffect(() => {
     if (!userLoading) {
@@ -63,15 +66,15 @@ export default function AcademicManagerStudentsPage() {
 
   const getCenterName = (id?: string) => id ? centers.find(c => c.id === id)?.name || "-" : "-";
 
-  const levels = Array.from(new Set(students.map(s => s.level).filter(Boolean)));
+  const grades = Array.from(new Set(students.map(s => s.grade).filter(Boolean)));
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = 
       student.studentCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (student.fullname || student.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLevel = !levelFilter || student.level === levelFilter;
-    return matchesSearch && matchesLevel;
+    const matchesGrade = !gradeFilter || student.grade === gradeFilter;
+    return matchesSearch && matchesGrade;
   });
 
   if (loading) {
@@ -92,12 +95,12 @@ export default function AcademicManagerStudentsPage() {
         <div className="flex gap-3">
           <select
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            value={levelFilter}
-            onChange={(e) => setLevelFilter(e.target.value)}
+            value={gradeFilter}
+            onChange={(e) => setGradeFilter(e.target.value)}
           >
-            <option value="">All Levels</option>
-            {levels.map(level => (
-              <option key={level} value={level}>{level}</option>
+            <option value="">All Grades</option>
+            {grades.map(grade => (
+              <option key={grade} value={grade}>{grade}</option>
             ))}
           </select>
           <input
@@ -127,8 +130,8 @@ export default function AcademicManagerStudentsPage() {
           <p className="text-2xl font-bold">{students.filter(s => s.status === "ACTIVE").length}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500">
-          <h3 className="text-gray-500 text-sm">Levels</h3>
-          <p className="text-2xl font-bold">{levels.length}</p>
+          <h3 className="text-gray-500 text-sm">Grades</h3>
+          <p className="text-2xl font-bold">{grades.length}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-orange-500">
           <h3 className="text-gray-500 text-sm">Centers</h3>
@@ -136,16 +139,16 @@ export default function AcademicManagerStudentsPage() {
         </div>
       </div>
 
-      {/* Level Distribution */}
+      {/* Grade Distribution */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-bold mb-4">📊 Student Distribution by Level</h2>
+        <h2 className="text-lg font-bold mb-4">📊 Student Distribution by Grade</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {levels.map(level => {
-            const count = students.filter(s => s.level === level).length;
+          {grades.map(grade => {
+            const count = students.filter(s => s.grade === grade).length;
             const percentage = students.length > 0 ? Math.round((count / students.length) * 100) : 0;
             return (
-              <div key={level} className="bg-gray-50 p-4 rounded-lg text-center">
-                <p className="text-sm text-gray-500">{level}</p>
+              <div key={grade} className="bg-gray-50 p-4 rounded-lg text-center">
+                <p className="text-sm text-gray-500">{grade}</p>
                 <p className="text-2xl font-bold">{count}</p>
                 <p className="text-xs text-gray-400">{percentage}%</p>
               </div>
@@ -163,7 +166,7 @@ export default function AcademicManagerStudentsPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Level</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Center</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
             </tr>
@@ -184,7 +187,7 @@ export default function AcademicManagerStudentsPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">{student.phone || "-"}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                      {student.level || "-"}
+                      {student.grade || "-"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">{getCenterName(student.centerId)}</td>
