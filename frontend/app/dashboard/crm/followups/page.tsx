@@ -5,13 +5,21 @@ import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 import { useUserCenter, buildCenterFilterUrl } from "../../../hooks/useUserCenter";
 
+/**
+ * View model, mapped from the API below. Field names here are NOT the API's: a follow-up row
+ * stores leadId (the name is resolved server-side), actionType, scheduledAt and a status of
+ * PENDING / DONE / SKIPPED.
+ */
 interface Followup {
   id: string;
   leadName: string;
+  leadPhone: string;
   type: string;
   date: string;
   time?: string;
+  /** Pending | Overdue | Completed | Skipped — derived from the real status + scheduledAt. */
   status: string;
+  outcome: string;
   notes: string;
 }
 
@@ -79,18 +87,30 @@ export default function FollowupsPage() {
       );
       const data = await apiFetch(url);
       const followupsArray = Array.isArray(data) ? data : [];
-      setFollowups(followupsArray.map((f: any) => ({
-        id: f.id,
-        leadName: f.lead?.parentName || f.leadName || "Unknown Lead",
-        type: f.actionType || f.action_type || f.type || "Call",
-        date: f.nextFollowupDate?.split("T")[0] || f.next_followup_date || new Date().toISOString().split("T")[0],
-        // Real scheduled time from the timestamp (blank when the follow-up is date-only).
-        time: f.nextFollowupDate && String(f.nextFollowupDate).includes("T")
-          ? new Date(f.nextFollowupDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-          : "",
-        status: f.outcome === "INTERESTED" ? "Scheduled" : f.outcome === "CALLBACK" ? "Pending" : f.outcome === "SCHEDULED_DEMO" ? "Scheduled" : f.outcome ? "Completed" : "Pending",
-        notes: f.notes || ""
-      })));
+      const now = Date.now();
+      setFollowups(followupsArray.map((f: any) => {
+        // scheduledAt is the NOT NULL timestamp that says when this is due. nextFollowupDate is
+        // a date-only column, so it can never supply a time — reading it for both left the time
+        // column permanently blank, and its fallback invented today's date for anything undated.
+        const due = f.scheduledAt ? new Date(f.scheduledAt) : null;
+        const raw = String(f.status || "PENDING").toUpperCase();
+        const status =
+          raw === "DONE" ? "Completed"
+          : raw === "SKIPPED" ? "Skipped"
+          : due && due.getTime() < now ? "Overdue"
+          : "Pending";
+        return {
+          id: f.id,
+          leadName: f.leadName || f.studentName || "Unknown Lead",
+          leadPhone: f.leadPhone || "",
+          type: f.actionType || "Call",
+          date: due ? due.toLocaleDateString() : (f.nextFollowupDate || ""),
+          time: due ? due.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+          status,
+          outcome: f.outcome || "",
+          notes: f.notes || "",
+        };
+      }));
     } catch (err) {
       console.error("Error fetching followups:", err);
       setFollowups([]);
@@ -117,6 +137,8 @@ export default function FollowupsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Pending": return "bg-yellow-100 text-yellow-800";
+      case "Overdue": return "bg-red-100 text-red-800";
+      case "Skipped": return "bg-gray-100 text-gray-600";
       case "Completed": return "bg-green-100 text-green-800";
       case "Scheduled": return "bg-blue-100 text-blue-800";
       case "Missed": return "bg-red-100 text-red-800";
@@ -155,8 +177,8 @@ export default function FollowupsPage() {
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">📅</div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{followups.filter(f => f.status === "Scheduled").length}</p>
-              <p className="text-sm text-gray-500">Scheduled</p>
+              <p className="text-2xl font-bold text-gray-900">{followups.filter(f => f.status === "Overdue").length}</p>
+              <p className="text-sm text-gray-500">Overdue</p>
             </div>
           </div>
         </div>
@@ -173,8 +195,8 @@ export default function FollowupsPage() {
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center text-2xl">❌</div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{followups.filter(f => f.status === "Missed").length}</p>
-              <p className="text-sm text-gray-500">Missed</p>
+              <p className="text-2xl font-bold text-gray-900">{followups.filter(f => f.status === "Skipped").length}</p>
+              <p className="text-sm text-gray-500">Skipped</p>
             </div>
           </div>
         </div>
@@ -195,7 +217,12 @@ export default function FollowupsPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {followups.map((followup) => (
               <tr key={followup.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap font-medium">{followup.leadName}</td>
+                <td className="px-6 py-4 whitespace-nowrap font-medium">
+                  {followup.leadName}
+                  {followup.leadPhone && (
+                    <span className="block text-xs font-normal text-gray-500">{followup.leadPhone}</span>
+                  )}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="px-2 py-1 text-xs bg-gray-100 rounded">{followup.type}</span>
                 </td>

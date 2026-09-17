@@ -15,8 +15,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import jakarta.validation.Valid;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Pageable;
 
 @RestController
@@ -42,17 +48,54 @@ public class FollowupController {
         requireAccessibleLead(user, followup.getLeadId());
     }
 
+    /**
+     * A follow-up row stores only leadId — no relation, no denormalised name. A list rendered
+     * straight from it says "Unknown Lead" on every row, which is the one thing the person
+     * working the queue needs to know. Resolve the leads in one query.
+     */
+    private List<Map<String, Object>> withLeadNames(List<Followup> followups) {
+        Set<UUID> leadIds = followups.stream()
+                .map(Followup::getLeadId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, Lead> byId = leadIds.isEmpty()
+                ? Map.of()
+                : leadRepository.findAllById(leadIds).stream()
+                        .collect(Collectors.toMap(Lead::getId, l -> l, (a, b) -> a));
+
+        List<Map<String, Object>> out = new ArrayList<>(followups.size());
+        for (Followup f : followups) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", f.getId());
+            row.put("leadId", f.getLeadId());
+            row.put("userId", f.getUserId());
+            row.put("actionType", f.getActionType());
+            row.put("notes", f.getNotes());
+            row.put("nextFollowupDate", f.getNextFollowupDate());
+            row.put("scheduledAt", f.getScheduledAt());
+            row.put("outcome", f.getOutcome());
+            row.put("status", f.getStatus());
+            row.put("createdAt", f.getCreatedAt());
+            Lead lead = f.getLeadId() != null ? byId.get(f.getLeadId()) : null;
+            row.put("leadName", lead != null ? lead.getParentName() : null);
+            row.put("studentName", lead != null ? lead.getStudentName() : null);
+            row.put("leadPhone", lead != null ? lead.getParentPhone() : null);
+            out.add(row);
+        }
+        return out;
+    }
+
     @GetMapping
-    public ResponseEntity<List<Followup>> getAllFollowups(
+    public ResponseEntity<List<Map<String, Object>>> getAllFollowups(
             @RequestParam(required = false) UUID centerId,
             Pageable pageable,
             @AuthenticationPrincipal AuthUser authUser) {
         UUID eff = ConnectSecurity.effectiveCenterId(authUser, centerId);
         if (eff != null) {
-            return ResponseEntity.ok(followupRepository.findByLeadCenterId(eff));
+            return ResponseEntity.ok(withLeadNames(followupRepository.findByLeadCenterId(eff)));
         }
         if (ConnectSecurity.isOrgWide(authUser)) {
-            return ResponseEntity.ok(followupRepository.findAll(pageable).getContent());
+            return ResponseEntity.ok(withLeadNames(followupRepository.findAll(pageable).getContent()));
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                 "centerId is required for follow-up list queries unless you have an org-wide role");
@@ -71,11 +114,11 @@ public class FollowupController {
     }
 
     @GetMapping("/lead/{leadId}")
-    public ResponseEntity<List<Followup>> getFollowupsByLead(
+    public ResponseEntity<List<Map<String, Object>>> getFollowupsByLead(
             @PathVariable UUID leadId,
             @AuthenticationPrincipal AuthUser authUser) {
         requireAccessibleLead(authUser, leadId);
-        return ResponseEntity.ok(followupRepository.findByLeadId(leadId));
+        return ResponseEntity.ok(withLeadNames(followupRepository.findByLeadId(leadId)));
     }
 
     @PostMapping
