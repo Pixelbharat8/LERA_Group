@@ -1,0 +1,25 @@
+-- =====================================================
+-- V20260912: drop payroll.teacher_id -> teachers.id
+-- =====================================================
+-- `payroll.teacher_id` does not hold a teachers.id. Throughout payroll_service it holds the staff
+-- member's USER id: PayrollGenerationService keys salary config, bonuses, deductions, overtime and
+-- its own find-or-create on the id it reads from identity's /api/users, and the salary config is
+-- explicitly documented as "per employee — keyed by staff id, works for ANY role".
+--
+-- Every sibling table in the domain agrees — teacher_salary_config, bonuses, deductions and
+-- teacher_overtime all carry the same id with no foreign key. `payroll` was the lone outlier,
+-- left over from when payroll covered teachers only, and it made generation impossible:
+--
+--   insert or update on table "payroll" violates foreign key constraint "payroll_teacher_id_fkey"
+--   Detail: Key (teacher_id)=(<staff user id>) is not present in table "teachers".
+--
+-- That fired for EVERY staff member, teachers included (a user id is never a teachers.id), so
+-- payroll generation could never write a payslip for anyone. It went unnoticed because the step
+-- before it — fetching staff from identity_service — was itself failing until the inter-service
+-- hostnames were fixed, so generation returned an empty list instead of reaching the insert.
+--
+-- Dropping the constraint rather than rewriting the column: the column's meaning is consistent
+-- with the rest of the service and with the sibling tables; the constraint is what disagrees.
+-- Non-teaching staff (accountants, admin) have no teachers row at all and must still be payable.
+
+ALTER TABLE payroll DROP CONSTRAINT IF EXISTS payroll_teacher_id_fkey;

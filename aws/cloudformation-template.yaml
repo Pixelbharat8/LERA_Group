@@ -706,11 +706,15 @@ Resources:
             - Name: DB_USER
               Value: lera
             - Name: IDENTITY_SERVICE_URL
-              Value: http://identity_service:8081
+              Value: http://identity-service:8081
             - Name: ACADEMY_SERVICE_URL
-              Value: http://academy_service:8082
+              Value: http://academy-service:8082
             - Name: CONNECT_SERVICE_URL
-              Value: http://connect_service:8086
+              Value: http://connect-service:8086
+            - Name: ATTENDANCE_SERVICE_URL
+              Value: http://attendance-service:8085
+            - Name: AI_GATEWAY_URL
+              Value: http://ai-gateway:8087
             - Name: FRONTEND_URL
               Value: !Sub https://${CloudFrontDistribution.DomainName}
           Secrets:
@@ -744,6 +748,9 @@ Resources:
             - !Ref PrivateSubnet2
           SecurityGroups:
             - !Ref AppSecurityGroup
+      # Service Connect aliases are hyphenated, not the underscored task names: an underscore is
+      # illegal in a hostname, and Tomcat answers a bare 400 to any request whose Host header
+      # contains one — which would silently break every service-to-service call.
       ServiceConnectConfiguration:
         Enabled: true
         Namespace: !GetAtt ServiceConnectNamespace.Arn
@@ -752,7 +759,7 @@ Resources:
             DiscoveryName: identity
             ClientAliases:
               - Port: 8081
-                DnsName: identity_service
+                DnsName: identity-service
 
   AcademyTaskDef:
     Type: AWS::ECS::TaskDefinition
@@ -786,11 +793,15 @@ Resources:
             - Name: DB_USER
               Value: lera
             - Name: IDENTITY_SERVICE_URL
-              Value: http://identity_service:8081
+              Value: http://identity-service:8081
             - Name: ACADEMY_SERVICE_URL
-              Value: http://academy_service:8082
+              Value: http://academy-service:8082
             - Name: CONNECT_SERVICE_URL
-              Value: http://connect_service:8086
+              Value: http://connect-service:8086
+            - Name: ATTENDANCE_SERVICE_URL
+              Value: http://attendance-service:8085
+            - Name: AI_GATEWAY_URL
+              Value: http://ai-gateway:8087
             - Name: FRONTEND_URL
               Value: !Sub https://${CloudFrontDistribution.DomainName}
             - Name: LERA_STORAGE_S3_BUCKET
@@ -826,6 +837,9 @@ Resources:
             - !Ref PrivateSubnet2
           SecurityGroups:
             - !Ref AppSecurityGroup
+      # Service Connect aliases are hyphenated, not the underscored task names: an underscore is
+      # illegal in a hostname, and Tomcat answers a bare 400 to any request whose Host header
+      # contains one — which would silently break every service-to-service call.
       ServiceConnectConfiguration:
         Enabled: true
         Namespace: !GetAtt ServiceConnectNamespace.Arn
@@ -834,7 +848,7 @@ Resources:
             DiscoveryName: academy
             ClientAliases:
               - Port: 8082
-                DnsName: academy_service
+                DnsName: academy-service
 
   PaymentTaskDef:
     Type: AWS::ECS::TaskDefinition
@@ -868,11 +882,15 @@ Resources:
             - Name: DB_USER
               Value: lera
             - Name: IDENTITY_SERVICE_URL
-              Value: http://identity_service:8081
+              Value: http://identity-service:8081
             - Name: ACADEMY_SERVICE_URL
-              Value: http://academy_service:8082
+              Value: http://academy-service:8082
             - Name: CONNECT_SERVICE_URL
-              Value: http://connect_service:8086
+              Value: http://connect-service:8086
+            - Name: ATTENDANCE_SERVICE_URL
+              Value: http://attendance-service:8085
+            - Name: AI_GATEWAY_URL
+              Value: http://ai-gateway:8087
             - Name: FRONTEND_URL
               Value: !Sub https://${CloudFrontDistribution.DomainName}
           Secrets:
@@ -906,6 +924,9 @@ Resources:
             - !Ref PrivateSubnet2
           SecurityGroups:
             - !Ref AppSecurityGroup
+      # Service Connect aliases are hyphenated, not the underscored task names: an underscore is
+      # illegal in a hostname, and Tomcat answers a bare 400 to any request whose Host header
+      # contains one — which would silently break every service-to-service call.
       ServiceConnectConfiguration:
         Enabled: true
         Namespace: !GetAtt ServiceConnectNamespace.Arn
@@ -914,7 +935,7 @@ Resources:
             DiscoveryName: payment
             ClientAliases:
               - Port: 8083
-                DnsName: payment_service
+                DnsName: payment-service
 
   PayrollTaskDef:
     Type: AWS::ECS::TaskDefinition
@@ -948,11 +969,15 @@ Resources:
             - Name: DB_USER
               Value: lera
             - Name: IDENTITY_SERVICE_URL
-              Value: http://identity_service:8081
+              Value: http://identity-service:8081
             - Name: ACADEMY_SERVICE_URL
-              Value: http://academy_service:8082
+              Value: http://academy-service:8082
             - Name: CONNECT_SERVICE_URL
-              Value: http://connect_service:8086
+              Value: http://connect-service:8086
+            - Name: ATTENDANCE_SERVICE_URL
+              Value: http://attendance-service:8085
+            - Name: AI_GATEWAY_URL
+              Value: http://ai-gateway:8087
           Secrets:
             - Name: DB_PASSWORD
               ValueFrom: !Ref DbPasswordSecret
@@ -984,6 +1009,9 @@ Resources:
             - !Ref PrivateSubnet2
           SecurityGroups:
             - !Ref AppSecurityGroup
+      # Service Connect aliases are hyphenated, not the underscored task names: an underscore is
+      # illegal in a hostname, and Tomcat answers a bare 400 to any request whose Host header
+      # contains one — which would silently break every service-to-service call.
       ServiceConnectConfiguration:
         Enabled: true
         Namespace: !GetAtt ServiceConnectNamespace.Arn
@@ -992,7 +1020,7 @@ Resources:
             DiscoveryName: payroll
             ClientAliases:
               - Port: 8084
-                DnsName: payroll_service
+                DnsName: payroll-service
 
   AttendanceTaskDef:
     Type: AWS::ECS::TaskDefinition
@@ -1026,11 +1054,15 @@ Resources:
             - Name: DB_USER
               Value: lera
             - Name: IDENTITY_SERVICE_URL
-              Value: http://identity_service:8081
+              Value: http://identity-service:8081
             - Name: ACADEMY_SERVICE_URL
-              Value: http://academy_service:8082
+              Value: http://academy-service:8082
             - Name: CONNECT_SERVICE_URL
-              Value: http://connect_service:8086
+              Value: http://connect-service:8086
+            - Name: ATTENDANCE_SERVICE_URL
+              Value: http://attendance-service:8085
+            - Name: AI_GATEWAY_URL
+              Value: http://ai-gateway:8087
           Secrets:
             - Name: DB_PASSWORD
               ValueFrom: !Ref DbPasswordSecret
@@ -1062,6 +1094,9 @@ Resources:
             - !Ref PrivateSubnet2
           SecurityGroups:
             - !Ref AppSecurityGroup
+      # Service Connect aliases are hyphenated, not the underscored task names: an underscore is
+      # illegal in a hostname, and Tomcat answers a bare 400 to any request whose Host header
+      # contains one — which would silently break every service-to-service call.
       ServiceConnectConfiguration:
         Enabled: true
         Namespace: !GetAtt ServiceConnectNamespace.Arn
@@ -1070,7 +1105,7 @@ Resources:
             DiscoveryName: attendance
             ClientAliases:
               - Port: 8085
-                DnsName: attendance_service
+                DnsName: attendance-service
 
   ConnectTaskDef:
     Type: AWS::ECS::TaskDefinition
@@ -1104,11 +1139,15 @@ Resources:
             - Name: DB_USER
               Value: lera
             - Name: IDENTITY_SERVICE_URL
-              Value: http://identity_service:8081
+              Value: http://identity-service:8081
             - Name: ACADEMY_SERVICE_URL
-              Value: http://academy_service:8082
+              Value: http://academy-service:8082
             - Name: CONNECT_SERVICE_URL
-              Value: http://connect_service:8086
+              Value: http://connect-service:8086
+            - Name: ATTENDANCE_SERVICE_URL
+              Value: http://attendance-service:8085
+            - Name: AI_GATEWAY_URL
+              Value: http://ai-gateway:8087
             - Name: FRONTEND_URL
               Value: !Sub https://${CloudFrontDistribution.DomainName}
           Secrets:
@@ -1142,6 +1181,9 @@ Resources:
             - !Ref PrivateSubnet2
           SecurityGroups:
             - !Ref AppSecurityGroup
+      # Service Connect aliases are hyphenated, not the underscored task names: an underscore is
+      # illegal in a hostname, and Tomcat answers a bare 400 to any request whose Host header
+      # contains one — which would silently break every service-to-service call.
       ServiceConnectConfiguration:
         Enabled: true
         Namespace: !GetAtt ServiceConnectNamespace.Arn
@@ -1150,7 +1192,7 @@ Resources:
             DiscoveryName: connect
             ClientAliases:
               - Port: 8086
-                DnsName: connect_service
+                DnsName: connect-service
 
   AiGatewayTaskDef:
     Type: AWS::ECS::TaskDefinition
@@ -1186,9 +1228,9 @@ Resources:
             - Name: DB_USER
               Value: lera
             - Name: IDENTITY_SERVICE_URL
-              Value: http://identity_service:8081
+              Value: http://identity-service:8081
             - Name: ACADEMY_SERVICE_URL
-              Value: http://academy_service:8082
+              Value: http://academy-service:8082
           Secrets:
             - Name: DB_PASSWORD
               ValueFrom: !Ref DbPasswordSecret
@@ -1220,6 +1262,9 @@ Resources:
             - !Ref PrivateSubnet2
           SecurityGroups:
             - !Ref AppSecurityGroup
+      # Service Connect aliases are hyphenated, not the underscored task names: an underscore is
+      # illegal in a hostname, and Tomcat answers a bare 400 to any request whose Host header
+      # contains one — which would silently break every service-to-service call.
       ServiceConnectConfiguration:
         Enabled: true
         Namespace: !GetAtt ServiceConnectNamespace.Arn
@@ -1228,7 +1273,7 @@ Resources:
             DiscoveryName: ai-gateway
             ClientAliases:
               - Port: 8087
-                DnsName: ai_gateway
+                DnsName: ai-gateway
 
   RuleEngineTaskDef:
     Type: AWS::ECS::TaskDefinition
@@ -1262,9 +1307,9 @@ Resources:
             - Name: DB_USER
               Value: lera
             - Name: IDENTITY_SERVICE_URL
-              Value: http://identity_service:8081
+              Value: http://identity-service:8081
             - Name: ACADEMY_SERVICE_URL
-              Value: http://academy_service:8082
+              Value: http://academy-service:8082
           Secrets:
             - Name: DB_PASSWORD
               ValueFrom: !Ref DbPasswordSecret
@@ -1296,6 +1341,9 @@ Resources:
             - !Ref PrivateSubnet2
           SecurityGroups:
             - !Ref AppSecurityGroup
+      # Service Connect aliases are hyphenated, not the underscored task names: an underscore is
+      # illegal in a hostname, and Tomcat answers a bare 400 to any request whose Host header
+      # contains one — which would silently break every service-to-service call.
       ServiceConnectConfiguration:
         Enabled: true
         Namespace: !GetAtt ServiceConnectNamespace.Arn
@@ -1304,7 +1352,7 @@ Resources:
             DiscoveryName: rule-engine
             ClientAliases:
               - Port: 8088
-                DnsName: rule_engine
+                DnsName: rule-engine
 
   SocialMediaTaskDef:
     Type: AWS::ECS::TaskDefinition
@@ -1338,9 +1386,9 @@ Resources:
             - Name: DB_USER
               Value: lera
             - Name: IDENTITY_SERVICE_URL
-              Value: http://identity_service:8081
+              Value: http://identity-service:8081
             - Name: ACADEMY_SERVICE_URL
-              Value: http://academy_service:8082
+              Value: http://academy-service:8082
           Secrets:
             - Name: DB_PASSWORD
               ValueFrom: !Ref DbPasswordSecret
@@ -1372,6 +1420,9 @@ Resources:
             - !Ref PrivateSubnet2
           SecurityGroups:
             - !Ref AppSecurityGroup
+      # Service Connect aliases are hyphenated, not the underscored task names: an underscore is
+      # illegal in a hostname, and Tomcat answers a bare 400 to any request whose Host header
+      # contains one — which would silently break every service-to-service call.
       ServiceConnectConfiguration:
         Enabled: true
         Namespace: !GetAtt ServiceConnectNamespace.Arn
@@ -1380,7 +1431,7 @@ Resources:
             DiscoveryName: social-media
             ClientAliases:
               - Port: 8089
-                DnsName: social_media_service
+                DnsName: social-media-service
 
   # ---------------------------------------------------------------------------
   # Frontend — server-rendered Next.js (`npm start`), NOT a static export. It has
@@ -1413,11 +1464,15 @@ Resources:
             # Server-side fetches go direct to the services (server-auth-token.ts
             # throws in production if IDENTITY_SERVICE_URL is unset).
             - Name: IDENTITY_SERVICE_URL
-              Value: http://identity_service:8081
+              Value: http://identity-service:8081
             - Name: ACADEMY_SERVICE_URL
-              Value: http://academy_service:8082
+              Value: http://academy-service:8082
             - Name: CONNECT_SERVICE_URL
-              Value: http://connect_service:8086
+              Value: http://connect-service:8086
+            - Name: ATTENDANCE_SERVICE_URL
+              Value: http://attendance-service:8085
+            - Name: AI_GATEWAY_URL
+              Value: http://ai-gateway:8087
             # Browser calls stay same-origin and are routed by the gateway, so the
             # public base URL is deliberately empty.
             - Name: NEXT_PUBLIC_API_BASE_URL
@@ -1446,6 +1501,9 @@ Resources:
             - !Ref PrivateSubnet2
           SecurityGroups:
             - !Ref AppSecurityGroup
+      # Service Connect aliases are hyphenated, not the underscored task names: an underscore is
+      # illegal in a hostname, and Tomcat answers a bare 400 to any request whose Host header
+      # contains one — which would silently break every service-to-service call.
       ServiceConnectConfiguration:
         Enabled: true
         Namespace: !GetAtt ServiceConnectNamespace.Arn
@@ -1521,6 +1579,9 @@ Resources:
         - ContainerName: gateway
           ContainerPort: 8080
           TargetGroupArn: !Ref GatewayTargetGroup
+      # Service Connect aliases are hyphenated, not the underscored task names: an underscore is
+      # illegal in a hostname, and Tomcat answers a bare 400 to any request whose Host header
+      # contains one — which would silently break every service-to-service call.
       ServiceConnectConfiguration:
         Enabled: true
         Namespace: !GetAtt ServiceConnectNamespace.Arn

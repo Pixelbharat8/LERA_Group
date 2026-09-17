@@ -5,8 +5,8 @@ import { apiFetch } from "../../../../lib/api";
 
 interface Department {
   id: string;
-  code: string;
-  name: string;
+  departmentCode: string;
+  departmentName: string;
   description?: string;
   centerId?: string;
   managerId?: string;
@@ -30,9 +30,12 @@ export default function DepartmentsPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
   const [saving, setSaving] = useState(false);
+  // The Department entity's own field names. These were code/name, which the API dropped —
+  // it stores department_code and department_name, and department_name is NOT NULL, so creating
+  // a department failed every time.
   const [formData, setFormData] = useState({
-    code: "",
-    name: "",
+    departmentCode: "",
+    departmentName: "",
     description: "",
     centerId: "",
     status: "ACTIVE"
@@ -77,7 +80,7 @@ export default function DepartmentsPage() {
 
       setDepartments([...departments, newDept.data || newDept]);
       setShowAddModal(false);
-      setFormData({ code: "", name: "", description: "", centerId: "", status: "ACTIVE" });
+      setFormData({ departmentCode: "", departmentName: "", description: "", centerId: "", status: "ACTIVE" });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -88,8 +91,8 @@ export default function DepartmentsPage() {
   const handleEdit = (dept: Department) => {
     setEditingDept(dept);
     setFormData({
-      code: dept.code || "",
-      name: dept.name || "",
+      departmentCode: dept.departmentCode || "",
+      departmentName: dept.departmentName || "",
       description: dept.description || "",
       centerId: dept.centerId || "",
       status: dept.status || "ACTIVE"
@@ -133,8 +136,8 @@ export default function DepartmentsPage() {
   const getCenterName = (id?: string) => id ? centers.find(c => c.id === id)?.name || "-" : "-";
 
   const filteredDepartments = departments.filter(dept =>
-    dept.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    dept.code?.toLowerCase().includes(searchQuery.toLowerCase())
+    dept.departmentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    dept.departmentCode?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (loading) {
@@ -214,8 +217,8 @@ export default function DepartmentsPage() {
             ) : (
               filteredDepartments.map((dept) => (
                 <tr key={dept.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap font-medium">{dept.code}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{dept.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap font-medium">{dept.departmentCode}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{dept.departmentName}</td>
                   <td className="px-6 py-4 text-gray-500 max-w-xs truncate">{dept.description || "-"}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">{getCenterName(dept.centerId)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -250,8 +253,8 @@ export default function DepartmentsPage() {
                   <input
                     type="text"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    value={formData.departmentCode}
+                    onChange={(e) => setFormData({ ...formData, departmentCode: e.target.value })}
                     required
                   />
                 </div>
@@ -260,8 +263,8 @@ export default function DepartmentsPage() {
                   <input
                     type="text"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    value={formData.departmentName}
+                    onChange={(e) => setFormData({ ...formData, departmentName: e.target.value })}
                     required
                   />
                 </div>
@@ -322,7 +325,7 @@ export default function DepartmentsPage() {
                   <input
                     type="text"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                    value={formData.code}
+                    value={formData.departmentCode}
                     disabled
                   />
                 </div>
@@ -331,8 +334,8 @@ export default function DepartmentsPage() {
                   <input
                     type="text"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    value={formData.departmentName}
+                    onChange={(e) => setFormData({ ...formData, departmentName: e.target.value })}
                     required
                   />
                 </div>

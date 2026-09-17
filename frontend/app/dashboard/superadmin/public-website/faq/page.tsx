@@ -11,7 +11,10 @@ interface FAQ {
   answer: string;
   answerVi?: string;
   category?: string;
-  sortOrder?: number;
+  // The column is display_order and every FAQ query orders by it. This page called it
+  // sortOrder, so the value was dropped on save: every FAQ kept the default order, the admin
+  // list's own sort was a no-op, and the ordering staff chose never reached the public page.
+  displayOrder?: number;
   isActive?: boolean;
 }
 
@@ -41,7 +44,7 @@ export default function FAQManagementPage() {
     try {
       const data = await apiFetch("/api/faqs");
       if (Array.isArray(data)) {
-        setFaqs(data.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)));
+        setFaqs(data.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)));
       }
     } catch (err) {
       console.log("Error fetching FAQs");
@@ -66,7 +69,7 @@ export default function FAQManagementPage() {
           method: "POST",
           body: JSON.stringify({
             ...faq,
-            sortOrder: faqs.length + 1,
+            displayOrder: faqs.length + 1,
             isActive: true,
           }),
         });
@@ -183,8 +186,8 @@ export default function FAQManagementPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
             <input
               type="number"
-              value={formData.sortOrder || 0}
-              onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
+              value={formData.displayOrder || 0}
+              onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
@@ -336,7 +339,7 @@ export default function FAQManagementPage() {
                         <p className="text-sm text-gray-500 mt-1">🇻🇳 {faq.answerVi}</p>
                       )}
                       <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                        <span>Order: {faq.sortOrder || 0}</span>
+                        <span>Order: {faq.displayOrder || 0}</span>
                         <span>•</span>
                         <span className="capitalize">{faq.category}</span>
                       </div>

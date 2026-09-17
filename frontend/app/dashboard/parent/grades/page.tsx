@@ -103,17 +103,19 @@ export default function ParentGradesPage() {
     }
   };
 
+  // Must match GradeController.letterGrade in academy_service, which is what actually gets STORED
+  // on exam_results and printed on report cards. This page previously used a finer 9-band scale
+  // (A-, B+, B-, C+, C-), so a single 82% exam showed the stored "B" in its row and a computed
+  // "B+" in the Average Grade tile — two letters for one score, on one screen.
+  //
+  // If LERA wants +/- grades, the change belongs in the backend so it is stored once, not in four
+  // separate frontend copies that already disagree with each other and with the database.
   const calculateGrade = (score: number, maxScore: number): string => {
-    const percentage = (score / maxScore) * 100;
+    const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
     if (percentage >= 90) return "A";
-    if (percentage >= 85) return "A-";
-    if (percentage >= 80) return "B+";
-    if (percentage >= 75) return "B";
-    if (percentage >= 70) return "B-";
-    if (percentage >= 65) return "C+";
-    if (percentage >= 60) return "C";
-    if (percentage >= 55) return "C-";
-    if (percentage >= 50) return "D";
+    if (percentage >= 80) return "B";
+    if (percentage >= 70) return "C";
+    if (percentage >= 60) return "D";
     return "F";
   };
 

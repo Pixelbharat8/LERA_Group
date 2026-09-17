@@ -468,8 +468,15 @@ public class NotificationService {
                                            UUID taskId, String assignerName) {
         String title = "New Task Assigned";
         String titleVi = "Nhiệm vụ mới được giao";
-        String message = String.format("%s has assigned you a task: %s", assignerName, taskTitle);
-        String messageVi = String.format("%s đã giao cho bạn nhiệm vụ: %s", assignerName, taskTitle);
+        // Callers that have no assigner to name used to produce the literal text
+        // "null has assigned you a task: ..." in a notification a person reads.
+        boolean named = assignerName != null && !assignerName.isBlank();
+        String message = named
+                ? String.format("%s has assigned you a task: %s", assignerName, taskTitle)
+                : String.format("You have been assigned a task: %s", taskTitle);
+        String messageVi = named
+                ? String.format("%s đã giao cho bạn nhiệm vụ: %s", assignerName, taskTitle)
+                : String.format("Bạn được giao nhiệm vụ: %s", taskTitle);
         
         return createNotification(assigneeId, title, titleVi, message, messageVi, "info", "task", taskId);
     }

@@ -63,9 +63,10 @@ export default function DirectorCentersPage() {
           };
         }));
       } else {
-        setCenters([
-          { id: "1", name: "Main Center - Vinhomes Marina", address: "95 Hải Đăng, Vinhomes Marina, An Biên, Hải Phòng", phone: "0387.633.141", email: "main@leraacademy.edu.vn", manager: "N/A", studentCount: 0, staffCount: 0, classCount: 0, status: "active", performance: "average" },
-        ]);
+        // An empty result means this director oversees no centres yet. It previously invented one
+        // — "Main Center - Vinhomes Marina", with a real-looking Hải Phòng address and phone —
+        // which read as a centre that exists.
+        setCenters([]);
       }
     } catch (error) {
       console.error("Error fetching centers:", error);

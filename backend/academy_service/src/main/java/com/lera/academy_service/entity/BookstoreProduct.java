@@ -63,4 +63,15 @@ public class BookstoreProduct {
 
     @PreUpdate
     void onUpdate() { updatedAt = LocalDateTime.now(); }
+
+    /**
+     * Derived, not stored: the shop page gates its "In Stock" label and its Add to Cart button on
+     * `inStock`, and the product row only has `stock`. With the field absent the value read as
+     * undefined — falsy — so every product showed "✗ Out of Stock" and nothing could be added to
+     * a cart at all.
+     */
+    @Transient
+    public boolean isInStock() {
+        return stock != null && stock > 0;
+    }
 }

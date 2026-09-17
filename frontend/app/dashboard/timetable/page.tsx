@@ -36,14 +36,18 @@ export default function TimetablePage() {
       if (Array.isArray(data) && data.length > 0) {
         setTimetable(data.map((slot: any) => ({
           id: slot.id || String(Math.random()),
-          day: slot.dayOfWeek ?? slot.day ?? 1,
+          // The grid places entries by index (0 = Sunday). dayOfWeek/day are the stored codes
+          // ("MON"), so taking either of them put a string where a number is compared and every
+          // cell came out empty. dayIndex is the resolved number; a day the backend could not
+          // resolve is dropped below rather than silently filed under Monday.
+          day: typeof slot.dayIndex === "number" ? slot.dayIndex : null,
           startTime: slot.startTime || "08:00",
           endTime: slot.endTime || "08:45",
           subject: slot.subject || slot.courseName || slot.className || "Class",
           teacher: slot.teacherName || slot.teacher || "",
           room: slot.room || slot.roomName || "",
           color: slot.color || "bg-blue-500",
-        })));
+        })).filter((slot: TimeSlot | { day: number | null }): slot is TimeSlot => slot.day !== null));
       } else {
         setTimetable([]);
       }

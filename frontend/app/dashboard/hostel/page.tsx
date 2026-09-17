@@ -12,18 +12,28 @@ interface Room {
   floor: number;
   capacity: number;
   occupied: number;
-  amenities: string[];
-  monthlyFee: number;
-  available: boolean;
+  // No amenities column exists on a hostel room yet, so the API never sends this and the
+  // amenities row stays empty. Kept optional rather than removed: the UI is already built
+  // for it, and it needs data, not a code change.
+  amenities?: string[];
+  // The API key is monthlyRent. Reading monthlyFee here formatted undefined as "NaN ₫".
+  monthlyRent?: number | null;
+  // Beds free, not a flag — 0 means full, which is why the truthiness checks below still read
+  // correctly.
+  available: number;
 }
 
 interface HostelRegistration {
   id: string;
-  roomNumber: string;
-  roomType: string;
-  checkInDate: string;
-  monthlyFee: number;
-  status: "active" | "pending" | "expired";
+  // All four are resolved server-side from the registration's room; a registration whose room
+  // has been deleted legitimately has none of them.
+  roomNumber?: string | null;
+  roomType?: string | null;
+  checkInDate?: string | null;
+  monthlyFee?: number | null;
+  // Rows store PENDING / APPROVED / REJECTED; the API translates them to these.
+  status: "active" | "pending" | "rejected" | "expired";
+  rejectionReason?: string | null;
   roommates?: string[];
 }
 
@@ -82,8 +92,37 @@ export default function HostelPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
+  // A room with no rent recorded has no price to show. Intl formats undefined as "NaN ₫",
+  // which reads like a real (broken) price rather than an absent one.
+  const formatCurrency = (amount?: number | null) => {
+    if (amount == null || Number.isNaN(amount)) return "—";
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  };
+
+  // A rejected registration used to fall through to the "pending" branch and sit there looking
+  // like it was still being considered.
+  // joinDate is only set on approval, so a pending registration has none. new Date(null) is the
+  // epoch, which rendered a confident "1/1/1970" as the check-in date.
+  const formatDate = (value?: string | null) => {
+    if (!value) return "—";
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+  };
+
+  const statusBadge = (status: HostelRegistration["status"]) =>
+    status === "active"
+      ? "bg-green-100 text-green-700"
+      : status === "rejected"
+        ? "bg-red-100 text-red-700"
+        : status === "expired"
+          ? "bg-gray-100 text-gray-600"
+          : "bg-yellow-100 text-yellow-700";
+
+  const statusLabel = (status: HostelRegistration["status"]) => {
+    if (status === "active") return t.active;
+    if (status === "rejected") return isVietnamese ? "Bị từ chối" : "Rejected";
+    if (status === "expired") return isVietnamese ? "Hết hạn" : "Expired";
+    return t.pending;
   };
 
   const filteredRooms = selectedType === "all" ? rooms : rooms.filter(r => r.type === selectedType);
@@ -111,8 +150,8 @@ export default function HostelPage() {
                   <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center text-3xl">🏠</div>
                   <div>
                     <h3 className="font-bold text-2xl text-gray-900">{t.roomNumber} {myRegistration.roomNumber}</h3>
-                    <span className={`inline-block px-3 py-1 rounded-full text-sm ${myRegistration.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                      {myRegistration.status === 'active' ? t.active : t.pending}
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm ${statusBadge(myRegistration.status)}`}>
+                      {statusLabel(myRegistration.status)}
                     </span>
                   </div>
                 </div>
@@ -123,7 +162,7 @@ export default function HostelPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">{t.checkIn}</p>
-                    <p className="font-medium text-gray-900">{new Date(myRegistration.checkInDate).toLocaleDateString()}</p>
+                    <p className="font-medium text-gray-900">{formatDate(myRegistration.checkInDate)}</p>
                   </div>
                 </div>
                 {myRegistration.roommates && myRegistration.roommates.length > 0 && (
@@ -205,7 +244,7 @@ export default function HostelPage() {
                   </div>
                 </div>
                 <div className="mt-4 flex items-center justify-between">
-                  <span className="font-bold text-lg text-blue-600">{formatCurrency(room.monthlyFee)}</span>
+                  <span className="font-bold text-lg text-blue-600">{formatCurrency(room.monthlyRent)}</span>
                   {/* Booking isn't wired to a backend action yet — disable it
                       honestly ("Coming soon") rather than look clickable and do
                       nothing (matches the library page's pattern). */}

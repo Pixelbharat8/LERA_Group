@@ -13,7 +13,6 @@ interface StudentProfile {
   phone: string;
   dateOfBirth: string;
   gender: string;
-  address: string;
   avatarUrl: string;
   status: string;
   enrollmentDate: string;
@@ -47,6 +46,13 @@ interface ClassHistory {
   grade: string;
 }
 
+/**
+ * This table's columns are invoice-shaped — invoice number, amount, paid so far, due date — so it
+ * reads INVOICES, not payment rows. It used to call /api/payments, whose rows carry `amount`
+ * (money received) and an invoiceId, and have no invoiceNumber, no paidAmount, no dueDate and no
+ * description. Every one of those columns was blank, and "Total Spent", which summed the
+ * non-existent paidAmount, read 0đ however much the family had paid.
+ */
 interface Payment {
   id: string;
   invoiceNumber: string;
@@ -153,11 +159,24 @@ export default function StudentProfilePage() {
 
   const fetchPayments = async () => {
     try {
-      // Real payments from payment_service (visible to finance-capable roles; empty otherwise).
-      const data = await apiFetch(`/api/payments?studentId=${studentId}`);
-      setPayments(Array.isArray(data) ? data : (data?.data || data?.content || []));
+      // Invoices, not payment rows — see the comment on the Payment interface. Invoices carry the
+      // invoice number, the total, the due date and (resolved server-side from the settled payment
+      // rows) how much has been paid against them, which is exactly this table's columns.
+      // Visible to finance-capable roles; empty otherwise.
+      const data = await apiFetch(`/api/invoices?studentId=${studentId}`);
+      const rows = Array.isArray(data) ? data : (data?.data || data?.content || []);
+      setPayments(rows.map((inv: any) => ({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        amount: inv.totalAmount ?? 0,
+        paidAmount: inv.paidAmount ?? 0,
+        status: inv.status,
+        dueDate: inv.dueDate,
+        paidDate: inv.paidAt,
+        description: inv.notes || "",
+      })));
     } catch (error) {
-      console.error("Error fetching payments:", error);
+      console.error("Error fetching invoices:", error);
     }
   };
 
@@ -186,7 +205,10 @@ export default function StudentProfilePage() {
         method: "PUT",
         body: JSON.stringify(editData),
       });
-      setProfile({ ...profile, ...editData } as StudentProfile);
+      // Re-read rather than merging editData into the displayed profile. The API silently ignores
+      // any key that is not a field on the student, so merging showed whatever had been typed as
+      // though it had been stored — the screen and the database disagreed until a reload.
+      await fetchProfile();
       setIsEditing(false);
       alert("Profile updated successfully!");
     } catch (error) {
@@ -355,14 +377,15 @@ export default function StudentProfilePage() {
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm text-gray-600">Address</label>
-                      <textarea
-                        value={editData.address || ""}
-                        onChange={(e) => setEditData({ ...editData, address: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                      />
-                    </div>
+                    {/*
+                      There was an Address box here. A student has no address — not on the entity
+                      and not as a column on the students table — so everything typed into it was
+                      dropped by the API on save, while the page merged it into its own state and
+                      said "Profile updated successfully!". It looked saved until the next reload.
+                      Storing a child's home address is a decision about what personal data LERA
+                      holds, not something to add quietly, so the field is removed rather than
+                      given a column.
+                    */}
                     <button
                       onClick={handleSaveProfile}
                       className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -376,7 +399,6 @@ export default function StudentProfilePage() {
                     <p><span className="text-gray-500">Phone:</span> {profile?.phone}</p>
                     <p><span className="text-gray-500">Date of Birth:</span> {profile?.dateOfBirth}</p>
                     <p><span className="text-gray-500">Gender:</span> {profile?.gender}</p>
-                    <p><span className="text-gray-500">Address:</span> {profile?.address}</p>
                     <p><span className="text-gray-500">Enrollment Date:</span> {profile?.enrollmentDate}</p>
                   </div>
                 )}

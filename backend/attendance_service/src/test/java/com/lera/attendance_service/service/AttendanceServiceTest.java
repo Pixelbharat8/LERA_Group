@@ -114,4 +114,39 @@ class AttendanceServiceTest {
         assertFalse(attendanceService.deleteAttendance(randomId));
         verify(attendanceRepository, never()).deleteById(any());
     }
+
+    // ---- the register belongs to students ----
+
+    /**
+     * student_id is nullable in the schema, so a body shaped for something else saved happily.
+     * The staff attendance page posted {userId, date, checkInTime, checkOutTime, status, notes} —
+     * userId and date are not fields on this entity, so what was stored was a row belonging to no
+     * student and no session, and the page reported "✅ Attendance marked successfully!".
+     *
+     * Those orphans then counted towards student attendance figures, which is why this is refused
+     * rather than tidied up afterwards.
+     */
+    @Test
+    void anAttendanceRecordWithNoStudent_isRefused() {
+        AttendanceRecord orphan = new AttendanceRecord();
+        orphan.setStatus("PRESENT");
+        orphan.setCheckInTime(LocalDateTime.now());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> attendanceService.createAttendance(orphan));
+        verify(attendanceRepository, never()).save(any());
+    }
+
+    @Test
+    void aBulkRosterWithAnUnnamedStudent_isRefusedWhole() {
+        AttendanceRecord good = new AttendanceRecord();
+        good.setStudentId(UUID.randomUUID());
+        good.setSessionId(sessionId);
+        AttendanceRecord orphan = new AttendanceRecord();
+        orphan.setSessionId(sessionId);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> attendanceService.createBulkAttendance(List.of(good, orphan)));
+        verify(attendanceRepository, never()).saveAll(any());
+    }
 }

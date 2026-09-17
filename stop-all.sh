@@ -38,15 +38,17 @@ done
 pkill -f "next dev" 2>/dev/null || true
 pkill -f "next-server" 2>/dev/null || true
 
-# Stop database (Docker)
+# Stop the database (Docker). Uses the ROOT compose — database/docker-compose.yml was removed
+# because it declared the same container_name (lera_postgres) as the root stack but a DIFFERENT
+# volume, so whichever started first won and the other silently pointed at different data.
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
-if [ -f "$ROOT_DIR/database/docker-compose.yml" ]; then
-  cd "$ROOT_DIR/database"
+if [ -f "$ROOT_DIR/docker-compose.yml" ]; then
+  cd "$ROOT_DIR"
   if docker compose version &>/dev/null; then
-    docker compose down 2>/dev/null
+    docker compose stop postgres 2>/dev/null
     echo -e "${RED}  ✖ Stopped PostgreSQL container (docker compose)${NC}"
   elif command -v docker-compose &>/dev/null; then
-    docker-compose down 2>/dev/null
+    docker-compose stop postgres 2>/dev/null
     echo -e "${RED}  ✖ Stopped PostgreSQL container (docker-compose)${NC}"
   fi
 fi

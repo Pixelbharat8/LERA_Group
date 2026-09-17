@@ -99,6 +99,24 @@ export default function InvoicesPage() {
 
       setStudents(Array.isArray(studentsData) ? studentsData : []);
       setCenters(Array.isArray(centersData) ? centersData : []);
+
+      // `/api/invoices` returns studentId and centerId, never studentName or centerName — so
+      // `inv.studentName || 'Unknown Student'` labelled EVERY invoice "Unknown Student" and
+      // "Unknown Center", and the search box below (which filters on studentName) could never
+      // match anything. Both lists are already fetched above; join against them, as the
+      // /dashboard/payments page does.
+      const studentNameById = new Map<string, string>(
+        (Array.isArray(studentsData) ? studentsData : []).map((st: any) => [
+          String(st.id),
+          st.fullname || st.fullName || st.name || '',
+        ])
+      );
+      const centerNameById = new Map<string, string>(
+        (Array.isArray(centersData) ? centersData : []).map((c: any) => [
+          String(c.id),
+          c.name || c.nameVi || '',
+        ])
+      );
       
       // Backend returns a Spring Page for the org-wide (unpaginated-by-center) path; normalize.
       const invoiceList = Array.isArray(invoicesData) ? invoicesData : ((invoicesData as any)?.content || []);
@@ -108,9 +126,9 @@ export default function InvoicesPage() {
           id: inv.id,
           invoiceNumber: inv.invoiceNumber || `INV-${inv.id?.slice(0, 8)}`,
           studentId: inv.studentId,
-          studentName: inv.studentName || 'Unknown Student',
+          studentName: inv.studentName || studentNameById.get(String(inv.studentId)) || 'Unknown Student',
           centerId: inv.centerId,
-          centerName: inv.centerName || 'Unknown Center',
+          centerName: inv.centerName || centerNameById.get(String(inv.centerId)) || 'Unknown Center',
           courseName: inv.courseName,
           invoiceDate: inv.invoiceDate || inv.createdAt?.split('T')[0],
           dueDate: inv.dueDate,
@@ -118,8 +136,11 @@ export default function InvoicesPage() {
           discountAmount: inv.discountAmount || 0,
           taxAmount: inv.taxAmount || 0,
           totalAmount: inv.totalAmount || 0,
-          paidAmount: inv.paidAmount || 0,
-          balance: (inv.totalAmount || 0) - (inv.paidAmount || 0),
+          // Both are resolved server-side from the settled payment rows; there is no
+          // paid_amount column, so these used to read 0 and the balance showed the full total
+          // on an invoice that had been part-paid.
+          paidAmount: inv.paidAmount ?? 0,
+          balance: inv.balance ?? ((inv.totalAmount || 0) - (inv.paidAmount || 0)),
           status: inv.status || 'PENDING',
           items: inv.items || [],
           createdAt: inv.createdAt
@@ -270,14 +291,15 @@ export default function InvoicesPage() {
         })
       });
 
-      // Update invoice paid amount and status
+      // Move the invoice on. paidAmount is derived from the payment rows, so it is not sent —
+      // the payment posted above IS the record. The backend re-sums the settled payments before
+      // it will accept PAID, so this cannot mark an invoice paid that has not been.
       const newPaidAmount = (selectedInvoice.paidAmount || 0) + amount;
       const newStatus = newPaidAmount >= selectedInvoice.totalAmount ? "PAID" : "PARTIAL";
-      
+
       await apiFetch(`/api/invoices/${selectedInvoice.id}`, {
         method: "PUT",
         body: JSON.stringify({
-          paidAmount: newPaidAmount,
           status: newStatus,
           paidAt: newStatus === "PAID" ? new Date().toISOString() : null
         })

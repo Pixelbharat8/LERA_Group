@@ -55,7 +55,11 @@ export default function StudentAttendancePage() {
 
   const totalDays = attendance.length;
   const presentDays = attendance.filter((a) => a.status === "PRESENT").length;
-  const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+  // A student who showed up late still attended, so the rate is (PRESENT + LATE) / total — the
+  // same definition attendance_service uses for the figure on the student dashboard. Counting
+  // only PRESENT here made this page contradict the dashboard: 75% against 92% on one record.
+  const attendedDays = attendance.filter((a) => a.status === "PRESENT" || a.status === "LATE").length;
+  const attendanceRate = totalDays > 0 ? Math.round((attendedDays / totalDays) * 100) : 0;
 
   if (loading) {
     return (

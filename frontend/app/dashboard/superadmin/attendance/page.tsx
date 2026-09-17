@@ -14,30 +14,35 @@ interface User {
   employeeCode?: string;
 }
 
+/**
+ * There is no staff time-clock in this system. This page used to read /api/attendance, which is
+ * the STUDENT register — its rows carry sessionId/studentId and have no userId, no date, no
+ * hoursWorked. Since the page also excludes students from its own user list, it was looking for
+ * staff in a table of students, and `new Date(record.date)` was an Invalid Date, so the month
+ * filter rejected every row: the register was permanently empty and every tile read 0.
+ *
+ * What does exist for staff is teacher_sessions — the taught sessions payroll already bills from
+ * (sessionDate, startTime, endTime, durationHours). That is what this page now shows, for the
+ * teachers who have them; for everyone else it says so rather than showing an empty grid.
+ */
 interface AttendanceRecord {
   id: string;
-  userId?: string;
-  studentId?: string;
   teacherId?: string;
   date: string;
   checkInTime?: string;
   checkOutTime?: string;
   status: string;
   hoursWorked?: number;
-  overtimeHours?: number;
   notes?: string;
-  location?: string;
-  approvedBy?: string;
-  createdAt?: string;
 }
 
+/** What a teaching session can actually tell us: it was held, cancelled, or not shown up to. */
 interface AttendanceSummary {
   totalDays: number;
   presentDays: number;
-  absentDays: number;
-  lateDays: number;
-  earlyLeaveDays: number;
-  overtimeHours: number;
+  cancelledSessions: number;
+  noShowSessions: number;
+  totalHours: number;
   averageCheckIn: string;
   averageCheckOut: string;
 }
@@ -57,20 +62,14 @@ export default function AttendancePage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [allAttendance, setAllAttendance] = useState<AttendanceRecord[]>([]);
+  const [teacherIdByUserId, setTeacherIdByUserId] = useState<Map<string, string>>(new Map());
+  const [noStaffRecord, setNoStaffRecord] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [viewMode, setViewMode] = useState<"daily" | "weekly" | "monthly">("monthly");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [summary, setSummary] = useState<AttendanceSummary | null>(null);
-  const [showMarkModal, setShowMarkModal] = useState(false);
-  const [markData, setMarkData] = useState({
-    date: new Date().toISOString().substring(0, 10),
-    checkIn: "08:00",
-    checkOut: "17:00",
-    status: "PRESENT",
-    notes: ""
-  });
 
   const months = [
     "January", "February", "March", "April", "May", "June",
@@ -81,7 +80,7 @@ export default function AttendancePage() {
 
   useEffect(() => {
     fetchUsers();
-    fetchAllAttendance();
+    fetchTeacherIndex();
   }, []);
 
   useEffect(() => {
@@ -94,10 +93,9 @@ export default function AttendancePage() {
   }, [userId, users]);
 
   useEffect(() => {
-    if (selectedUser) {
-      filterAttendance();
-    }
-  }, [selectedUser, selectedYear, selectedMonth, viewMode, allAttendance]);
+    loadSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUser, selectedYear, selectedMonth, teacherIdByUserId]);
 
   const fetchUsers = async () => {
     try {
@@ -120,50 +118,91 @@ export default function AttendancePage() {
     }
   };
 
-  const fetchAllAttendance = async () => {
+  /**
+   * teacher_sessions.teacherId is a teachers.id, NOT a users.id — the same distinction payroll
+   * keeps with its own user-to-teacher map. This page picks a USER, so the two must be joined
+   * before anything can be looked up.
+   */
+  const fetchTeacherIndex = async () => {
+    try {
+      const data = await apiFetch("/api/teachers");
+      const list = Array.isArray(data) ? data : [];
+      setTeacherIdByUserId(
+        new Map(list.filter((t: any) => t.userId).map((t: any) => [String(t.userId), String(t.id)]))
+      );
+    } catch (err) {
+      console.error("Error fetching teachers:", err);
+      setTeacherIdByUserId(new Map());
+    }
+  };
+
+  const toRecord = (session: any): AttendanceRecord => ({
+    id: session.id,
+    teacherId: session.teacherId,
+    date: session.sessionDate,
+    checkInTime: session.startTime,
+    checkOutTime: session.endTime,
+    status: session.status || "COMPLETED",
+    hoursWorked: session.durationHours != null ? Number(session.durationHours) : undefined,
+    notes: session.notes,
+  });
+
+  const loadSessions = async () => {
+    if (!selectedUser) {
+      setAttendance([]);
+      setSummary(null);
+      setNoStaffRecord(null);
+      return;
+    }
+
+    const teacherEntityId = teacherIdByUserId.get(String(selectedUser.id));
+    if (!teacherEntityId) {
+      // Not a teaching role, so nothing is recorded: there is no staff time-clock in this system,
+      // and payroll pays these roles from their contracted hours rather than from anything logged.
+      setAttendance([]);
+      setSummary(null);
+      setNoStaffRecord(
+        `${selectedUser.fullname || selectedUser.email} has no teaching sessions recorded. ` +
+        `Hours are only tracked for teaching roles; there is no staff time-clock, and other ` +
+        `roles are paid from their contracted hours.`
+      );
+      return;
+    }
+
+    setNoStaffRecord(null);
     setLoadingAttendance(true);
     try {
-      const data = await apiFetch("/api/attendance");
-      console.log("Fetched attendance records:", data);
-      setAllAttendance(Array.isArray(data) ? data : []);
+      const data = await apiFetch(
+        `/api/teacher-sessions?teacherId=${encodeURIComponent(teacherEntityId)}`
+      );
+      const sessions = (Array.isArray(data) ? data : []).map(toRecord);
+      const forMonth = sessions.filter((r) => {
+        if (!r.date) return false;
+        const d = new Date(r.date);
+        if (Number.isNaN(d.getTime())) return false;
+        return d.getFullYear() === selectedYear && d.getMonth() + 1 === selectedMonth;
+      });
+      setAllAttendance(sessions);
+      setAttendance(forMonth);
+      calculateSummary(forMonth);
     } catch (err) {
-      console.error("Error fetching attendance records:", err);
+      console.error("Error fetching teaching sessions:", err);
       setAllAttendance([]);
+      setAttendance([]);
+      setSummary(null);
     } finally {
       setLoadingAttendance(false);
     }
   };
 
-  const filterAttendance = () => {
-    if (!selectedUser) {
-      setAttendance([]);
-      setSummary(null);
-      return;
-    }
-
-    let filtered = allAttendance.filter(record => {
-      return record.userId === selectedUser.id || 
-             record.teacherId === selectedUser.id ||
-             record.studentId === selectedUser.id;
-    });
-
-    // Filter by year and month
-    filtered = filtered.filter(record => {
-      const recordDate = new Date(record.date);
-      return recordDate.getFullYear() === selectedYear && 
-             (recordDate.getMonth() + 1) === selectedMonth;
-    });
-
-    setAttendance(filtered);
-    calculateSummary(filtered);
-  };
-
   const calculateSummary = (records: AttendanceRecord[]) => {
-    const presentDays = records.filter(r => r.status === "PRESENT" || r.status === "COMPLETED").length;
-    const absentDays = records.filter(r => r.status === "ABSENT").length;
-    const lateDays = records.filter(r => r.status === "LATE").length;
-    const earlyLeaveDays = records.filter(r => r.status === "EARLY_LEAVE").length;
-    const overtimeHours = records.reduce((sum, r) => sum + (r.overtimeHours || 0), 0);
+    // Session statuses are SCHEDULED / COMPLETED / CANCELLED / NO_SHOW. There is no "late" or
+    // "early leave" for a taught session, and counting them produced three tiles permanently at 0.
+    const presentDays = records.filter(r => r.status === "COMPLETED").length;
+    const cancelledSessions = records.filter(r => r.status === "CANCELLED").length;
+    const noShowSessions = records.filter(r => r.status === "NO_SHOW").length;
+    // Teaching sessions record a duration; there is no overtime store for staff.
+    const totalHours = records.reduce((sum, r) => sum + (r.hoursWorked || 0), 0);
 
     // Calculate average check-in/out times
     const checkIns = records.filter(r => r.checkInTime).map(r => r.checkInTime!);
@@ -172,40 +211,20 @@ export default function AttendancePage() {
     setSummary({
       totalDays: records.length,
       presentDays,
-      absentDays,
-      lateDays,
-      earlyLeaveDays,
-      overtimeHours,
+      cancelledSessions,
+      noShowSessions,
+      totalHours,
       averageCheckIn: checkIns.length > 0 ? checkIns[0] : "N/A",
       averageCheckOut: checkOuts.length > 0 ? checkOuts[0] : "N/A"
     });
   };
 
-  const handleMarkAttendance = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedUser) return;
-
-    try {
-      await apiFetch("/api/attendance", {
-        method: "POST",
-        body: JSON.stringify({
-          userId: selectedUser.id,
-          date: markData.date,
-          checkInTime: markData.checkIn,
-          checkOutTime: markData.checkOut,
-          status: markData.status,
-          notes: markData.notes
-        })
-      });
-
-      alert("✅ Attendance marked successfully!");
-      setShowMarkModal(false);
-      fetchAllAttendance();
-    } catch (err) {
-      console.error("Error marking attendance:", err);
-      alert("❌ Error marking attendance");
-    }
-  };
+  // "Mark Attendance" used to POST {userId, date, checkInTime, checkOutTime, status, notes} to
+  // /api/attendance. That is the STUDENT register and has none of those fields, but student_id is
+  // nullable, so the row saved — belonging to no student and no session — and the page announced
+  // "✅ Attendance marked successfully!". Those orphans then counted towards student attendance
+  // figures. The backend now refuses them, and the action is gone from here because there is no
+  // staff attendance store to write to: teaching sessions are recorded by the class register.
 
   const getStatusColor = (status: string) => {
     switch (status?.toUpperCase()) {
@@ -243,9 +262,10 @@ export default function AttendancePage() {
     return date.toLocaleDateString('en-US', { weekday: 'short' });
   };
 
+  /** Share of this month's sessions that were actually taught. */
   const calculateAttendancePercentage = () => {
     if (!summary || summary.totalDays === 0) return 0;
-    return Math.round(((summary.presentDays + summary.lateDays) / summary.totalDays) * 100);
+    return Math.round((summary.presentDays / summary.totalDays) * 100);
   };
 
   if (loading) {
@@ -270,7 +290,7 @@ export default function AttendancePage() {
           <p className="text-gray-500">Track and manage employee attendance records</p>
         </div>
         <button
-          onClick={fetchAllAttendance}
+          onClick={loadSessions}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
         >
           🔄 Refresh Data
@@ -349,13 +369,6 @@ export default function AttendancePage() {
             </select>
           </div>
 
-          <button
-            onClick={() => setShowMarkModal(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            disabled={!selectedUser}
-          >
-            ✏️ Mark Attendance
-          </button>
         </div>
       </div>
 
@@ -384,27 +397,23 @@ export default function AttendancePage() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
           <div className="bg-white rounded-xl shadow-sm p-4 text-center">
             <p className="text-3xl font-bold text-gray-900">{summary.totalDays}</p>
-            <p className="text-xs text-gray-500">Working Days</p>
+            <p className="text-xs text-gray-500">Sessions</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-4 text-center">
             <p className="text-3xl font-bold text-green-600">{summary.presentDays}</p>
-            <p className="text-xs text-gray-500">Present</p>
+            <p className="text-xs text-gray-500">Taught</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-            <p className="text-3xl font-bold text-red-600">{summary.absentDays}</p>
-            <p className="text-xs text-gray-500">Absent</p>
+            <p className="text-3xl font-bold text-red-600">{summary.noShowSessions}</p>
+            <p className="text-xs text-gray-500">No Show</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-            <p className="text-3xl font-bold text-yellow-600">{summary.lateDays}</p>
-            <p className="text-xs text-gray-500">Late</p>
+            <p className="text-3xl font-bold text-yellow-600">{summary.cancelledSessions}</p>
+            <p className="text-xs text-gray-500">Cancelled</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-            <p className="text-3xl font-bold text-orange-600">{summary.earlyLeaveDays}</p>
-            <p className="text-xs text-gray-500">Early Leave</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-            <p className="text-3xl font-bold text-blue-600">{summary.overtimeHours}h</p>
-            <p className="text-xs text-gray-500">Overtime</p>
+            <p className="text-3xl font-bold text-blue-600">{summary.totalHours.toFixed(1)}h</p>
+            <p className="text-xs text-gray-500">Hours Taught</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-4 text-center">
             <p className="text-xl font-bold text-gray-900">{summary.averageCheckIn}</p>
@@ -437,7 +446,6 @@ export default function AttendancePage() {
                         { key: (r) => r.checkInTime || "", label: "Check In" },
                         { key: (r) => r.checkOutTime || "", label: "Check Out" },
                         { key: (r) => r.hoursWorked ?? 0, label: "Hours" },
-                        { key: (r) => r.overtimeHours ?? 0, label: "Overtime" },
                         { key: "status", label: "Status" },
                         { key: (r) => r.notes || "", label: "Notes" },
                       ]
@@ -464,14 +472,20 @@ export default function AttendancePage() {
           ) : attendance.length === 0 ? (
             <div className="p-12 text-center text-gray-500">
               <div className="text-6xl mb-4">📭</div>
-              <h4 className="text-lg font-medium mb-2">No Attendance Records Found</h4>
-              <p className="text-sm">No attendance records found for this user in the selected period.</p>
-              <button
-                onClick={() => setShowMarkModal(true)}
-                className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                ✏️ Mark First Attendance
-              </button>
+              {noStaffRecord ? (
+                <>
+                  <h4 className="text-lg font-medium mb-2">No Hours Tracked For This Role</h4>
+                  <p className="text-sm max-w-xl mx-auto">{noStaffRecord}</p>
+                </>
+              ) : (
+                <>
+                  <h4 className="text-lg font-medium mb-2">No Sessions In This Period</h4>
+                  <p className="text-sm">
+                    No teaching sessions were recorded for this teacher in {months[selectedMonth - 1]}{" "}
+                    {selectedYear}.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
@@ -498,7 +512,7 @@ export default function AttendancePage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.checkOutTime || "-"}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.hoursWorked || 0}h</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
-                        {record.overtimeHours && record.overtimeHours > 0 ? `+${record.overtimeHours}h` : "-"}
+                        {record.hoursWorked ? `${record.hoursWorked}h` : "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(record.status)}`}>
@@ -616,11 +630,14 @@ export default function AttendancePage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {allAttendance.slice(0, 50).map((record) => (
                   <tr key={record.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => {
-                    const user = users.find(u => u.id === (record.userId || record.teacherId || record.studentId));
+                    // sessions carry a teachers.id; map back to the user this page selects by
+                    const userId = Array.from(teacherIdByUserId.entries())
+                      .find(([, teacherId]) => teacherId === String(record.teacherId))?.[0];
+                    const user = users.find(u => u.id === userId);
                     if (user) setSelectedUser(user);
                   }}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {(record.userId || record.teacherId || record.studentId || "N/A").substring(0, 8)}...
+                      {(record.teacherId || "N/A").substring(0, 8)}...
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.date}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.checkInTime || "-"}</td>
@@ -638,99 +655,6 @@ export default function AttendancePage() {
         </div>
       )}
 
-      {/* Mark Attendance Modal */}
-      {showMarkModal && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">✏️ Mark Attendance</h3>
-              <button onClick={() => setShowMarkModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
-            </div>
-            
-            <form onSubmit={handleMarkAttendance}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Employee</label>
-                  <p className="text-gray-900 font-medium">{selectedUser.fullname || selectedUser.email}</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                  <input 
-                    type="date" 
-                    value={markData.date}
-                    onChange={(e) => setMarkData({...markData, date: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Check In</label>
-                    <input 
-                      type="time" 
-                      value={markData.checkIn}
-                      onChange={(e) => setMarkData({...markData, checkIn: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Check Out</label>
-                    <input 
-                      type="time" 
-                      value={markData.checkOut}
-                      onChange={(e) => setMarkData({...markData, checkOut: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                  <select 
-                    value={markData.status}
-                    onChange={(e) => setMarkData({...markData, status: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  >
-                    <option value="PRESENT">✅ Present</option>
-                    <option value="LATE">⏰ Late</option>
-                    <option value="ABSENT">❌ Absent</option>
-                    <option value="HALF_DAY">½ Half Day</option>
-                    <option value="EARLY_LEAVE">🏃 Early Leave</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                  <textarea 
-                    rows={3}
-                    value={markData.notes}
-                    onChange={(e) => setMarkData({...markData, notes: e.target.value})}
-                    placeholder="Add any notes..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  ></textarea>
-                </div>
-              </div>
-              
-              <div className="flex gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowMarkModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  Save Attendance
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

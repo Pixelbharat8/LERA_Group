@@ -14,8 +14,9 @@ interface Product {
   price: number;
   discountPrice?: number;
   image?: string;
+  // Derived server-side from the stock count; the row itself only carries `stock`.
   inStock: boolean;
-  quantity: number;
+  stock?: number;
 }
 
 interface CartItem {

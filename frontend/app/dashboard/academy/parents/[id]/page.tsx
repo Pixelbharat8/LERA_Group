@@ -220,7 +220,11 @@ export default function ParentProfilePage() {
           // Get attendance for this student
           const attendanceData = await apiFetch(`/api/attendance?studentId=${sp.studentId}`).catch(() => []);
           const attendanceRecords = Array.isArray(attendanceData) ? attendanceData : [];
-          const presentCount = attendanceRecords.filter((a: { status: string }) => a.status === "PRESENT").length;
+          // (PRESENT + LATE), as attendance_service defines the rate — staff viewing a parent
+          // must see the same number the parent sees.
+          const presentCount = attendanceRecords.filter(
+            (a: { status: string }) => a.status === "PRESENT" || a.status === "LATE"
+          ).length;
           const totalRecords = attendanceRecords.length || 1;
           
           return {

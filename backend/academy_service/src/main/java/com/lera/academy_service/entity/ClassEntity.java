@@ -80,6 +80,22 @@ public class ClassEntity {
     @JsonIgnore
     private CourseProgram program;
     
+    /**
+     * Display-only, filled in by ClassController#withDisplayNames. A class row carries only
+     * teacherId / programId / levelId, but every screen that lists classes shows the teacher's
+     * name, the course name and how many students are enrolled — so each of those rendered blank,
+     * and the student count rendered 0, on the centre pages and the parent's schedule.
+     * Same approach as AttendanceController#withNames.
+     */
+    @Transient
+    private String teacherName;
+
+    @Transient
+    private String programName;
+
+    @Transient
+    private Integer studentCount;
+
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();

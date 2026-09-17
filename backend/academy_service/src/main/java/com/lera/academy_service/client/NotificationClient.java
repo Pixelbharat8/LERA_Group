@@ -9,6 +9,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
@@ -43,6 +44,26 @@ import java.util.UUID;
 public class NotificationClient {
 
     private final RestTemplate restTemplate;
+
+    @Value("${lera.internal.api-key:}")
+    private String internalApiKey;
+
+    /**
+     * Connect's notification endpoints are all gated on
+     * {@code hasRole('INTERNAL_SERVICE') or hasAnyRole('SUPER_ADMIN',...)}, and the INTERNAL_SERVICE
+     * role is granted by this header. Every call in this client used to send Content-Type only, so
+     * connect answered 401 to all of them and academy_service could not deliver a single
+     * notification — exam results, class cancellations, schedule changes and homework reminders
+     * were all silently dropped. payment_service's client has always sent it; this one never did.
+     */
+    private HttpHeaders connectHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (StringUtils.hasText(internalApiKey)) {
+            headers.set("X-Internal-Key", internalApiKey.trim());
+        }
+        return headers;
+    }
 
     @Value("${connect.service.url:http://localhost:8086}")
     private String connectServiceUrl;
@@ -87,8 +108,9 @@ public class NotificationClient {
                 request.put("referenceId", enrollmentId);
             }
 
-            triggerNotification(request);
-            log.info("Sent enrollment approval notification to parent: {} for student: {}", parentId, studentName);
+            if (triggerNotification(request)) {
+                log.info("Sent enrollment approval notification to parent: {} for student: {}", parentId, studentName);
+            }
         } catch (Exception e) {
             log.error("Failed to send enrollment approval notification to parent: {}", parentId, e);
         }
@@ -110,8 +132,9 @@ public class NotificationClient {
                 request.put("reason", reason);
             }
 
-            triggerNotification(request);
-            log.info("Sent enrollment rejection notification to parent: {} for student: {}", parentId, studentName);
+            if (triggerNotification(request)) {
+                log.info("Sent enrollment rejection notification to parent: {} for student: {}", parentId, studentName);
+            }
         } catch (Exception e) {
             log.error("Failed to send enrollment rejection notification to parent: {}", parentId, e);
         }
@@ -144,8 +167,9 @@ public class NotificationClient {
             request.put("startDate", className);      // controller reads as 3rd arg (className)
             request.put("userIds", studentIds);
 
-            triggerNotification(request);
-            log.info("Sent exam scheduled notification to {} students for exam: {}", studentIds.size(), examName);
+            if (triggerNotification(request)) {
+                log.info("Sent exam scheduled notification to {} students for exam: {}", studentIds.size(), examName);
+            }
         } catch (Exception e) {
             log.error("Failed to send exam scheduled notification for exam: {}", examName, e);
         }
@@ -173,8 +197,9 @@ public class NotificationClient {
                 request.put("referenceId", examId);
             }
 
-            triggerNotification(request);
-            log.info("Sent upcoming exam notification to user: {} for exam: {}", userId, examName);
+            if (triggerNotification(request)) {
+                log.info("Sent upcoming exam notification to user: {} for exam: {}", userId, examName);
+            }
         } catch (Exception e) {
             log.error("Failed to send upcoming exam notification to user: {}", userId, e);
         }
@@ -196,8 +221,9 @@ public class NotificationClient {
                 request.put("referenceId", examId);
             }
 
-            triggerNotification(request);
-            log.info("Sent exam result notification for student: {} exam: {}", studentName, examName);
+            if (triggerNotification(request)) {
+                log.info("Sent exam result notification for student: {} exam: {}", studentName, examName);
+            }
         } catch (Exception e) {
             log.error("Failed to send exam result notification for student: {}", studentName, e);
         }
@@ -219,8 +245,9 @@ public class NotificationClient {
             request.put("attendancePercentage", attendancePercentage);
             request.put("className", className);
 
-            triggerNotification(request);
-            log.info("Sent low attendance notification for student: {} ({}%)", studentName, attendancePercentage);
+            if (triggerNotification(request)) {
+                log.info("Sent low attendance notification for student: {} ({}%)", studentName, attendancePercentage);
+            }
         } catch (Exception e) {
             log.error("Failed to send low attendance notification for student: {}", studentName, e);
         }
@@ -240,8 +267,9 @@ public class NotificationClient {
             request.put("messageVi", String.format("Vui lòng điểm danh cho lớp %s hôm nay.", className));
             request.put("type", "info");
 
-            triggerNotification(request);
-            log.info("Sent attendance reminder to teacher: {} for class: {}", teacherId, className);
+            if (triggerNotification(request)) {
+                log.info("Sent attendance reminder to teacher: {} for class: {}", teacherId, className);
+            }
         } catch (Exception e) {
             log.error("Failed to send attendance reminder to teacher: {}", teacherId, e);
         }
@@ -265,8 +293,9 @@ public class NotificationClient {
                 request.put("referenceId", messageId);
             }
 
-            triggerNotification(request);
-            log.info("Sent new message notification to user: {} from: {}", recipientId, senderName);
+            if (triggerNotification(request)) {
+                log.info("Sent new message notification to user: {} from: {}", recipientId, senderName);
+            }
         } catch (Exception e) {
             log.error("Failed to send new message notification to user: {}", recipientId, e);
         }
@@ -290,8 +319,9 @@ public class NotificationClient {
                 request.put("referenceId", taskId);
             }
 
-            triggerNotification(request);
-            log.info("Sent task assignment notification to user: {} for task: {}", assigneeId, taskTitle);
+            if (triggerNotification(request)) {
+                log.info("Sent task assignment notification to user: {} for task: {}", assigneeId, taskTitle);
+            }
         } catch (Exception e) {
             log.error("Failed to send task assignment notification to user: {}", assigneeId, e);
         }
@@ -317,8 +347,9 @@ public class NotificationClient {
                 request.put("referenceId", paymentId);
             }
 
-            triggerNotification(request);
-            log.info("Sent payment received notification to parent: {} amount: {} {}", parentId, amount, currency);
+            if (triggerNotification(request)) {
+                log.info("Sent payment received notification to parent: {} amount: {} {}", parentId, amount, currency);
+            }
         } catch (Exception e) {
             log.error("Failed to send payment received notification to parent: {}", parentId, e);
         }
@@ -396,8 +427,9 @@ public class NotificationClient {
             request.put("type", "info");
             request.put("referenceType", "payment");
 
-            triggerNotification(request);
-            log.info("Sent payment due soon notification to parent: {} for student: {}", parentId, studentName);
+            if (triggerNotification(request)) {
+                log.info("Sent payment due soon notification to parent: {} for student: {}", parentId, studentName);
+            }
         } catch (Exception e) {
             log.error("Failed to send payment due soon notification to parent: {}", parentId, e);
         }
@@ -421,8 +453,9 @@ public class NotificationClient {
             request.put("startDate", startDate);
             request.put("endDate", endDate);
 
-            triggerNotification(request);
-            log.info("Sent leave application notification for employee: {}", employeeName);
+            if (triggerNotification(request)) {
+                log.info("Sent leave application notification for employee: {}", employeeName);
+            }
         } catch (Exception e) {
             log.error("Failed to send leave application notification for employee: {}", employeeName, e);
         }
@@ -444,8 +477,9 @@ public class NotificationClient {
             request.put("endDate", endDate);
             request.put("approverName", approverName);
 
-            triggerNotification(request);
-            log.info("Sent leave approved notification to employee: {}", employeeId);
+            if (triggerNotification(request)) {
+                log.info("Sent leave approved notification to employee: {}", employeeId);
+            }
         } catch (Exception e) {
             log.error("Failed to send leave approved notification to employee: {}", employeeId, e);
         }
@@ -471,8 +505,9 @@ public class NotificationClient {
                 request.put("reason", reason);
             }
 
-            triggerNotification(request);
-            log.info("Sent leave rejected notification to employee: {}", employeeId);
+            if (triggerNotification(request)) {
+                log.info("Sent leave rejected notification to employee: {}", employeeId);
+            }
         } catch (Exception e) {
             log.error("Failed to send leave rejected notification to employee: {}", employeeId, e);
         }
@@ -503,8 +538,9 @@ public class NotificationClient {
                 request.put("referenceId", referenceId);
             }
 
-            triggerNotification(request);
-            log.info("Sent approval request notification to approver: {} type: {}", approverId, requestType);
+            if (triggerNotification(request)) {
+                log.info("Sent approval request notification to approver: {} type: {}", approverId, requestType);
+            }
         } catch (Exception e) {
             log.error("Failed to send approval request notification to approver: {}", approverId, e);
         }
@@ -575,8 +611,9 @@ public class NotificationClient {
                 request.put("messageVi", messageVi);
             }
 
-            triggerNotification(request);
-            log.info("Sent broadcast notification: {}", title);
+            if (triggerNotification(request)) {
+                log.info("Sent broadcast notification: {}", title);
+            }
         } catch (Exception e) {
             log.error("Failed to send broadcast notification: {}", title, e);
         }
@@ -619,8 +656,9 @@ public class NotificationClient {
                 request.put("referenceId", referenceId);
             }
 
-            triggerNotification(request);
-            log.info("Sent custom notification to user: {} title: {}", userId, title);
+            if (triggerNotification(request)) {
+                log.info("Sent custom notification to user: {} title: {}", userId, title);
+            }
         } catch (Exception e) {
             log.error("Failed to send custom notification to user: {}", userId, e);
         }
@@ -661,8 +699,9 @@ public class NotificationClient {
                 request.put("referenceId", referenceId);
             }
 
-            triggerNotification(request);
-            log.info("Sent bulk notification to {} users title: {}", userIds.size(), title);
+            if (triggerNotification(request)) {
+                log.info("Sent bulk notification to {} users title: {}", userIds.size(), title);
+            }
         } catch (Exception e) {
             log.error("Failed to send bulk notification to {} users", userIds.size(), e);
         }
@@ -688,8 +727,9 @@ public class NotificationClient {
                 request.put("referenceId", certificateId);
             }
 
-            triggerNotification(request);
-            log.info("Sent certificate issued notification for student: {} course: {}", studentName, courseName);
+            if (triggerNotification(request)) {
+                log.info("Sent certificate issued notification for student: {} course: {}", studentName, courseName);
+            }
         } catch (Exception e) {
             log.error("Failed to send certificate issued notification for student: {}", studentName, e);
         }
@@ -722,8 +762,9 @@ public class NotificationClient {
                 request.put("referenceId", classId);
             }
 
-            triggerNotification(request);
-            log.info("Sent class schedule change notification for class: {} to {} users", className, userIds.size());
+            if (triggerNotification(request)) {
+                log.info("Sent class schedule change notification for class: {} to {} users", className, userIds.size());
+            }
         } catch (Exception e) {
             log.error("Failed to send class schedule change notification for class: {}", className, e);
         }
@@ -753,8 +794,9 @@ public class NotificationClient {
                 request.put("referenceId", classId);
             }
 
-            triggerNotification(request);
-            log.info("Sent class cancelled notification for class: {} on: {}", className, date);
+            if (triggerNotification(request)) {
+                log.info("Sent class cancelled notification for class: {} on: {}", className, date);
+            }
         } catch (Exception e) {
             log.error("Failed to send class cancelled notification for class: {}", className, e);
         }
@@ -778,8 +820,9 @@ public class NotificationClient {
             if (referenceId != null) {
                 request.put("referenceId", referenceId);
             }
-            triggerNotification(request);
-            log.info("Sent custom notification '{}' to {} users", title, userIds.size());
+            if (triggerNotification(request)) {
+                log.info("Sent custom notification '{}' to {} users", title, userIds.size());
+            }
         } catch (Exception e) {
             log.error("Failed to send custom multi-user notification: {}", title, e);
         }
@@ -808,8 +851,9 @@ public class NotificationClient {
                 request.put("referenceId", assignmentId);
             }
 
-            triggerNotification(request);
-            log.info("Sent new assignment notification '{}' to {} students", assignmentTitle, studentIds.size());
+            if (triggerNotification(request)) {
+                log.info("Sent new assignment notification '{}' to {} students", assignmentTitle, studentIds.size());
+            }
         } catch (Exception e) {
             log.error("Failed to send new assignment notification: {}", assignmentTitle, e);
         }
@@ -836,8 +880,9 @@ public class NotificationClient {
                 request.put("referenceId", assignmentId);
             }
 
-            triggerNotification(request);
-            log.info("Sent assignment graded notification to student: {} for: {}", studentId, assignmentTitle);
+            if (triggerNotification(request)) {
+                log.info("Sent assignment graded notification to student: {} for: {}", studentId, assignmentTitle);
+            }
         } catch (Exception e) {
             log.error("Failed to send assignment graded notification to student: {}", studentId, e);
         }
@@ -862,8 +907,9 @@ public class NotificationClient {
             request.put("type", "info");
             request.put("referenceType", "transport");
 
-            triggerNotification(request);
-            log.info("Sent transport update notification for route: {} to {} parents", routeName, parentIds.size());
+            if (triggerNotification(request)) {
+                log.info("Sent transport update notification for route: {} to {} parents", routeName, parentIds.size());
+            }
         } catch (Exception e) {
             log.error("Failed to send transport update notification for route: {}", routeName, e);
         }
@@ -892,8 +938,9 @@ public class NotificationClient {
                 request.put("referenceId", lessonPlanId);
             }
 
-            triggerNotification(request);
-            log.info("Sent lesson plan submitted notification for: {} to reviewer: {}", lessonTitle, reviewerId);
+            if (triggerNotification(request)) {
+                log.info("Sent lesson plan submitted notification for: {} to reviewer: {}", lessonTitle, reviewerId);
+            }
         } catch (Exception e) {
             log.error("Failed to send lesson plan submitted notification for: {}", lessonTitle, e);
         }
@@ -919,8 +966,9 @@ public class NotificationClient {
                 request.put("referenceId", lessonPlanId);
             }
 
-            triggerNotification(request);
-            log.info("Sent lesson plan approved notification to teacher: {}", teacherId);
+            if (triggerNotification(request)) {
+                log.info("Sent lesson plan approved notification to teacher: {}", teacherId);
+            }
         } catch (Exception e) {
             log.error("Failed to send lesson plan approved notification to teacher: {}", teacherId, e);
         }
@@ -947,8 +995,9 @@ public class NotificationClient {
                 request.put("referenceId", lessonPlanId);
             }
 
-            triggerNotification(request);
-            log.info("Sent lesson plan rejected notification to teacher: {}", teacherId);
+            if (triggerNotification(request)) {
+                log.info("Sent lesson plan rejected notification to teacher: {}", teacherId);
+            }
         } catch (Exception e) {
             log.error("Failed to send lesson plan rejected notification to teacher: {}", teacherId, e);
         }
@@ -977,8 +1026,9 @@ public class NotificationClient {
                 request.put("referenceId", assignmentId);
             }
 
-            triggerNotification(request);
-            log.info("Sent homework assigned notification '{}' to {} users", homeworkTitle, userIds.size());
+            if (triggerNotification(request)) {
+                log.info("Sent homework assigned notification '{}' to {} users", homeworkTitle, userIds.size());
+            }
         } catch (Exception e) {
             log.error("Failed to send homework assigned notification: {}", homeworkTitle, e);
         }
@@ -1028,8 +1078,9 @@ public class NotificationClient {
                 request.put("referenceId", submissionId);
             }
 
-            triggerNotification(request);
-            log.info("Sent homework submitted notification to teacher: {} from student: {}", teacherId, studentName);
+            if (triggerNotification(request)) {
+                log.info("Sent homework submitted notification to teacher: {} from student: {}", teacherId, studentName);
+            }
         } catch (Exception e) {
             log.error("Failed to send homework submitted notification to teacher: {}", teacherId, e);
         }
@@ -1056,8 +1107,9 @@ public class NotificationClient {
                 request.put("referenceId", submissionId);
             }
 
-            triggerNotification(request);
-            log.info("Sent homework graded notification to user: {} for: {}", userId, homeworkTitle);
+            if (triggerNotification(request)) {
+                log.info("Sent homework graded notification to user: {} for: {}", userId, homeworkTitle);
+            }
         } catch (Exception e) {
             log.error("Failed to send homework graded notification to user: {}", userId, e);
         }
@@ -1080,8 +1132,9 @@ public class NotificationClient {
             request.put("type", "info");
             request.put("referenceType", "curriculum");
 
-            triggerNotification(request);
-            log.info("Sent curriculum update notification for: {} to {} teachers", curriculumName, teacherIds.size());
+            if (triggerNotification(request)) {
+                log.info("Sent curriculum update notification for: {} to {} teachers", curriculumName, teacherIds.size());
+            }
         } catch (Exception e) {
             log.error("Failed to send curriculum update notification for: {}", curriculumName, e);
         }
@@ -1105,8 +1158,9 @@ public class NotificationClient {
                     scheduledTime, duration));
             request.put("type", "warning");
 
-            triggerNotification(request);
-            log.info("Sent system maintenance notification: {} for {}", scheduledTime, duration);
+            if (triggerNotification(request)) {
+                log.info("Sent system maintenance notification: {} for {}", scheduledTime, duration);
+            }
         } catch (Exception e) {
             log.error("Failed to send system maintenance notification", e);
         }
@@ -1126,8 +1180,9 @@ public class NotificationClient {
             request.put("messageVi", descriptionVi != null ? descriptionVi : description);
             request.put("type", "info");
 
-            triggerNotification(request);
-            log.info("Sent new feature announcement: {}", featureName);
+            if (triggerNotification(request)) {
+                log.info("Sent new feature announcement: {}", featureName);
+            }
         } catch (Exception e) {
             log.error("Failed to send new feature announcement: {}", featureName, e);
         }
@@ -1153,8 +1208,9 @@ public class NotificationClient {
                 request.put("referenceId", reportId);
             }
 
-            triggerNotification(request);
-            log.info("Sent grade report notification for student: {} term: {}", studentName, term);
+            if (triggerNotification(request)) {
+                log.info("Sent grade report notification for student: {} term: {}", studentName, term);
+            }
         } catch (Exception e) {
             log.error("Failed to send grade report notification for student: {}", studentName, e);
         }
@@ -1198,8 +1254,7 @@ public class NotificationClient {
                 notification.put("centerId", centerId);
             }
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = connectHeaders();
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(notification, headers);
 
             restTemplate.postForEntity(url, request, Object.class);
@@ -1273,8 +1328,7 @@ public class NotificationClient {
     public void markNotificationAsRead(UUID notificationId) {
         try {
             String url = connectServiceUrl + "/api/notifications/" + notificationId + "/read";
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = connectHeaders();
             HttpEntity<Void> request = new HttpEntity<>(headers);
             restTemplate.exchange(url, HttpMethod.PATCH, request, Object.class);
             log.debug("Marked notification {} as read", notificationId);
@@ -1290,8 +1344,7 @@ public class NotificationClient {
     public void markAllNotificationsAsRead(UUID userId) {
         try {
             String url = connectServiceUrl + "/api/notifications/user/" + userId + "/read-all";
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = connectHeaders();
             HttpEntity<Void> request = new HttpEntity<>(headers);
             restTemplate.exchange(url, HttpMethod.PATCH, request, Object.class);
             log.info("Marked all notifications as read for user: {}", userId);
@@ -1327,8 +1380,7 @@ public class NotificationClient {
         try {
             String url = connectServiceUrl + "/api/notifications/bulk";
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = connectHeaders();
             HttpEntity<List<Map<String, Object>>> request = new HttpEntity<>(notifications, headers);
 
             restTemplate.postForEntity(url, request, Object.class);
@@ -1351,19 +1403,26 @@ public class NotificationClient {
      * <p>
      * Notification failures are logged but never propagated to avoid blocking the calling service.
      */
-    public void triggerNotification(Map<String, Object> notificationRequest) {
+    /**
+     * @return true only if connect accepted the notification. It used to return void and swallow
+     *         the exception, so a caller would log "Failed to trigger notification ... 401" and
+     *         then, on the very next line, "Sent exam result notification" — the operator was told
+     *         a notification had gone out that had not.
+     */
+    public boolean triggerNotification(Map<String, Object> notificationRequest) {
         try {
             String url = connectServiceUrl + "/api/notifications/trigger";
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = connectHeaders();
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(notificationRequest, headers);
 
             restTemplate.postForEntity(url, request, Object.class);
             log.debug("Triggered notification: {}", notificationRequest.getOrDefault("notificationType", "CUSTOM"));
+            return true;
         } catch (Exception e) {
             log.error("Failed to trigger notification type={}: {}",
                     notificationRequest.getOrDefault("notificationType", "CUSTOM"), e.getMessage());
+            return false;
         }
     }
 }

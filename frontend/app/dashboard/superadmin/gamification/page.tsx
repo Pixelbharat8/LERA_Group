@@ -14,12 +14,17 @@ interface LeaderboardEntry {
   lastActivityDate: string;
 }
 
+/** Matches the badges table: the icon is a URL, and the copy is bilingual. */
 interface Badge {
   id: string;
+  code?: string;
   name: string;
-  icon: string;
-  description: string;
-  pointsRequired: number;
+  nameVi?: string;
+  description?: string;
+  descriptionVi?: string;
+  iconUrl?: string;
+  pointsRequired?: number;
+  category?: string;
 }
 
 export default function GamificationPage() {
@@ -27,18 +32,28 @@ export default function GamificationPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalPoints: 0, totalBadges: 0, totalAchievements: 0 });
 
-  const defaultBadges: Badge[] = [
-    { id: "1", name: "Beginner", icon: "🌟", description: "Complete first lesson", pointsRequired: 10 },
-    { id: "2", name: "Reader", icon: "📚", description: "Read 5 lessons", pointsRequired: 50 },
-    { id: "3", name: "Writer", icon: "✍️", description: "Submit 3 assignments", pointsRequired: 100 },
-    { id: "4", name: "Achiever", icon: "🎯", description: "Score 90% on a test", pointsRequired: 200 },
-    { id: "5", name: "Streak", icon: "🔥", description: "7 day learning streak", pointsRequired: 350 },
-    { id: "6", name: "Champion", icon: "👑", description: "Top 3 in class", pointsRequired: 500 },
-  ];
+  // The real badge catalogue. This page used to render six INVENTED badges (Beginner, Reader,
+  // Writer, Achiever, Streak, Champion) while the badges table held five entirely different ones
+  // that students actually earn — First Day, Perfect Attendance, Homework Hero, Level Up, Star
+  // Student. Anyone reading this screen would have believed the system awarded badges it does not.
+  const [badges, setBadges] = useState<Badge[]>([]);
 
   useEffect(() => {
     fetchLeaderboard();
+    fetchBadges();
   }, []);
+
+  const fetchBadges = async () => {
+    try {
+      const data = await apiFetch("/api/badges");
+      const list = Array.isArray(data) ? data : [];
+      setBadges(list);
+      setStats((prev) => ({ ...prev, totalBadges: list.length }));
+    } catch (error) {
+      console.error("Error fetching badges:", error);
+      setBadges([]);
+    }
+  };
 
   const fetchLeaderboard = async () => {
     try {
@@ -50,7 +65,7 @@ export default function GamificationPage() {
       const totalPoints = entries.reduce((sum: number, e: LeaderboardEntry) => sum + e.totalPoints, 0);
       setStats({
         totalPoints,
-        totalBadges: defaultBadges.length,
+        totalBadges: 0, // filled in by fetchBadges, from the real catalogue
         totalAchievements: entries.filter((e: LeaderboardEntry) => e.totalPoints > 100).length
       });
     } catch (error) {
@@ -105,15 +120,27 @@ export default function GamificationPage() {
 
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h2 className="text-xl font-bold mb-4">Badges</h2>
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          {defaultBadges.map((badge) => (
-            <div key={badge.id} className="text-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-              <div className="text-3xl mb-2">{badge.icon}</div>
-              <p className="text-sm font-medium">{badge.name}</p>
-              <p className="text-xs text-gray-500">{badge.pointsRequired} pts</p>
-            </div>
-          ))}
-        </div>
+        {badges.length === 0 ? (
+          <p className="text-sm text-gray-500">No badges are configured.</p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            {badges.map((badge) => (
+              <div key={badge.id} className="text-center p-4 bg-gray-50 rounded-lg" title={badge.description || ""}>
+                {/* icon_url is a URL, not an emoji — fall back to a neutral mark rather than
+                    printing a broken image or nothing at all. */}
+                {badge.iconUrl ? (
+                  <img src={badge.iconUrl} alt="" className="w-8 h-8 mx-auto mb-2 object-contain" />
+                ) : (
+                  <div className="text-3xl mb-2">🏅</div>
+                )}
+                <p className="text-sm font-medium">{badge.name}</p>
+                {badge.pointsRequired != null && (
+                  <p className="text-xs text-gray-500">{badge.pointsRequired} pts</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-6">

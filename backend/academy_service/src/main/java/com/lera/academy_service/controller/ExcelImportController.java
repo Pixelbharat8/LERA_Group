@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,6 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
 import java.time.LocalDate;
 import java.util.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.web.client.HttpStatusCodeException;
 
 @RestController
 @RequestMapping("/api/import")
@@ -32,7 +36,13 @@ public class ExcelImportController {
     private final TeacherRepository teacherRepository;
     private final RestTemplate restTemplate;
     
-    private static final String IDENTITY_SERVICE_URL = "http://localhost:8081";
+    /**
+     * Bulk Excel import creates the login for each imported student via identity_service. This was
+     * a hardcoded localhost constant with no override, so the call could only ever work when both
+     * services ran as processes on one host — in any container it hit academy_service itself.
+     */
+    @Value("${identity.service.url:http://localhost:8081}")
+    private String identityServiceUrl;
     
     @Value("${lera.internal.api-key:#{null}}")
     private String internalApiKey;
@@ -40,7 +50,19 @@ public class ExcelImportController {
     /**
      * Import students from Excel file
      */
+    /**
+     * Bulk import writes through the repositories directly, bypassing StudentService and
+     * TeacherService — and with them their {@code @CacheEvict}. The list caches ("students",
+     * "teachers") are Caffeine with a ten-minute expireAfterWrite, so without this the people you
+     * just imported stayed invisible on the Students and Teachers pages for up to ten minutes.
+     * Measured: 3 students in the database, the list endpoint still answering 2.
+     *
+     * That matters more than a stale list, because the natural reaction is to import the sheet
+     * again — and this importer does not skip existing rows by default, so the second attempt
+     * duplicates every student.
+     */
     @PostMapping("/students")
+    @CacheEvict(value = {"students", "teachers"}, allEntries = true)
     public ResponseEntity<Map<String, Object>> importStudents(
             @RequestParam("file") MultipartFile file,
             @RequestParam(defaultValue = "true") boolean createAccounts,
@@ -80,16 +102,29 @@ public class ExcelImportController {
                     
                     Student saved = studentRepository.save(student);
                     
-                    // Create login account in identity service if requested
+                    // Create login account in identity service if requested. accountCreated below
+                    // reports the OUTCOME, not the intention: it used to be set from
+                    // `createAccounts && email != null`, so a re-import of the same sheet — where
+                    // identity correctly answers "Email already exists" — still reported
+                    // "accountCreated": true with errors: 0, while the student row was saved with a
+                    // null user_id and no login. The admin was told it worked.
+                    boolean accountCreated = false;
+                    String accountError = null;
+                    String temporaryPassword = null;
                     if (createAccounts && email != null && !email.isEmpty()) {
                         try {
-                            UUID userId = createUserAccount(email, phone, fullname, "STUDENT", saved.getCenterId());
-                            if (userId != null) {
-                                saved.setUserId(userId);
+                            CreatedAccount account = createUserAccount(email, phone, fullname, "STUDENT", saved.getCenterId());
+                            if (account != null) {
+                                saved.setUserId(account.userId());
                                 studentRepository.save(saved);
+                                accountCreated = true;
+                                temporaryPassword = account.temporaryPassword();
+                            } else {
+                                accountError = "identity_service returned no user id";
                             }
-                        } catch (Exception accountError) {
-                            log.warn("Student saved but account creation failed for {}: {}", email, accountError.getMessage());
+                        } catch (Exception ex) {
+                            accountError = accountFailureReason(ex);
+                            log.warn("Student saved but account creation failed for {}: {}", email, ex.getMessage());
                         }
                     }
                     
@@ -98,7 +133,17 @@ public class ExcelImportController {
                     success.put("id", saved.getId());
                     success.put("studentCode", saved.getStudentCode());
                     success.put("fullname", saved.getFullname());
-                    success.put("accountCreated", createAccounts && email != null && !email.isEmpty());
+                    success.put("accountCreated", accountCreated);
+                    if (temporaryPassword != null) {
+                        // Returned once, to the admin who ran the import: there is no other way to
+                        // get it to the account holder, and it must be changed at first login.
+                        success.put("temporaryPassword", temporaryPassword);
+                    }
+                    if (accountError != null) {
+                        // Surface it in the response, not just the log: the row IS imported, but
+                        // the person cannot sign in, and whoever ran the import needs to know.
+                        success.put("accountError", accountError);
+                    }
                     imported.add(success);
                     
                 } catch (Exception e) {
@@ -127,9 +172,42 @@ public class ExcelImportController {
     }
     
     /**
+     * A short, safe reason for the import report. The raw RestTemplate message carries the
+     * internal service URL and identity's whole response body; this file sanitises elsewhere
+     * ("An unexpected error occurred"), so it should not leak internals here either. Identity's
+     * own {@code message} ("Email already exists") is the part an administrator can act on.
+     */
+    private String accountFailureReason(Exception ex) {
+        if (ex instanceof HttpStatusCodeException httpEx) {
+            try {
+                JsonNode body = new ObjectMapper().readTree(httpEx.getResponseBodyAsString());
+                String msg = body.path("message").asText(null);
+                if (msg != null && !msg.isBlank()) {
+                    return msg;
+                }
+            } catch (Exception ignored) {
+                // fall through to the generic reason
+            }
+        }
+        return "Account creation failed";
+    }
+
+    /**
      * Import teachers from Excel file
      */
+    /**
+     * Bulk import writes through the repositories directly, bypassing StudentService and
+     * TeacherService — and with them their {@code @CacheEvict}. The list caches ("students",
+     * "teachers") are Caffeine with a ten-minute expireAfterWrite, so without this the people you
+     * just imported stayed invisible on the Students and Teachers pages for up to ten minutes.
+     * Measured: 3 students in the database, the list endpoint still answering 2.
+     *
+     * That matters more than a stale list, because the natural reaction is to import the sheet
+     * again — and this importer does not skip existing rows by default, so the second attempt
+     * duplicates every student.
+     */
     @PostMapping("/teachers")
+    @CacheEvict(value = {"students", "teachers"}, allEntries = true)
     public ResponseEntity<Map<String, Object>> importTeachers(
             @RequestParam("file") MultipartFile file,
             @RequestParam(defaultValue = "true") boolean createAccounts,
@@ -169,16 +247,29 @@ public class ExcelImportController {
                     
                     Teacher saved = teacherRepository.save(teacher);
                     
-                    // Create login account in identity service if requested
+                    // Create login account in identity service if requested. accountCreated below
+                    // reports the OUTCOME, not the intention: it used to be set from
+                    // `createAccounts && email != null`, so a re-import of the same sheet — where
+                    // identity correctly answers "Email already exists" — still reported
+                    // "accountCreated": true with errors: 0, while the teacher row was saved with a
+                    // null user_id and no login. The admin was told it worked.
+                    boolean accountCreated = false;
+                    String accountError = null;
+                    String temporaryPassword = null;
                     if (createAccounts && email != null && !email.isEmpty()) {
                         try {
-                            UUID userId = createUserAccount(email, phone, fullname, "TEACHER", saved.getCenterId());
-                            if (userId != null) {
-                                saved.setUserId(userId);
+                            CreatedAccount account = createUserAccount(email, phone, fullname, "TEACHER", saved.getCenterId());
+                            if (account != null) {
+                                saved.setUserId(account.userId());
                                 teacherRepository.save(saved);
+                                accountCreated = true;
+                                temporaryPassword = account.temporaryPassword();
+                            } else {
+                                accountError = "identity_service returned no user id";
                             }
-                        } catch (Exception accountError) {
-                            log.warn("Teacher saved but account creation failed for {}: {}", email, accountError.getMessage());
+                        } catch (Exception ex) {
+                            accountError = accountFailureReason(ex);
+                            log.warn("Teacher saved but account creation failed for {}: {}", email, ex.getMessage());
                         }
                     }
                     
@@ -186,7 +277,17 @@ public class ExcelImportController {
                     success.put("row", rowNum);
                     success.put("id", saved.getId());
                     success.put("teacherCode", saved.getTeacherCode());
-                    success.put("accountCreated", createAccounts && email != null && !email.isEmpty());
+                    success.put("accountCreated", accountCreated);
+                    if (temporaryPassword != null) {
+                        // Returned once, to the admin who ran the import: there is no other way to
+                        // get it to the account holder, and it must be changed at first login.
+                        success.put("temporaryPassword", temporaryPassword);
+                    }
+                    if (accountError != null) {
+                        // Surface it in the response, not just the log: the row IS imported, but
+                        // the person cannot sign in, and whoever ran the import needs to know.
+                        success.put("accountError", accountError);
+                    }
                     imported.add(success);
                     
                 } catch (Exception e) {
@@ -362,13 +463,16 @@ public class ExcelImportController {
     // Helper methods
     
     /**
-     * Create a user account in the identity service via REST call.
-     * Default password is generated as: first 3 chars of name (lowercase) + phone last 4 digits + "!".
+     * Create a user account in the identity service via REST call, with a one-time random
+     * password that must be changed at first login.
      * Returns the created user's UUID, or null if creation fails.
      */
-    private UUID createUserAccount(String email, String phone, String fullname, String roleName, UUID centerId) {
+    /** A newly created login, and the one-time password the admin must pass on. */
+    record CreatedAccount(UUID userId, String temporaryPassword) {}
+
+    private CreatedAccount createUserAccount(String email, String phone, String fullname, String roleName, UUID centerId) {
         try {
-            String defaultPassword = generateDefaultPassword(fullname, phone);
+            String defaultPassword = generateTemporaryPassword();
             
             Map<String, Object> registerRequest = new HashMap<>();
             registerRequest.put("email", email);
@@ -377,6 +481,7 @@ public class ExcelImportController {
             registerRequest.put("password", defaultPassword);
             registerRequest.put("roleName", roleName);
             registerRequest.put("status", "ACTIVE");
+            registerRequest.put("passwordChangeRequired", true);
             if (centerId != null) {
                 registerRequest.put("centerId", centerId.toString());
             }
@@ -389,7 +494,7 @@ public class ExcelImportController {
             
             @SuppressWarnings("unchecked")
             Map<String, Object> response = restTemplate.postForObject(
-                IDENTITY_SERVICE_URL + "/api/auth/register",
+                identityServiceUrl + "/api/auth/register",
                 entity,
                 Map.class
             );
@@ -399,8 +504,9 @@ public class ExcelImportController {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> userObj = (Map<String, Object>) response.get("user");
                 if (userObj != null && userObj.get("id") != null) {
-                    log.info("Account created for {} with role {} (default password generated)", email, roleName);
-                    return UUID.fromString(userObj.get("id").toString());
+                    // Never log the password itself.
+                    log.info("Account created for {} with role {} (one-time password issued)", email, roleName);
+                    return new CreatedAccount(UUID.fromString(userObj.get("id").toString()), defaultPassword);
                 }
             }
             
@@ -412,36 +518,32 @@ public class ExcelImportController {
         }
     }
     
+    /** Unambiguous alphabet: no O/0, I/l/1 — these passwords get read off a printout. */
+    private static final String PASSWORD_ALPHABET =
+            "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
+
     /**
-     * Generate a default password from name and phone.
-     * Format: first 3 chars of lowercase name + last 4 digits of phone + "!"
-     * Example: "John Doe" + "0987654321" -> "joh4321!"
-     * If insufficient data, falls back to "Lera@" + random 4 digits
+     * A one-time password for a bulk-imported account.
+     *
+     * This used to be built out of the person's own details: the first three letters of their
+     * name plus the last four digits of their phone number plus "!". "Nguyễn Văn An" on
+     * 0987654321 became "ngu4321!" — so anyone holding a class roster or a staff list could work
+     * out the password for every account on it, without guessing. The accounts were created
+     * ACTIVE and were never asked to change it, and imported roles include TEACHER, whose
+     * accounts can read student records.
+     *
+     * Now: 14 characters from a cryptographically secure source, unrelated to the person, and
+     * flagged so it must be changed at first login. It is returned to the importing admin once,
+     * in the import result, because nothing else can deliver it to the account holder.
      */
-    private String generateDefaultPassword(String fullname, String phone) {
-        StringBuilder password = new StringBuilder();
-        
-        // First 3 chars of name (lowercase)
-        if (fullname != null && fullname.length() >= 3) {
-            password.append(fullname.substring(0, 3).toLowerCase().replaceAll("[^a-z]", ""));
+    private String generateTemporaryPassword() {
+        StringBuilder password = new StringBuilder(14);
+        for (int i = 0; i < 14; i++) {
+            password.append(PASSWORD_ALPHABET.charAt(SECURE_RANDOM.nextInt(PASSWORD_ALPHABET.length())));
         }
-        if (password.length() < 3) {
-            password.append("usr");
-        }
-        
-        // Last 4 digits of phone
-        if (phone != null) {
-            String digits = phone.replaceAll("[^0-9]", "");
-            if (digits.length() >= 4) {
-                password.append(digits.substring(digits.length() - 4));
-            } else {
-                password.append(String.format("%04d", new Random().nextInt(10000)));
-            }
-        } else {
-            password.append(String.format("%04d", new Random().nextInt(10000)));
-        }
-        
-        password.append("!");
+        // Keep a symbol so the value satisfies any policy that demands one.
+        password.append('!');
         return password.toString();
     }
     

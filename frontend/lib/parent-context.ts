@@ -24,15 +24,20 @@ export type ParentChildRow = {
   className?: string;
 };
 
+/**
+ * A parent only has a ParentProfile row if staff created one; the panel works without it by
+ * falling back to the JWT user id (see resolveMyParentUserId), because student_parents is keyed
+ * on the parent USER id, not the profile id. So a 404 here is normal, not an error.
+ *
+ * This used to retry /api/parents/self after /api/parents/me 404'd. Both paths are the SAME
+ * handler — @GetMapping({"/self", "/me"}) — so the retry could never succeed, and every parent
+ * page issued two guaranteed-failing requests on every load.
+ */
 export async function resolveMyParentProfile(): Promise<ParentProfileRow | null> {
   try {
     return (await apiFetch("/api/parents/me")) as ParentProfileRow;
   } catch {
-    try {
-      return (await apiFetch("/api/parents/self")) as ParentProfileRow;
-    } catch {
-      return null;
-    }
+    return null;
   }
 }
 

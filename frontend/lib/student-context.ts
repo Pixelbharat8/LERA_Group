@@ -241,6 +241,21 @@ export type AttendanceDisplayRecord = {
   notes: string;
 };
 
+/** Batch class-session lookup (deduped) so a row can show the real session date and class. */
+async function loadSessionsById(
+  sessionIds: (string | undefined)[]
+): Promise<Map<string, { sessionDate?: string; classId?: string }>> {
+  const unique = Array.from(new Set(sessionIds.filter(Boolean).map(String)));
+  const sessions = await Promise.all(
+    unique.map((sid) => apiFetch(`/api/class-sessions/${sid}`).catch(() => null))
+  );
+  return new Map(
+    sessions
+      .filter(Boolean)
+      .map((s: { id: string; sessionDate?: string; classId?: string }) => [String(s.id), s])
+  );
+}
+
 /** LMS session marks first; payroll rows as fallback (student/parent views). */
 export async function loadAttendanceRecordsForStudent(
   studentId: string
@@ -250,15 +265,7 @@ export async function loadAttendanceRecordsForStudent(
   );
   const lmsRows = await loadMySessionAttendance(studentId);
   if (lmsRows.length > 0) {
-    const uniqueSessionIds = Array.from(new Set(lmsRows.map((r) => r.sessionId)));
-    const sessions = await Promise.all(
-      uniqueSessionIds.map((sid) => apiFetch(`/api/class-sessions/${sid}`).catch(() => null))
-    );
-    const sessionById = new Map(
-      sessions
-        .filter(Boolean)
-        .map((s: { id: string; sessionDate?: string; classId?: string }) => [String(s.id), s])
-    );
+    const sessionById = await loadSessionsById(lmsRows.map((r) => r.sessionId));
     return lmsRows.map((row) => {
       const session = sessionById.get(row.sessionId) as
         | { sessionDate?: string; classId?: string }
@@ -276,16 +283,31 @@ export async function loadAttendanceRecordsForStudent(
     () => []
   )) as Record<string, unknown>[];
   if (!Array.isArray(data)) return [];
-  return data.map((a) => ({
-    id: String(a.id ?? `${a.sessionId}-${a.studentId}`),
-    date: String(
-      a.attendanceDate ?? a.date ?? new Date().toISOString().split("T")[0]
-    ),
-    className:
-      String(a.className ?? "") || classById.get(String(a.classId ?? "")) || "Class",
-    status: String(a.status ?? "PRESENT") as AttendanceDisplayRecord["status"],
-    notes: String(a.notes ?? ""),
-  }));
+  // attendance_service rows (what the centre-admin attendance page writes) carry only a
+  // sessionId — no date and no class. Resolving the session gives the real lesson date and
+  // class; previously every row fell through to `new Date()`, so a whole term of attendance
+  // rendered as today, with the class shown as the literal word "Class".
+  const sessionById = await loadSessionsById(data.map((a) => a.sessionId as string | undefined));
+  return data.map((a) => {
+    const session = sessionById.get(String(a.sessionId ?? ""));
+    return {
+      id: String(a.id ?? `${a.sessionId}-${a.studentId}`),
+      date: String(
+        a.attendanceDate ??
+          a.date ??
+          session?.sessionDate ??
+          // last resort: when the mark was recorded, which is at least a real date
+          String(a.checkInTime ?? a.createdAt ?? "").split("T")[0] ??
+          ""
+      ),
+      className:
+        String(a.className ?? "") ||
+        classById.get(String(a.classId ?? session?.classId ?? "")) ||
+        "Class",
+      status: String(a.status ?? "PRESENT") as AttendanceDisplayRecord["status"],
+      notes: String(a.notes ?? ""),
+    };
+  });
 }
 
 export async function computeAttendanceRate(studentId: string): Promise<number> {

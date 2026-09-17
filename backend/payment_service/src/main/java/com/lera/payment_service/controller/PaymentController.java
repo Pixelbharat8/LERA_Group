@@ -169,14 +169,28 @@ public class PaymentController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Payments recorded against one invoice. Staff see the invoice's payments subject to the
+     * usual centre scoping; a STUDENT or PARENT sees the ones that are theirs, which is how the
+     * student/parent payments page shows "Paid on …" and offers a receipt.
+     *
+     * This used to deny every non-staff caller outright, so a student could not see the payments
+     * for their OWN invoice — and because the denial was a bare 403 with no body, the UI could
+     * not name the problem either and raised a bare "Unexpected error" toast on a page that had
+     * otherwise loaded fine. Filtering through {@code canViewPayment} keeps the guarantee that
+     * nobody sees another family's payment while letting families see their own.
+     */
     @GetMapping("/invoice/{invoiceId}")
     public ResponseEntity<List<Payment>> getPaymentsByInvoiceId(
             @PathVariable UUID invoiceId,
             @AuthenticationPrincipal AuthUser authUser) {
-        if (authUser == null || !paymentAccess.isPrivilegedStaff(authUser.getRoleName())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        if (authUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        return ResponseEntity.ok(paymentService.getByInvoice(invoiceId));
+        List<Payment> visible = paymentService.getByInvoice(invoiceId).stream()
+                .filter(p -> paymentAccess.canViewPayment(authUser, p))
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(visible);
     }
 
     @GetMapping("/status/{status}")

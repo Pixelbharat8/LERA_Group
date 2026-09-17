@@ -65,6 +65,9 @@ export default function StudentFeePlansPage() {
 
   const [form, setForm] = useState({
     studentId: "",
+    // A fee plan row is centre-scoped (center_id is NOT NULL). The form never sent one, so the
+    // insert could not succeed whatever else was filled in.
+    centerId: "",
     courseId: "",
     planType: "MONTHLY" as StudentFeePlan["planType"],
     baseAmount: 0,
@@ -86,7 +89,13 @@ export default function StudentFeePlansPage() {
     try {
       const plansUrl = buildCenterFilterUrl('/api/student-fee-plans', shouldFilterByCenter ? userCenterId : null);
       const studentsUrl = buildCenterFilterUrl('/api/students', shouldFilterByCenter ? userCenterId : null);
-      const coursesUrl = buildCenterFilterUrl('/api/courses', shouldFilterByCenter ? userCenterId : null);
+      // `/api/courses` is staff-only (AcademyRoles.STAFF, which excludes ACCOUNTANT), so this page
+      // 403'd for the very role that uses it — an accountant building a payment plan could not see
+      // the courses to attach it to. `/api/courses/active` serves the same catalogue and is public;
+      // it is also the right list here, since a plan should only reference a course still on offer.
+      // Course programmes are not centre-scoped (course_programs has no center_id), so the centre
+      // filter was a no-op anyway.
+      const coursesUrl = '/api/courses/active';
       const [plansData, studentsData, coursesData, centersData] = await Promise.all([
         apiFetch(plansUrl).catch(() => []),
         apiFetch(studentsUrl).catch(() => []),
@@ -100,12 +109,24 @@ export default function StudentFeePlansPage() {
       // Map the StudentFeePlan entity (totalAmount/installments/planName) to the fields this page
       // reads (finalAmount/baseAmount/planType/studentName) — sending them raw rendered ₫NaN and
       // crashed the search on undefined studentName.
+      //
+      // A plan row carries studentId, never a name, so `p.studentName` was always "" — the Student
+      // column was blank on every row and the search box, which filters on studentName, could
+      // never match anything. The student list is already loaded here, so join it (same fix as
+      // finance/invoices). courseName has no equivalent: StudentFeePlan has no courseId to join
+      // on, so that column stays empty until the model carries one.
+      const studentNameById = new Map<string, string>(
+        (Array.isArray(studentsData) ? studentsData : []).map((s: any) => [
+          String(s.id),
+          s.fullname || s.fullName || s.name || "",
+        ])
+      );
       setFeePlans(Array.isArray(plansData) ? plansData.map((p: any) => ({
         ...p,
         finalAmount: p.finalAmount ?? p.totalAmount ?? 0,
         baseAmount: p.baseAmount ?? p.totalAmount ?? 0,
         planType: p.planType ?? "CUSTOM",
-        studentName: p.studentName ?? "",
+        studentName: p.studentName || studentNameById.get(String(p.studentId)) || "",
       })) : []);
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -172,13 +193,18 @@ export default function StudentFeePlansPage() {
     try {
       await apiFetch("/api/student-fee-plans", {
         method: "POST",
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          // fall back to the signed-in user's own centre when the form has not set one
+          centerId: form.centerId || userCenterId || "",
+        }),
       });
 
       await fetchData();
       setShowModal(false);
       setForm({
         studentId: "",
+        centerId: "",
         courseId: "",
         planType: "MONTHLY",
         baseAmount: 0,

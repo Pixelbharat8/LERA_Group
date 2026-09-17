@@ -162,26 +162,35 @@ echo ""
 ########################################################
 echo -e "${CYAN}━━━ [4] DOCKER DATABASE CONFIG ━━━${NC}"
 
-DOCKER_FILE="$ROOT_DIR/database/docker-compose.yml"
+# The root compose is the single source of truth for postgres. database/docker-compose.yml was
+# removed: it used the same container_name with a different volume, which silently split the data.
+DOCKER_FILE="$ROOT_DIR/docker-compose.yml"
 if [ ! -f "$DOCKER_FILE" ]; then
-  fail "database/docker-compose.yml NOT FOUND"
+  fail "docker-compose.yml NOT FOUND"
 else
-  if grep -q "POSTGRES_DB: lera" "$DOCKER_FILE"; then
-    ok "Docker: POSTGRES_DB = lera"
+  # The root compose takes these from the environment rather than hardcoding them, so assert
+  # the variable form. Asserting literals here is what made this check reward a hardcoded
+  # password — it used to require `POSTGRES_PASSWORD: lera123` to pass.
+  if grep -q 'POSTGRES_DB: ${DB_NAME' "$DOCKER_FILE"; then
+    ok "Docker: POSTGRES_DB from \$DB_NAME (default lera)"
   else
-    fail "Docker: POSTGRES_DB incorrect"
+    fail "Docker: POSTGRES_DB should come from \$DB_NAME"
   fi
 
-  if grep -q "POSTGRES_USER: lera" "$DOCKER_FILE"; then
-    ok "Docker: POSTGRES_USER = lera"
+  if grep -q 'POSTGRES_USER: ${DB_USER' "$DOCKER_FILE"; then
+    ok "Docker: POSTGRES_USER from \$DB_USER (default lera)"
   else
-    fail "Docker: POSTGRES_USER incorrect"
+    fail "Docker: POSTGRES_USER should come from \$DB_USER"
   fi
 
-  if grep -q "POSTGRES_PASSWORD: <DB_PASSWORD>" "$DOCKER_FILE"; then
-    ok "Docker: POSTGRES_PASSWORD = <DB_PASSWORD>"
+  # Resolved in favour of the assertion that matches the file: docker-compose.yml has
+  # POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}. The other side checked for a
+  # literal "<DB_PASSWORD>" placeholder, which would have reported a false failure — and the
+  # fail message below already says ${DB_PASSWORD:?...} is what is required.
+  if grep -q 'POSTGRES_PASSWORD: ${DB_PASSWORD:?' "$DOCKER_FILE"; then
+    ok "Docker: POSTGRES_PASSWORD required from \$DB_PASSWORD (no hardcoded default)"
   else
-    fail "Docker: POSTGRES_PASSWORD incorrect"
+    fail "Docker: POSTGRES_PASSWORD must be \${DB_PASSWORD:?...} — never a literal"
   fi
 
   if grep -q '"5432:5432"' "$DOCKER_FILE"; then

@@ -59,7 +59,25 @@ export default function PayrollReportsPage() {
     }
   };
 
+  /**
+   * This figure is an ESTIMATE computed in the browser, and it is not what LERA will actually
+   * withhold. It is labelled as such rather than corrected, because the correction is a payroll
+   * policy decision and not an arithmetic one — see the notes below.
+   */
+  const TAX_ESTIMATE_BASIS =
+    "Estimate only, calculated in this report — not from the organisation's configured tax " +
+    "settings. It uses fixed PIT brackets and an 11,000,000₫ personal deduction (i.e. it assumes " +
+    "nobody has dependants), applies them to each payslip's total (which is already net of that " +
+    "payslip's recorded deductions), and does not account for the employee social, health and " +
+    "unemployment insurance contributions that are withheld before PIT. Do not file from it.";
+
   const calculateTax = (totalAmount: number): number => {
+    // NOTE: these brackets are hardcoded here and are NOT read from /api/tax-settings, where the
+    // organisation has configured its own PIT levels (and its Social 8% / Health 1.5% /
+    // Unemployment 1% employee contributions). Sourcing this from that configuration — and
+    // deciding the order in which insurance and PIT apply — needs someone who knows LERA's
+    // payroll policy. Until then the figure is labelled an estimate rather than quietly trusted.
+    //
     // Vietnam Personal Income Tax (Progressive)
     // 0-5M: 5%
     // 5M-10M: 10%
@@ -287,7 +305,16 @@ export default function PayrollReportsPage() {
               <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center text-2xl">🧾</div>
               <div>
                 <p className="text-lg font-bold text-gray-900">{formatCurrency(summary.totalTax)}</p>
-                <p className="text-sm text-gray-500">Total Tax</p>
+                <p className="text-sm text-gray-500">
+                  Estimated Tax{" "}
+                  <span
+                    className="cursor-help text-gray-400"
+                    title={TAX_ESTIMATE_BASIS}
+                    aria-label={TAX_ESTIMATE_BASIS}
+                  >
+                    ⓘ
+                  </span>
+                </p>
               </div>
             </div>
           </div>
@@ -297,7 +324,16 @@ export default function PayrollReportsPage() {
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-2xl">💰</div>
               <div>
                 <p className="text-lg font-bold text-gray-900">{formatCurrency(summary.netAmount)}</p>
-                <p className="text-sm text-gray-500">Net Payroll</p>
+                <p className="text-sm text-gray-500">
+                  Net Payroll (est.){" "}
+                  <span
+                    className="cursor-help text-gray-400"
+                    title={TAX_ESTIMATE_BASIS}
+                    aria-label={TAX_ESTIMATE_BASIS}
+                  >
+                    ⓘ
+                  </span>
+                </p>
               </div>
             </div>
           </div>
@@ -361,8 +397,8 @@ export default function PayrollReportsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Base Salary</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teaching Amount</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gross Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tax</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Net Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" title={TAX_ESTIMATE_BASIS}>Tax (est.)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" title={TAX_ESTIMATE_BASIS}>Net Amount (est.)</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">

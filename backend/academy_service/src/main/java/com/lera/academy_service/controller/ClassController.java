@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import jakarta.validation.Valid;
 
+import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -26,6 +27,64 @@ public class ClassController {
     private final ClassService classService;
     private final ClassRepository classRepository;
     private final AcademyAuthorizationService authz;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    /**
+     * A class row carries only teacherId / programId / levelId, but every screen that lists
+     * classes shows the teacher's name, the course name and the number of students enrolled.
+     * Those three rendered blank (and the count as 0) on the chairman and academy centre pages,
+     * on a user's profile, and on the PARENT'S SCHEDULE — a parent looking at their child's
+     * timetable saw the times but neither the course nor the teacher.
+     *
+     * Three batched queries for the whole page, never one per row. Mirrors
+     * AttendanceController#withNames, which exists for exactly this reason.
+     */
+    private List<ClassEntity> withDisplayNames(List<ClassEntity> classes) {
+        if (classes == null || classes.isEmpty()) return classes;
+
+        List<UUID> teacherIds = classes.stream().map(ClassEntity::getTeacherId)
+                .filter(java.util.Objects::nonNull).distinct().toList();
+        Map<UUID, String> teacherNames = new java.util.HashMap<>();
+        if (!teacherIds.isEmpty()) {
+            String ph = teacherIds.stream().map(x -> "?").collect(java.util.stream.Collectors.joining(","));
+            jdbcTemplate.query("SELECT id, display_name FROM teachers WHERE id IN (" + ph + ")",
+                    (java.sql.ResultSet rs) -> {
+                        teacherNames.put(rs.getObject("id", UUID.class), rs.getString("display_name"));
+                    }, teacherIds.toArray());
+        }
+
+        List<UUID> programIds = classes.stream().map(ClassEntity::getProgramId)
+                .filter(java.util.Objects::nonNull).distinct().toList();
+        Map<UUID, String> programNames = new java.util.HashMap<>();
+        if (!programIds.isEmpty()) {
+            String ph = programIds.stream().map(x -> "?").collect(java.util.stream.Collectors.joining(","));
+            jdbcTemplate.query("SELECT id, name FROM course_programs WHERE id IN (" + ph + ")",
+                    (java.sql.ResultSet rs) -> {
+                        programNames.put(rs.getObject("id", UUID.class), rs.getString("name"));
+                    }, programIds.toArray());
+        }
+
+        List<UUID> classIds = classes.stream().map(ClassEntity::getId)
+                .filter(java.util.Objects::nonNull).distinct().toList();
+        Map<UUID, Integer> counts = new java.util.HashMap<>();
+        if (!classIds.isEmpty()) {
+            String ph = classIds.stream().map(x -> "?").collect(java.util.stream.Collectors.joining(","));
+            jdbcTemplate.query(
+                    "SELECT class_id, COUNT(*) AS n FROM enrollments WHERE class_id IN (" + ph + ")"
+                            + " AND (status IS NULL OR UPPER(status) NOT IN ('WITHDRAWN','DROPPED'))"
+                            + " GROUP BY class_id",
+                    (java.sql.ResultSet rs) -> {
+                        counts.put(rs.getObject("class_id", UUID.class), rs.getInt("n"));
+                    }, classIds.toArray());
+        }
+
+        for (ClassEntity c : classes) {
+            c.setTeacherName(teacherNames.get(c.getTeacherId()));
+            c.setProgramName(programNames.get(c.getProgramId()));
+            c.setStudentCount(counts.getOrDefault(c.getId(), 0));
+        }
+        return classes;
+    }
     
     @GetMapping
     public ResponseEntity<List<ClassEntity>> getAllClasses(
@@ -36,26 +95,26 @@ public class ClassController {
             @RequestParam(required = false) String status) {
         if (teacherId != null) {
             authz.assertStaffOrOwnTeacherEntity(teacherId);
-            return ResponseEntity.ok(classService.findByTeacherId(teacherId));
+            return ResponseEntity.ok(withDisplayNames(classService.findByTeacherId(teacherId)));
         }
         if (taId != null) {
             authz.assertStaffOrOwnTeacherEntity(taId);
-            return ResponseEntity.ok(classRepository.findByAssistantTeacherId(taId));
+            return ResponseEntity.ok(withDisplayNames(classRepository.findByAssistantTeacherId(taId)));
         }
         if (programId != null) {
             authz.assertStaff();
-            return ResponseEntity.ok(classService.findByProgramId(programId));
+            return ResponseEntity.ok(withDisplayNames(classService.findByProgramId(programId)));
         }
         UUID effCenter = authz.effectiveListCenterId(centerId);
         if (effCenter != null) {
-            return ResponseEntity.ok(classService.findByCenterId(effCenter));
+            return ResponseEntity.ok(withDisplayNames(classService.findByCenterId(effCenter)));
         }
         authz.assertStaff();
         if (!authz.isOrgWide()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "centerId is required for class list queries unless you have an org-wide role");
         }
-        return ResponseEntity.ok(classService.findAll());
+        return ResponseEntity.ok(withDisplayNames(classService.findAll()));
     }
     
     @GetMapping("/{id}")

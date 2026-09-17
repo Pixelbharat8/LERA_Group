@@ -6,7 +6,9 @@ import com.lera.academy_service.entity.TransportRoute;
 import com.lera.academy_service.entity.Vehicle;
 import com.lera.academy_service.entity.TransportDriver;
 import com.lera.academy_service.entity.StudentTransport;
+import com.lera.academy_service.entity.TransportSchedule;
 import com.lera.academy_service.repository.TransportRouteRepository;
+import com.lera.academy_service.repository.TransportScheduleRepository;
 import com.lera.academy_service.repository.VehicleRepository;
 import com.lera.academy_service.repository.TransportDriverRepository;
 import com.lera.academy_service.repository.StudentTransportRepository;
@@ -34,22 +36,120 @@ public class TransportController {
     private final VehicleRepository vehicleRepository;
     private final TransportDriverRepository transportDriverRepository;
     private final StudentTransportRepository studentTransportRepository;
+    private final TransportScheduleRepository transportScheduleRepository;
     private final AcademyAuthorizationService authz;
 
+    /**
+     * A TransportRoute row holds only the route itself; the times live on TransportSchedule, the
+     * driver and vehicle on the entities that schedule points at, and the seats taken are a count
+     * of StudentTransport. The routes page needs all of it, and previously read `name`,
+     * `departureTime`, `driver`, `vehicle`, `capacity` and `enrolled` straight off the route —
+     * none of which are fields on it, so every card rendered blank and the seats bar computed
+     * undefined/undefined = NaN. Resolve them here, in batched queries, as
+     * ClassController#withDisplayNames does.
+     */
+    private List<Map<String, Object>> toRoutes(List<TransportRoute> routes) {
+        if (routes.isEmpty()) return List.of();
+
+        Set<UUID> routeIds = new HashSet<>();
+        for (TransportRoute r : routes) {
+            UUID id = parseUuid(r.getId());
+            if (id != null) routeIds.add(id);
+        }
+
+        // One schedule per route is the common case; if a route has several, the earliest start wins.
+        Map<UUID, TransportSchedule> scheduleByRoute = new HashMap<>();
+        if (!routeIds.isEmpty()) {
+            for (TransportSchedule sch : transportScheduleRepository.findAll()) {
+                if (sch.getRouteId() == null || !routeIds.contains(sch.getRouteId())) continue;
+                if (Boolean.FALSE.equals(sch.getIsActive())) continue;
+                TransportSchedule existing = scheduleByRoute.get(sch.getRouteId());
+                if (existing == null
+                        || (sch.getStartTime() != null && existing.getStartTime() != null
+                            && sch.getStartTime().isBefore(existing.getStartTime()))) {
+                    scheduleByRoute.put(sch.getRouteId(), sch);
+                }
+            }
+        }
+
+        Set<UUID> vehicleIds = new HashSet<>();
+        Set<UUID> driverIds = new HashSet<>();
+        for (TransportSchedule sch : scheduleByRoute.values()) {
+            if (sch.getVehicleId() != null) vehicleIds.add(sch.getVehicleId());
+            if (sch.getDriverId() != null) driverIds.add(sch.getDriverId());
+        }
+        Map<UUID, Vehicle> vehicles = new HashMap<>();
+        if (!vehicleIds.isEmpty()) {
+            for (Vehicle v : vehicleRepository.findAllById(vehicleIds)) vehicles.put(v.getId(), v);
+        }
+        Map<UUID, TransportDriver> drivers = new HashMap<>();
+        if (!driverIds.isEmpty()) {
+            for (TransportDriver d : transportDriverRepository.findAllById(driverIds)) drivers.put(d.getId(), d);
+        }
+
+        // Seats taken per route: only registrations that are actually running count.
+        Map<UUID, Integer> enrolled = new HashMap<>();
+        for (StudentTransport st : studentTransportRepository.findAll()) {
+            if (st.getRouteId() == null || !routeIds.contains(st.getRouteId())) continue;
+            if (st.getStatus() != null && !"ACTIVE".equalsIgnoreCase(st.getStatus())) continue;
+            enrolled.merge(st.getRouteId(), 1, Integer::sum);
+        }
+
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (TransportRoute r : routes) {
+            UUID id = parseUuid(r.getId());
+            TransportSchedule sch = id == null ? null : scheduleByRoute.get(id);
+            Vehicle vehicle = sch == null || sch.getVehicleId() == null ? null : vehicles.get(sch.getVehicleId());
+            TransportDriver driver = sch == null || sch.getDriverId() == null ? null : drivers.get(sch.getDriverId());
+
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", r.getId());
+            m.put("routeCode", r.getRouteCode());
+            m.put("name", r.getRouteName());
+            m.put("nameVi", r.getRouteNameVi());
+            m.put("routeType", r.getRouteType());
+            m.put("description", r.getDescription());
+            m.put("startPoint", r.getStartLocation());
+            m.put("endPoint", r.getEndLocation());
+            m.put("totalDistance", r.getTotalDistance());
+            m.put("estimatedDuration", r.getEstimatedDuration());
+            m.put("departureTime", sch == null ? null : sch.getStartTime());
+            m.put("arrivalTime", sch == null ? null : sch.getEndTime());
+            m.put("daysOfWeek", sch == null ? null : sch.getDaysOfWeek());
+            m.put("driver", driver == null ? null : driver.getFullname());
+            m.put("driverPhone", driver == null ? null : driver.getPhone());
+            m.put("vehicle", vehicle == null ? null : vehicle.getVehicleNumber());
+            m.put("capacity", vehicle == null ? null : vehicle.getCapacity());
+            m.put("enrolled", id == null ? 0 : enrolled.getOrDefault(id, 0));
+            m.put("status", Boolean.FALSE.equals(r.getIsActive()) ? "inactive" : "active");
+            out.add(m);
+        }
+        return out;
+    }
+
+    private static UUID parseUuid(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return UUID.fromString(raw.trim());
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
     @GetMapping("/routes")
-    public ResponseEntity<List<TransportRoute>> getAllRoutes(Pageable pageable) {
+    public ResponseEntity<List<Map<String, Object>>> getAllRoutes(Pageable pageable) {
         authz.assertStaff();
         if (!authz.isOrgWide()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Org-wide role required for unfiltered transport route list");
         }
-        return ResponseEntity.ok(transportRouteRepository.findAll(pageable).getContent());
+        return ResponseEntity.ok(toRoutes(transportRouteRepository.findAll(pageable).getContent()));
     }
     
     @GetMapping("/routes/{id}")
-    public ResponseEntity<TransportRoute> getRouteById(@PathVariable String id) {
+    public ResponseEntity<Map<String, Object>> getRouteById(@PathVariable String id) {
         return transportRouteRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(r -> ResponseEntity.ok(toRoutes(List.of(r)).get(0)))
                 .orElse(ResponseEntity.notFound().build());
     }
     
@@ -61,13 +161,13 @@ public class TransportController {
     }
     
     @GetMapping("/routes/active")
-    public ResponseEntity<List<TransportRoute>> getActiveRoutes() {
-        return ResponseEntity.ok(transportRouteRepository.findByIsActive(true));
+    public ResponseEntity<List<Map<String, Object>>> getActiveRoutes() {
+        return ResponseEntity.ok(toRoutes(transportRouteRepository.findByIsActive(true)));
     }
     
     @GetMapping("/routes/type/{routeType}")
-    public ResponseEntity<List<TransportRoute>> getRoutesByType(@PathVariable String routeType) {
-        return ResponseEntity.ok(transportRouteRepository.findByRouteType(routeType));
+    public ResponseEntity<List<Map<String, Object>>> getRoutesByType(@PathVariable String routeType) {
+        return ResponseEntity.ok(toRoutes(transportRouteRepository.findByRouteType(routeType)));
     }
     
     @PostMapping("/routes")
@@ -182,9 +282,30 @@ public class TransportController {
         return ResponseEntity.ok(all);
     }
 
+    /**
+     * student_id, stop_id, transport_type, status and start_date are all NOT NULL. A body missing
+     * any of them used to reach the insert and come back as an opaque 500, which the routes page
+     * swallowed into console.error — so the Register button appeared to do nothing at all. Reject
+     * an incomplete registration with a 400 that names the missing field instead.
+     */
     @PostMapping("/register")
     public ResponseEntity<StudentTransport> registerForTransport(@Valid @RequestBody StudentTransport registration) {
+        requireField(registration.getStudentId(), "studentId");
+        requireField(registration.getRouteId(), "routeId");
+        requireField(registration.getStopId(), "stopId");
+        requireField(registration.getTransportType(), "transportType");
+        if (registration.getStartDate() == null) registration.setStartDate(LocalDateTime.now());
+        if (registration.getStatus() == null || registration.getStatus().isBlank()) {
+            registration.setStatus("PENDING");
+        }
         return ResponseEntity.ok(studentTransportRepository.save(registration));
+    }
+
+    private static void requireField(Object value, String name) {
+        if (value == null || (value instanceof String str && str.isBlank())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Transport registration requires " + name);
+        }
     }
 
     @PutMapping("/registrations/{id}/approve")

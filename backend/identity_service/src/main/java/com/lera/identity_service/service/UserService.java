@@ -107,6 +107,8 @@ public class UserService {
                 .jobTitle(request.getJobTitle())
                 .employmentType(request.getEmploymentType())
                 .orgLevel(request.getOrgLevel())
+                // Only an internal caller may ship a temporary password and demand it be changed.
+                .passwordChangeRequired(isInternal && Boolean.TRUE.equals(request.getPasswordChangeRequired()))
                 .build();
         
         User savedUser = userRepository.save(user);

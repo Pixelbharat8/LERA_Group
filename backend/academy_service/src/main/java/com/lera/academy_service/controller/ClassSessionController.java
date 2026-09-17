@@ -124,12 +124,15 @@ public class ClassSessionController {
             }
             ClassSession saved = classSessionRepository.save(session);
             try {
+                // Generic type on purpose — see HomeworkReminderScheduler: TASK_ASSIGNED discards
+                // `message`, which is where the cover details actually are.
                 notificationClient.triggerNotification(java.util.Map.of(
-                        "notificationType", "TASK_ASSIGNED",
+                        "notificationType", "SUBSTITUTE_ASSIGNED",
                         "userId", subId,
                         "title", "Substitute teaching assignment",
                         "message", "You've been asked to cover \"" + saved.getTopic() + "\" on "
                                 + saved.getSessionDate() + (reason != null && !reason.isBlank() ? " — " + reason : ""),
+                        "referenceType", "task",
                         "referenceId", saved.getId()));
             } catch (Exception ignored) { /* non-blocking */ }
             return ResponseEntity.ok(saved);

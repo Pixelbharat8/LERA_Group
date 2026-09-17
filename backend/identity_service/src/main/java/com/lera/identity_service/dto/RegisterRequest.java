@@ -44,4 +44,12 @@ public class RegisterRequest {
     private String jobTitle;
     private String employmentType;
     private Integer orgLevel;
+
+    /**
+     * Ask for the account to be created with "must change password on first login" set. Bulk
+     * provisioning ships a temporary password, so the caller needs to be able to say so — the
+     * identity service's own bulk import already set this flag directly on the entity, but a
+     * service calling /api/auth/register over REST had no way to request it.
+     */
+    private Boolean passwordChangeRequired;
 }

@@ -42,6 +42,16 @@ interface Notification {
   referenceId?: string;
 }
 
+/**
+ * A parent_teacher_meetings row stores scheduledAt (one datetime), subject/agenda, and outcome —
+ * it has no teacherName, requestedDate, requestedTime, reason or response. The list rendered them
+ * straight, so every card read "Meeting with" over "📅 Invalid Date at" with an empty reason:
+ * new Date(undefined) is an Invalid Date, and the rest were simply blank. This is the parent's
+ * own view of meetings they requested.
+ *
+ * The write path already posts the right shape (scheduledAt from the date + time, agenda as the
+ * reason), so these are mapped back on read — see toMeetingRequest.
+ */
 interface MeetingRequest {
   id: string;
   teacherId: string;
@@ -52,6 +62,26 @@ interface MeetingRequest {
   status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
   response?: string;
   createdAt: string;
+}
+
+/** Map a stored meeting onto the shape this page displays. */
+function toMeetingRequest(m: any, teacherNameById: Map<string, string>): MeetingRequest {
+  const scheduled = m.scheduledAt ? new Date(m.scheduledAt) : null;
+  const valid = scheduled && !Number.isNaN(scheduled.getTime());
+  return {
+    id: m.id,
+    teacherId: m.teacherId,
+    teacherName: m.teacherName || teacherNameById.get(String(m.teacherId)) || "",
+    requestedDate: valid ? m.scheduledAt : "",
+    requestedTime: valid
+      ? scheduled!.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : "",
+    // The request form sends the parent's reason as the agenda; subject is a fixed label.
+    reason: m.agenda || m.reason || m.subject || "",
+    status: m.status || "PENDING",
+    response: m.outcome || m.teacherNotes || undefined,
+    createdAt: m.createdAt,
+  };
 }
 
 interface Child {
@@ -156,6 +186,11 @@ export default function ParentCommunicationPage() {
         }))
       );
 
+      // Meetings store only a teacherId; the list needs the name, and the teachers are right here.
+      const teacherNameById = new Map<string, string>(
+        teachersList.map((t) => [String(t.id), t.fullname || ""])
+      );
+
       setTeachers(
         teachersList.map((t) => ({
           id: t.id,
@@ -196,7 +231,11 @@ export default function ParentCommunicationPage() {
       const meetingsData = parentUserId
         ? await apiFetch(`/api/meetings?parentId=${parentUserId}`).catch(() => [])
         : [];
-      setMeetingRequests(Array.isArray(meetingsData) ? meetingsData : []);
+      setMeetingRequests(
+        Array.isArray(meetingsData)
+          ? meetingsData.map((m: any) => toMeetingRequest(m, teacherNameById))
+          : []
+      );
 
     } catch (err) {
       console.error(err);
@@ -296,7 +335,14 @@ export default function ParentCommunicationPage() {
       const meetingsData = parentUserId
         ? await apiFetch(`/api/meetings?parentId=${parentUserId}`).catch(() => [])
         : [];
-      setMeetingRequests(Array.isArray(meetingsData) ? meetingsData : []);
+      const namesById = new Map<string, string>(
+        teachers.map((t) => [String(t.id), t.fullname || ""])
+      );
+      setMeetingRequests(
+        Array.isArray(meetingsData)
+          ? meetingsData.map((m: any) => toMeetingRequest(m, namesById))
+          : []
+      );
 
       alert("Meeting request sent successfully!");
       setShowMeetingModal(false);
@@ -596,7 +642,9 @@ export default function ParentCommunicationPage() {
                         <div>
                           <h3 className="font-medium text-gray-900">Meeting with {meeting.teacherName}</h3>
                           <p className="text-sm text-gray-600">
-                            📅 {new Date(meeting.requestedDate).toLocaleDateString('vi-VN')} at {meeting.requestedTime}
+                            📅 {meeting.requestedDate
+                              ? `${new Date(meeting.requestedDate).toLocaleDateString('vi-VN')}${meeting.requestedTime ? ` at ${meeting.requestedTime}` : ''}`
+                              : (isVietnamese ? "Chưa có lịch" : "Not scheduled yet")}
                           </p>
                           <p className="text-sm text-gray-500 mt-1">Reason: {meeting.reason}</p>
                           {meeting.response && (

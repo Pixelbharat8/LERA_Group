@@ -111,29 +111,18 @@ export default function AttendanceApprovalsPage() {
         console.error("Error fetching users:", err);
       }
 
-      try {
-        const data = await apiFetch(`/api/attendance?centerId=${encodeURIComponent(centerId)}`);
-        const records = Array.isArray(data) ? data : [];
-        // Map attendance records with user info
-        const mappedRecords = records.map((r: any) => ({
-          id: r.id,
-          userId: r.userId || r.teacherId || r.studentId,
-          userName: usersMap[r.userId || r.teacherId]?.fullname || "Unknown",
-          userEmail: usersMap[r.userId || r.teacherId]?.email || "",
-          userRole: usersMap[r.userId || r.teacherId]?.roleName || "STAFF",
-          date: r.date || r.sessionDate,
-          checkInTime: r.checkInTime,
-          checkOutTime: r.checkOutTime,
-          status: r.status === "PRESENT" || r.hoursWorked > 4 ? "PRESENT" : "HALF_DAY",
-          approvalStatus: r.approvalStatus || "APPROVED",
-          notes: r.notes,
-          submittedAt: r.createdAt || new Date().toISOString()
-        }));
-        setAttendanceRequests(mappedRecords);
-      } catch (err) {
-        console.error("Error fetching attendance:", err);
-        setAttendanceRequests([]);
-      }
+      // This page reviews STAFF attendance and leave. It used to build its attendance requests
+      // from `/api/attendance?centerId=` — which returns STUDENT attendance, unpaginated, for the
+      // whole history of the centre. Those rows carry no userId, no hoursWorked and no
+      // approvalStatus, so every one was mapped to a staff member of "Unknown" with
+      // `approvalStatus: r.approvalStatus || "APPROVED"` — i.e. approved by default. The
+      // "Approved Today" tile then counted every student attendance mark as a staff approval
+      // (1200 against a single term's register on a 50-student centre).
+      //
+      // There is no staff-attendance approval store yet: `teacher_sessions` records taught hours
+      // and carries no approval workflow. So this half of the page has nothing truthful to show
+      // and says so, instead of inventing rows. The leave half below is real and unchanged.
+      setAttendanceRequests([]);
 
       try {
         const data = await apiFetch(`/api/leaves/center/${encodeURIComponent(centerId)}`);

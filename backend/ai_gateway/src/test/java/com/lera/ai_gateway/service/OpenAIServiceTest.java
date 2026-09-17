@@ -127,12 +127,28 @@ class OpenAIServiceTest {
         assertNotNull(result.get("message"));
     }
 
+    /**
+     * This used to assert the OPPOSITE: that an unconfigured gateway answered a grammar question
+     * with grammar content. It did — content written in the service itself, pattern-matched on the
+     * student's question and delivered as the AI's reply, tagged with a model that never ran. The
+     * test encoded the bug, so it failed when the fabrication was removed.
+     *
+     * Now it guards the honest behaviour: with no provider configured, say so and teach nothing.
+     */
     @Test
-    void fallbackResponse_shouldMatchGrammarPattern() {
+    void unconfigured_saysSoAndInventsNoSubjectContent() {
         aiSettings(false);
         Map<String, Object> result = openAIService.chat(
                 "Explain present simple and present continuous tenses", null, null);
         String msg = result.get("message").toString();
-        assertTrue(msg.contains("Present Simple") || msg.contains("grammar") || msg.contains("question"));
+
+        assertFalse((Boolean) result.get("success"));
+        assertTrue(msg.contains("isn't available yet"), "should say the tutor is unavailable: " + msg);
+        assertTrue(msg.contains("AI Gateway"), "should say where to configure it: " + msg);
+
+        // No teaching content, in any form — this is the regression that matters.
+        assertFalse(msg.contains("Present Simple"), "must not answer the question: " + msg);
+        assertFalse(msg.contains("Present Continuous"), "must not answer the question: " + msg);
+        assertFalse(msg.contains("Example:"), "must not invent examples: " + msg);
     }
 }

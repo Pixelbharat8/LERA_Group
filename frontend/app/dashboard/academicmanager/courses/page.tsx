@@ -3,17 +3,23 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../../../../lib/api";
 
+/**
+ * A CourseProgram stores `code`, `price`, `durationWeeks` and `isActive`. This page used
+ * code, fee, duration + durationUnit and status, so every save dropped the code, the price
+ * and the duration, and the status never changed. A course programme is also not centre-scoped —
+ * course_programs has no center_id — so the centre picker had nowhere to save to either.
+ *
+ * The Academic Manager's dashboard links here twice, so this is a live screen for that role.
+ */
 interface Course {
   id: string;
-  courseCode: string;
+  code: string;
   name: string;
   description?: string;
   level?: string;
-  duration?: number;
-  durationUnit?: string;
-  fee?: number;
-  status: string;
-  centerId?: string;
+  durationWeeks?: number;
+  price?: number;
+  isActive?: boolean;
 }
 
 interface Center {
@@ -33,15 +39,13 @@ export default function AcademicManagerCoursesPage() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    courseCode: "",
+    code: "",
     name: "",
     description: "",
     level: "",
-    duration: 0,
-    durationUnit: "MONTHS",
-    fee: 0,
-    centerId: "",
-    status: "ACTIVE"
+    durationWeeks: 0,
+    price: 0,
+    isActive: true
   });
 
   useEffect(() => {
@@ -83,7 +87,7 @@ export default function AcademicManagerCoursesPage() {
 
       setCourses([...courses, newCourse.data || newCourse]);
       setShowAddModal(false);
-      setFormData({ courseCode: "", name: "", description: "", level: "", duration: 0, durationUnit: "MONTHS", fee: 0, centerId: "", status: "ACTIVE" });
+      setFormData({ code: "", name: "", description: "", level: "", durationWeeks: 0, price: 0, isActive: true });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -94,15 +98,13 @@ export default function AcademicManagerCoursesPage() {
   const handleEdit = (course: Course) => {
     setEditingCourse(course);
     setFormData({
-      courseCode: course.courseCode || "",
+      code: course.code || "",
       name: course.name || "",
       description: course.description || "",
       level: course.level || "",
-      duration: course.duration || 0,
-      durationUnit: course.durationUnit || "MONTHS",
-      fee: course.fee || 0,
-      centerId: course.centerId || "",
-      status: course.status || "ACTIVE"
+      durationWeeks: course.durationWeeks || 0,
+      price: course.price || 0,
+      isActive: course.isActive !== false
     });
     setShowEditModal(true);
   };
@@ -144,7 +146,7 @@ export default function AcademicManagerCoursesPage() {
 
   const filteredCourses = courses.filter(course =>
     course.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    course.courseCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     course.level?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -194,7 +196,7 @@ export default function AcademicManagerCoursesPage() {
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
           <h3 className="text-gray-500 text-sm">Active Courses</h3>
-          <p className="text-2xl font-bold">{courses.filter(c => c.status === "ACTIVE").length}</p>
+          <p className="text-2xl font-bold">{courses.filter(c => c.isActive !== false).length}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500">
           <h3 className="text-gray-500 text-sm">Levels</h3>
@@ -203,7 +205,7 @@ export default function AcademicManagerCoursesPage() {
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-orange-500">
           <h3 className="text-gray-500 text-sm">Avg Fee</h3>
           <p className="text-2xl font-bold">
-            ${courses.length > 0 ? Math.round(courses.reduce((s, c) => s + (c.fee || 0), 0) / courses.length) : 0}
+            ${courses.length > 0 ? Math.round(courses.reduce((s, c) => s + (c.price || 0), 0) / courses.length) : 0}
           </p>
         </div>
       </div>
@@ -218,7 +220,6 @@ export default function AcademicManagerCoursesPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Level</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fee</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Center</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
@@ -233,19 +234,18 @@ export default function AcademicManagerCoursesPage() {
             ) : (
               filteredCourses.map((course) => (
                 <tr key={course.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap font-medium">{course.courseCode}</td>
+                  <td className="px-6 py-4 whitespace-nowrap font-medium">{course.code}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{course.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">{course.level || "-"}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                    {course.duration ? `${course.duration} ${course.durationUnit?.toLowerCase() || "months"}` : "-"}
+                    {course.durationWeeks ? `${course.durationWeeks} weeks` : "-"}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">${course.fee || 0}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">{getCenterName(course.centerId)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">${course.price || 0}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs rounded-full ${
-                      course.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                      course.isActive !== false ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
                     }`}>
-                      {course.status}
+                      {course.isActive !== false ? "ACTIVE" : "INACTIVE"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -274,8 +274,8 @@ export default function AcademicManagerCoursesPage() {
                   <input
                     type="text"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    value={formData.courseCode}
-                    onChange={(e) => setFormData({ ...formData, courseCode: e.target.value })}
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                     required
                   />
                 </div>
@@ -322,8 +322,8 @@ export default function AcademicManagerCoursesPage() {
                   <input
                     type="number"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    value={formData.fee}
-                    onChange={(e) => setFormData({ ...formData, fee: parseFloat(e.target.value) || 0 })}
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                   />
                 </div>
               </div>
@@ -334,37 +334,12 @@ export default function AcademicManagerCoursesPage() {
                   <input
                     type="number"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })}
+                    value={formData.durationWeeks}
+                    onChange={(e) => setFormData({ ...formData, durationWeeks: parseInt(e.target.value) || 0 })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Duration Unit</label>
-                  <select
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    value={formData.durationUnit}
-                    onChange={(e) => setFormData({ ...formData, durationUnit: e.target.value })}
-                  >
-                    <option value="DAYS">Days</option>
-                    <option value="WEEKS">Weeks</option>
-                    <option value="MONTHS">Months</option>
-                    <option value="YEARS">Years</option>
-                  </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Center</label>
-                <select
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  value={formData.centerId}
-                  onChange={(e) => setFormData({ ...formData, centerId: e.target.value })}
-                >
-                  <option value="">All Centers</option>
-                  {centers.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
               </div>
 
               <div className="flex gap-3 mt-6">
@@ -402,7 +377,7 @@ export default function AcademicManagerCoursesPage() {
                   <input
                     type="text"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                    value={formData.courseCode}
+                    value={formData.code}
                     disabled
                   />
                 </div>
@@ -449,8 +424,8 @@ export default function AcademicManagerCoursesPage() {
                   <input
                     type="number"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    value={formData.fee}
-                    onChange={(e) => setFormData({ ...formData, fee: parseFloat(e.target.value) || 0 })}
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                   />
                 </div>
               </div>
@@ -461,45 +436,20 @@ export default function AcademicManagerCoursesPage() {
                   <input
                     type="number"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })}
+                    value={formData.durationWeeks}
+                    onChange={(e) => setFormData({ ...formData, durationWeeks: parseInt(e.target.value) || 0 })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Duration Unit</label>
-                  <select
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    value={formData.durationUnit}
-                    onChange={(e) => setFormData({ ...formData, durationUnit: e.target.value })}
-                  >
-                    <option value="DAYS">Days</option>
-                    <option value="WEEKS">Weeks</option>
-                    <option value="MONTHS">Months</option>
-                    <option value="YEARS">Years</option>
-                  </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Center</label>
-                <select
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  value={formData.centerId}
-                  onChange={(e) => setFormData({ ...formData, centerId: e.target.value })}
-                >
-                  <option value="">All Centers</option>
-                  {centers.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                 <select
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  value={formData.isActive ? "ACTIVE" : "INACTIVE"}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.value === "ACTIVE" })}
                 >
                   <option value="ACTIVE">Active</option>
                   <option value="INACTIVE">Inactive</option>

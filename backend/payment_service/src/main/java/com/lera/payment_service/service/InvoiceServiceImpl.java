@@ -2,8 +2,10 @@ package com.lera.payment_service.service;
 
 import com.lera.payment_service.client.NotificationClient;
 import com.lera.payment_service.entity.Invoice;
+import com.lera.payment_service.entity.InvoiceItem;
 import com.lera.payment_service.entity.Payment;
 import com.lera.payment_service.repository.InvoiceRepository;
+import com.lera.payment_service.repository.InvoiceItemRepository;
 import com.lera.payment_service.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -28,6 +32,7 @@ public class InvoiceServiceImpl {
 
     private final InvoiceRepository invoiceRepository;
     private final PaymentRepository paymentRepository;
+    private final InvoiceItemRepository invoiceItemRepository;
     private final JdbcTemplate jdbcTemplate;
     private final NotificationClient notificationClient;
     private final InvoicePaidMailService invoicePaidMailService;
@@ -36,44 +41,173 @@ public class InvoiceServiceImpl {
     private static final List<String> SETTLED_PAYMENT_STATUSES =
             List.of("COMPLETED", "SUCCESS", "PAID", "SETTLED");
 
+    /**
+     * Fill in each invoice's settled paid amount. Payments live in their own table, so this is the
+     * same sum {@link #assertSufficientPayments} already trusts to gate the PAID transition — the
+     * read path simply never reported it, which is why the UI's balance, its "collected" tile and
+     * its instalment arithmetic were all working from zero.
+     *
+     * One query for the whole page rather than one per invoice.
+     */
+    private List<Invoice> withPaidAmounts(List<Invoice> invoices) {
+        if (invoices == null || invoices.isEmpty()) return invoices;
+        List<UUID> ids = invoices.stream().map(Invoice::getId).filter(Objects::nonNull).distinct().toList();
+        Map<UUID, BigDecimal> settled = new HashMap<>();
+        if (!ids.isEmpty()) {
+            String ph = ids.stream().map(x -> "?").collect(java.util.stream.Collectors.joining(","));
+            String statuses = SETTLED_PAYMENT_STATUSES.stream()
+                    .map(x -> "?").collect(java.util.stream.Collectors.joining(","));
+            List<Object> args = new java.util.ArrayList<>(ids);
+            args.addAll(SETTLED_PAYMENT_STATUSES);
+            jdbcTemplate.query(
+                    "SELECT invoice_id, COALESCE(SUM(amount), 0) AS paid FROM payments"
+                            + " WHERE invoice_id IN (" + ph + ")"
+                            + " AND (status IS NULL OR UPPER(status) IN (" + statuses + "))"
+                            + " GROUP BY invoice_id",
+                    (java.sql.ResultSet rs) -> {
+                        settled.put(rs.getObject("invoice_id", UUID.class), rs.getBigDecimal("paid"));
+                    }, args.toArray());
+        }
+        for (Invoice inv : invoices) {
+            inv.setPaidAmount(settled.getOrDefault(inv.getId(), BigDecimal.ZERO));
+        }
+        return withItems(invoices);
+    }
+
+    private Optional<Invoice> withPaidAmount(Optional<Invoice> invoice) {
+        invoice.ifPresent(inv -> withPaidAmounts(List.of(inv)));
+        return invoice;
+    }
+
     public Page<Invoice> getAllInvoices(Pageable pageable) {
-        return invoiceRepository.findAll(pageable);
+        Page<Invoice> page = invoiceRepository.findAll(pageable);
+        withPaidAmounts(page.getContent());
+        return page;
     }
 
     public Optional<Invoice> getInvoiceById(UUID id) {
-        return invoiceRepository.findById(id);
+        return withPaidAmount(invoiceRepository.findById(id));
     }
 
     public Optional<Invoice> getInvoiceByNumber(String invoiceNumber) {
-        return invoiceRepository.findByInvoiceNumber(invoiceNumber);
+        return withPaidAmount(invoiceRepository.findByInvoiceNumber(invoiceNumber));
     }
 
     public List<Invoice> getInvoicesByStudent(UUID studentId) {
-        return invoiceRepository.findByStudentId(studentId);
+        return withPaidAmounts(invoiceRepository.findByStudentId(studentId));
     }
 
     public List<Invoice> getInvoicesByCenter(UUID centerId) {
-        return invoiceRepository.findByCenterId(centerId);
+        return withPaidAmounts(invoiceRepository.findByCenterId(centerId));
     }
 
     public List<Invoice> getInvoicesByStatus(String status) {
-        return invoiceRepository.findByStatus(status);
+        return withPaidAmounts(invoiceRepository.findByStatus(status));
     }
 
     /**
      * Invoices for all children linked to a parent (via the student_parents link table).
      */
     public List<Invoice> getInvoicesForParent(UUID parentId) {
-        return invoiceRepository.findByParentIdJoinStudents(parentId);
+        return withPaidAmounts(invoiceRepository.findByParentIdJoinStudents(parentId));
     }
 
+    /** subtotal - discount + tax, treating absent parts as zero. */
+    private static BigDecimal expectedTotal(BigDecimal subtotal, BigDecimal discount, BigDecimal tax) {
+        BigDecimal sub = subtotal != null ? subtotal : BigDecimal.ZERO;
+        BigDecimal dis = discount != null ? discount : BigDecimal.ZERO;
+        BigDecimal tx = tax != null ? tax : BigDecimal.ZERO;
+        return sub.subtract(dis).add(tx);
+    }
+
+    /**
+     * An invoice's total is fully determined by its own parts: subtotal - discount + tax. There is
+     * no adjustment column, so no legitimate invoice disagrees with that sum.
+     *
+     * Nothing checked it. Posting subtotal 5,000,000 with discount 500,000, tax 250,000 and
+     * totalAmount 1 stored a total of 1 — and everything downstream believes that number,
+     * including the guard that refuses to mark an invoice PAID until recorded payments cover the
+     * total. A single mistyped or miscomputed field therefore produced an invoice a parent could
+     * settle for one dong.
+     *
+     * Fill the total in when it is absent; reject it loudly when it contradicts the parts. This
+     * cannot silently change a correct amount — it either computes a missing one or refuses.
+     */
     @Transactional
     public Invoice createInvoice(Invoice invoice) {
         if (invoice.getInvoiceNumber() == null || invoice.getInvoiceNumber().isEmpty()) {
             invoice.setInvoiceNumber("INV-" + System.currentTimeMillis());
         }
+
+        // Price the lines first: the finance form posts items and no subtotal, so without this the
+        // invoice would be stored at a total of 0 while its own lines said something else.
+        List<InvoiceItem> lines = normaliseItems(invoice.getItems());
+        if (!lines.isEmpty() && (invoice.getSubtotal() == null || invoice.getSubtotal().signum() == 0)) {
+            invoice.setSubtotal(lines.stream()
+                    .map(InvoiceItem::getTotalPrice)
+                    .filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add));
+        }
+
+        BigDecimal expected = expectedTotal(
+                invoice.getSubtotal(), invoice.getDiscountAmount(), invoice.getTaxAmount());
+
+        if (invoice.getTotalAmount() == null || invoice.getTotalAmount().signum() == 0) {
+            invoice.setTotalAmount(expected);
+        } else if (invoice.getTotalAmount().compareTo(expected) != 0) {
+            throw new IllegalArgumentException(
+                    "Invoice total " + invoice.getTotalAmount() + " does not match its parts: "
+                            + "subtotal " + invoice.getSubtotal() + " - discount " + invoice.getDiscountAmount()
+                            + " + tax " + invoice.getTaxAmount() + " = " + expected);
+        }
+
         log.info("Creating invoice: {} for student: {}", invoice.getInvoiceNumber(), invoice.getStudentId());
-        return invoiceRepository.save(invoice);
+        Invoice saved = invoiceRepository.save(invoice);
+        saved.setItems(saveItems(saved.getId(), lines));
+        return saved;
+    }
+
+    /**
+     * Persist the lines that came in with the invoice. Every line needs a description (the column
+     * is NOT NULL) and the line total is recomputed from quantity x unit price by the entity, so a
+     * stated figure cannot disagree with its parts.
+     */
+    private List<InvoiceItem> normaliseItems(List<InvoiceItem> submitted) {
+        if (submitted == null || submitted.isEmpty()) return List.of();
+        List<InvoiceItem> lines = new java.util.ArrayList<>();
+        for (InvoiceItem item : submitted) {
+            if (item == null) continue;
+            if (item.getDescription() == null || item.getDescription().isBlank()) {
+                throw new IllegalArgumentException("Every invoice line needs a description");
+            }
+            item.setId(null);
+            item.reprice();   // the line total comes from quantity x unit price, not from the caller
+            lines.add(item);
+        }
+        return lines;
+    }
+
+    private List<InvoiceItem> saveItems(UUID invoiceId, List<InvoiceItem> lines) {
+        if (lines.isEmpty()) return List.of();
+        for (InvoiceItem item : lines) {
+            item.setInvoiceId(invoiceId);
+        }
+        return invoiceItemRepository.saveAll(lines);
+    }
+
+    /** Attach each invoice's lines, in one query for the whole page. */
+    private List<Invoice> withItems(List<Invoice> invoices) {
+        if (invoices == null || invoices.isEmpty()) return invoices;
+        List<UUID> ids = invoices.stream().map(Invoice::getId).filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) return invoices;
+        Map<UUID, List<InvoiceItem>> byInvoice = new HashMap<>();
+        for (InvoiceItem item : invoiceItemRepository.findByInvoiceIdIn(ids)) {
+            byInvoice.computeIfAbsent(item.getInvoiceId(), k -> new java.util.ArrayList<>()).add(item);
+        }
+        for (Invoice inv : invoices) {
+            inv.setItems(byInvoice.getOrDefault(inv.getId(), List.of()));
+        }
+        return invoices;
     }
 
     @Transactional
@@ -91,6 +225,28 @@ public class InvoiceServiceImpl {
             if (details.getDiscountAmount() != null) existing.setDiscountAmount(details.getDiscountAmount());
             if (details.getTaxAmount() != null) existing.setTaxAmount(details.getTaxAmount());
             if (details.getTotalAmount() != null) existing.setTotalAmount(details.getTotalAmount());
+            // The create guard is worthless if an update can walk the total away from its parts.
+            // Only money fields trigger this; the record-payment flow (paidAmount/status/paidAt)
+            // touches none of them and is unaffected. If the caller asserted a total, it must be
+            // right; if they changed a component without restating the total, recompute it so the
+            // invoice cannot be left internally inconsistent.
+            boolean touchedMoney = details.getSubtotal() != null || details.getDiscountAmount() != null
+                    || details.getTaxAmount() != null || details.getTotalAmount() != null;
+            if (touchedMoney) {
+                BigDecimal expectedNow = expectedTotal(
+                        existing.getSubtotal(), existing.getDiscountAmount(), existing.getTaxAmount());
+                if (details.getTotalAmount() != null) {
+                    if (existing.getTotalAmount().compareTo(expectedNow) != 0) {
+                        throw new IllegalArgumentException(
+                                "Invoice total " + existing.getTotalAmount() + " does not match its parts: "
+                                        + "subtotal " + existing.getSubtotal() + " - discount "
+                                        + existing.getDiscountAmount() + " + tax " + existing.getTaxAmount()
+                                        + " = " + expectedNow);
+                    }
+                } else {
+                    existing.setTotalAmount(expectedNow);
+                }
+            }
             if (details.getCurrency() != null) existing.setCurrency(details.getCurrency());
             if (details.getDueDate() != null) existing.setDueDate(details.getDueDate());
             if (details.getNotes() != null) existing.setNotes(details.getNotes());

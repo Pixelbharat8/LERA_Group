@@ -1,5 +1,3 @@
-version: '3.9'
-
 ###############################################################
 # Shared definitions (DRY via YAML anchors)
 ###############################################################
@@ -18,6 +16,31 @@ x-svc-deploy: &svc-deploy
       memory: 768M
     reservations:
       memory: 256M
+
+# Inter-service HTTP base URLs.
+#
+# Every service-to-service client defaults to `http://localhost:<port>` (see the @Value
+# annotations in */client/* and */service/*). That default is correct only when all nine run as
+# plain processes on one host, which is how dev runs them. Inside a container `localhost` is the
+# container ITSELF, so without these the call lands on nothing. The clients fail CLOSED, so the
+# symptom is not an error page but a silent denial — a student could not see their own attendance
+# because attendance_service asked academy_service "may this user view this student?" and the
+# request never arrived. Compose previously set none of these.
+# NOTE the hyphens. The compose service names contain underscores, and an underscore is illegal
+# in a hostname (RFC 952/1123), so Tomcat rejects any request whose Host header contains one with
+# a bare `400 Bad Request` before the request ever reaches Spring. Every service-to-service call
+# in the stack hit that. Each backend therefore also publishes a hyphenated network alias (see
+# `networks:` in each service block) and these URLs use it.
+x-service-urls: &service-urls
+  IDENTITY_SERVICE_URL: http://identity-service:8081
+  ACADEMY_SERVICE_URL: http://academy-service:8082
+  PAYMENT_SERVICE_URL: http://payment-service:8083
+  PAYROLL_SERVICE_URL: http://payroll-service:8084
+  ATTENDANCE_SERVICE_URL: http://attendance-service:8085
+  CONNECT_SERVICE_URL: http://connect-service:8086
+  AI_GATEWAY_URL: http://ai-gateway:8087
+  RULE_ENGINE_URL: http://rule-engine:8088
+  SOCIAL_MEDIA_SERVICE_URL: http://social-media-service:8089
 
 # Common bits every backend service shares.
 x-backend: &backend-common
@@ -124,12 +147,20 @@ services:
     <<: *backend-common
     build: ./backend/academy_service
     container_name: academy_service
+    networks:
+      lera-net:
+        aliases:
+          - academy-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
       LERA_STORAGE_BACKEND: ${LERA_STORAGE_BACKEND:-local}
       LERA_UPLOAD_DIR: /var/lera/uploads/
@@ -152,12 +183,20 @@ services:
     <<: *backend-common
     build: ./backend/attendance_service
     container_name: attendance_service
+    networks:
+      lera-net:
+        aliases:
+          - attendance-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
     ports:
       - "8085:8085"   # attendance_service runs on port 8085
@@ -175,12 +214,41 @@ services:
     <<: *backend-common
     build: ./backend/connect_service
     container_name: connect_service
+    networks:
+      lera-net:
+        aliases:
+          - connect-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
+      # Outbound mail. /api/auth/forgot-password is the documented recovery path for the seeded
+      # Chairman/CEO accounts, and none of this reached the container before — so mail could not
+      # be configured through compose at all, and password reset could never work.
+      # An EMPTY env var overrides a property default (verified), so every variable whose
+      # property carries a real default repeats that default here. compose-env-defaults.test.ts
+      # fails if the two ever drift apart.
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@leraacademy.edu.vn}
+      # Mobile push. Off unless configured; the service already no-ops and says so when unset.
+      LERA_PUSH_ENABLED: ${LERA_PUSH_ENABLED:-false}
+      APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+      APNS_KEY_ID: ${APNS_KEY_ID:-}
+      APNS_BUNDLE_ID: ${APNS_BUNDLE_ID:-com.lera.app}
+      APNS_KEY_PATH: ${APNS_KEY_PATH:-}
+      APNS_SANDBOX: ${APNS_SANDBOX:-true}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+      FCM_SERVICE_ACCOUNT_PATH: ${FCM_SERVICE_ACCOUNT_PATH:-}
       DB_NAME: lera
       LERA_ATTACHMENTS_DIR: /var/lera/uploads/
     volumes:
@@ -201,12 +269,29 @@ services:
     <<: *backend-common
     build: ./backend/identity_service
     container_name: identity_service
+    networks:
+      lera-net:
+        aliases:
+          - identity-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
+      # Seed passwords for the Chairman / CEO / admin accounts that DataLoader creates on first
+      # boot. application-docker.properties and .env.example both say these come from LERA_SEED_*
+      # — but they were never passed into the container, so setting them had no effect and
+      # DataLoader always fell through to its "random, logged once" branch. That means the only
+      # record of a deployed Chairman password was a single line in a container log.
+      # Left optional so an existing dev stack still starts; SET THEM for any real deployment.
+      LERA_SEED_CHAIRMAN_PASSWORD: ${LERA_SEED_CHAIRMAN_PASSWORD:-}
+      LERA_SEED_CEO_PASSWORD: ${LERA_SEED_CEO_PASSWORD:-}
+      LERA_SEED_ADMIN_PASSWORD: ${LERA_SEED_ADMIN_PASSWORD:-}
       DB_NAME: lera
     ports:
       - "8081:8081"   # identity_service runs on port 8081
@@ -224,12 +309,26 @@ services:
     <<: *backend-common
     build: ./backend/payment_service
     container_name: payment_service
+    networks:
+      lera-net:
+        aliases:
+          - payment-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
+      # VNPay credentials. VnPayService reads these straight from properties with no database
+      # fallback, so with nothing passed in the gateway simply cannot be configured.
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+      VNPAY_PAY_URL: ${VNPAY_PAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:8083/api/public/payment/vnpay-return}
       DB_NAME: lera
     ports:
       - "8083:8083"   # payment_service runs on port 8083
@@ -247,12 +346,20 @@ services:
     <<: *backend-common
     build: ./backend/payroll_service
     container_name: payroll_service
+    networks:
+      lera-net:
+        aliases:
+          - payroll-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
     ports:
       - "8084:8084"   # payroll_service runs on port 8084
@@ -270,12 +377,20 @@ services:
     <<: *backend-common
     build: ./backend/rule_engine
     container_name: rule_engine
+    networks:
+      lera-net:
+        aliases:
+          - rule-engine   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
     ports:
       - "8088:8088"   # rule_engine runs on port 8088
@@ -293,12 +408,20 @@ services:
     <<: *backend-common
     build: ./backend/ai_gateway
     container_name: ai_gateway
+    networks:
+      lera-net:
+        aliases:
+          - ai-gateway   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
     ports:
       - "8087:8087"   # ai_gateway runs on port 8087
@@ -316,12 +439,20 @@ services:
     <<: *backend-common
     build: ./backend/social_media_service
     container_name: social_media_service
+    networks:
+      lera-net:
+        aliases:
+          - social-media-service   # DNS-legal name: Tomcat 400s on an underscore Host header
     environment:
+      <<: *service-urls
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_USER: lera
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      # Required: identity refuses to start in a deployed profile when this is blank or the
+      # legacy default, and service-to-service /api/internal/* calls 503 without it.
+      LERA_INTERNAL_API_KEY: ${LERA_INTERNAL_API_KEY:?LERA_INTERNAL_API_KEY is required (openssl rand -base64 24)}
       DB_NAME: lera
     ports:
       - "8089:8089"   # social_media_service runs on port 8089
@@ -370,7 +501,11 @@ services:
     ports:
       - "80:8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/healthz >/dev/null 2>&1 || exit 1"]
+      # 127.0.0.1, not localhost: nginx listens on 0.0.0.0:8080 (IPv4 only — the base image's
+      # ipv6 hook skips a replaced nginx.conf), while `localhost` resolves to ::1 first inside
+      # the container, so the check got "connection refused" and reported the gateway unhealthy
+      # while it was happily serving traffic.
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8080/healthz >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

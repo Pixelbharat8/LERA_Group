@@ -6,10 +6,13 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,8 +52,15 @@ public class NotificationClient {
         return headers;
     }
 
-    private void postTriggerSubpath(String url) {
-        restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(connectHeaders()), Object.class);
+    /**
+     * Takes a built {@link URI}, never a String. These triggers carry free-text values — a
+     * person's name, a rejection reason — which were concatenated straight into the query string.
+     * A name containing "&" or "=" silently corrupted every parameter after it, and RestTemplate's
+     * re-encoding of a String URI is the same trap that made a payment receipt read
+     * "Nguyen%20Van%20An". UriComponentsBuilder encodes exactly once and escapes the separators.
+     */
+    private void postTriggerSubpath(URI uri) {
+        restTemplate.exchange(uri, HttpMethod.POST, new HttpEntity<>(connectHeaders()), Object.class);
     }
 
     /**
@@ -59,15 +69,17 @@ public class NotificationClient {
     public void notifyLeaveApplication(UUID employeeId, String employeeName,
                                        String leaveType, String startDate, String endDate, UUID leaveId) {
         try {
-            String url = connectServiceUrl + "/api/notifications/trigger/leave-application" +
-                    "?employeeId=" + employeeId +
-                    "&employeeName=" + employeeName +
-                    "&leaveType=" + leaveType +
-                    "&startDate=" + startDate +
-                    "&endDate=" + endDate +
-                    (leaveId != null ? "&leaveId=" + leaveId : "");
-
-            postTriggerSubpath(url);
+            UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(connectServiceUrl)
+                    .path("/api/notifications/trigger/leave-application")
+                    .queryParam("employeeId", employeeId)
+                    .queryParam("employeeName", employeeName)
+                    .queryParam("leaveType", leaveType)
+                    .queryParam("startDate", startDate)
+                    .queryParam("endDate", endDate);
+            if (leaveId != null) {
+                b.queryParam("leaveId", leaveId);
+            }
+            postTriggerSubpath(b.build().encode(StandardCharsets.UTF_8).toUri());
             log.info("Sent leave application notification for employee: {}", employeeName);
         } catch (Exception e) {
             log.error("Failed to send leave application notification", e);
@@ -81,14 +93,14 @@ public class NotificationClient {
     public void notifyLeaveApproved(UUID employeeId, String leaveType,
                                     String startDate, String endDate, String approverName) {
         try {
-            String url = connectServiceUrl + "/api/notifications/trigger/leave-approved" +
-                    "?employeeId=" + employeeId +
-                    "&leaveType=" + leaveType +
-                    "&startDate=" + startDate +
-                    "&endDate=" + endDate +
-                    "&approverName=" + approverName;
-
-            postTriggerSubpath(url);
+            postTriggerSubpath(UriComponentsBuilder.fromHttpUrl(connectServiceUrl)
+                    .path("/api/notifications/trigger/leave-approved")
+                    .queryParam("employeeId", employeeId)
+                    .queryParam("leaveType", leaveType)
+                    .queryParam("startDate", startDate)
+                    .queryParam("endDate", endDate)
+                    .queryParam("approverName", approverName)
+                    .build().encode(StandardCharsets.UTF_8).toUri());
             log.info("Sent leave approval notification to employee: {}", employeeId);
         } catch (Exception e) {
             log.error("Failed to send leave approval notification", e);
@@ -102,15 +114,17 @@ public class NotificationClient {
                                     String startDate, String endDate,
                                     String approverName, String reason) {
         try {
-            String url = connectServiceUrl + "/api/notifications/trigger/leave-rejected" +
-                    "?employeeId=" + employeeId +
-                    "&leaveType=" + leaveType +
-                    "&startDate=" + startDate +
-                    "&endDate=" + endDate +
-                    "&approverName=" + approverName +
-                    (reason != null ? "&reason=" + reason : "");
-
-            postTriggerSubpath(url);
+            UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(connectServiceUrl)
+                    .path("/api/notifications/trigger/leave-rejected")
+                    .queryParam("employeeId", employeeId)
+                    .queryParam("leaveType", leaveType)
+                    .queryParam("startDate", startDate)
+                    .queryParam("endDate", endDate)
+                    .queryParam("approverName", approverName);
+            if (reason != null) {
+                b.queryParam("reason", reason);
+            }
+            postTriggerSubpath(b.build().encode(StandardCharsets.UTF_8).toUri());
             log.info("Sent leave rejection notification to employee: {}", employeeId);
         } catch (Exception e) {
             log.error("Failed to send leave rejection notification", e);
