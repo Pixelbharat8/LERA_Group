@@ -91,13 +91,18 @@ export default function LeadsPage() {
         ? buildCenterFilterUrl("/api/leads", userCenterId)
         : "/api/leads";
       
-      const [leadsData, centersData] = await Promise.all([
+      const [leadsData, centersData, programsData] = await Promise.all([
         apiFetch(leadsUrl).catch(() => []),
-        apiFetch("/api/centers").catch(() => [])
+        apiFetch("/api/centers").catch(() => []),
+        // A lead from the public website carries interestedProgramId, and the Interested Course
+        // column read `interestedCourse`, which no lead has — so the one thing the enquiry told
+        // us was invisible. Resolved here the same way the centre name already is.
+        apiFetch("/api/programs").catch(() => [])
       ]);
 
       const centersArr = Array.isArray(centersData) ? centersData : [];
       setCenters(centersArr);
+      const programsArr = Array.isArray(programsData) ? programsData : [];
 
       const leadsArray = Array.isArray(leadsData) ? leadsData : [];
       setLeads(
@@ -112,6 +117,8 @@ export default function LeadsPage() {
           // else just whether the lead is assigned.
           assignedTo: l.assignedToName || l.assignedUserName || (l.assignedTo || l.assigned_to ? "Assigned" : "Unassigned"),
           centerName: centersArr.find((c: Center) => c.id === l.centerId)?.name || "N/A",
+          interestedCourse:
+            programsArr.find((p: any) => p.id === l.interestedProgramId)?.name || "",
           createdAt: l.createdAt?.split("T")[0] || "",
         }))
       );

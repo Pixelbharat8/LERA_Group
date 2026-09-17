@@ -61,3 +61,41 @@ describe("both logs say who the contact was with", () => {
     }
   });
 });
+
+/**
+ * A lead created through the public website records which programme the enquiry was about, in
+ * Lead.interestedProgramId. The CRM leads table has an "Interested Course" column and read
+ * `interestedCourse`, a field no lead has — so the single most useful thing the enquiry told
+ * us was invisible on the screen the sales team works from.
+ *
+ * NOT fixed here, and deliberately: the internal "Add Lead" form still writes the course as
+ * prose into `notes` instead of setting interestedProgramId, so leads added by hand have
+ * nothing to resolve. Turning that free-text box into a programme picker changes what staff
+ * can enter, which is LERA's call.
+ */
+describe("the interested programme on a lead", () => {
+  const REPO2 = path.resolve(__dirname, "..", "..");
+  const leadEntity = fs.readFileSync(
+    path.join(REPO2, "backend/connect_service/src/main/java/com/lera/connect_service/entity/Lead.java"),
+    "utf8"
+  );
+  const publicController = fs.readFileSync(
+    path.join(REPO2, "backend/connect_service/src/main/java/com/lera/connect_service/controller/PublicLeadController.java"),
+    "utf8"
+  );
+  const leadsPage = fs.readFileSync(
+    path.join(REPO2, "frontend/app/dashboard/crm/leads/page.tsx"),
+    "utf8"
+  );
+
+  it("is stored as an id, and the public site really does set it", () => {
+    expect(leadEntity).toMatch(/private UUID interestedProgramId;/);
+    expect(leadEntity).not.toMatch(/private String interestedCourse;/);
+    expect(publicController).toMatch(/\.interestedProgramId\(req\.getInterestedProgramId\(\)\)/);
+  });
+
+  it("is resolved to a name for the column that displays it", () => {
+    expect(leadsPage).toMatch(/apiFetch\("\/api\/programs"\)/);
+    expect(leadsPage).toMatch(/p\.id === l\.interestedProgramId/);
+  });
+});
