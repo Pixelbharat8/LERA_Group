@@ -258,7 +258,7 @@ test_db_simple() {
     local name=$1
     local query=$2
     
-    local result=$(PGPASSWORD=lera123 psql -h localhost -U lera -d lera -tc "$query" 2>/dev/null | grep -oE '[0-9]+' | head -1 || echo "?")
+    local result=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -tc "$query" 2>/dev/null | grep -oE '[0-9]+' | head -1 || echo "?")
     log_step "$name: $result records"
 }
 
@@ -294,7 +294,7 @@ show_service_status() {
     echo ""
     echo -e "${CYAN}Quick Access:${NC}"
     echo "  Frontend:   http://localhost:3000"
-    echo "  Admin:      admin@lera.com / admin123"
+    echo "  Admin:      admin@lera.com / <see LERA_SEED_ADMIN_PASSWORD>"
     echo ""
 }
 
@@ -419,7 +419,7 @@ run_all_process() {
         echo ""
         echo -e "${GREEN}Next Steps:${NC}"
         echo "1. Open http://localhost:3000 in browser"
-        echo "2. Login: admin@lera.com / admin123"
+        echo "2. Login: admin@lera.com / <see LERA_SEED_ADMIN_PASSWORD>"
         echo "3. Navigate to SuperAdmin dashboard"
         echo "4. Verify data is showing on all pages"
         echo ""

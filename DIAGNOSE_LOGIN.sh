@@ -25,7 +25,7 @@ if lsof -i :8080 > /dev/null 2>&1; then
     echo "3️⃣  Testing login endpoint..."
     LOGIN_TEST=$(curl -s -X POST http://localhost:8080/api/auth/login \
         -H "Content-Type: application/json" \
-        -d '{"email":"admin@lera.com","password":"admin123"}' 2>&1)
+        -d "{\"email\":\"admin@lera.com\",\"password\":\"${ADMIN_PASSWORD:?ADMIN_PASSWORD not set - see LERA_SEED_ADMIN_PASSWORD in .env.example}\"}" 2>&1)
     
     if echo "$LOGIN_TEST" | grep -q "token"; then
         echo "   ✅ Login endpoint works! Token received."
@@ -54,7 +54,7 @@ if pg_isready -h localhost > /dev/null 2>&1; then
     # Check if admin user exists in database
     echo ""
     echo "5️⃣  Checking admin user in database..."
-    USER_CHECK=$(PGPASSWORD=lera123 psql -h localhost -U lera -d lera \
+    USER_CHECK=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera \
         -t -c "SELECT email FROM users WHERE email = 'admin@lera.com';" 2>&1)
     
     if echo "$USER_CHECK" | grep -q "admin@lera.com"; then
@@ -82,7 +82,7 @@ echo ""
 if lsof -i :8080 > /dev/null 2>&1; then
     if curl -s -X POST http://localhost:8080/api/auth/login \
         -H "Content-Type: application/json" \
-        -d '{"email":"admin@lera.com","password":"admin123"}' 2>&1 | grep -q "token"; then
+        -d "{\"email\":\"admin@lera.com\",\"password\":\"${ADMIN_PASSWORD:?ADMIN_PASSWORD not set - see LERA_SEED_ADMIN_PASSWORD in .env.example}\"}" 2>&1 | grep -q "token"; then
         echo "✅ Everything is working! Login should succeed."
         echo "   If browser still shows error, try:"
         echo "   1. Hard refresh: Cmd+Shift+R"

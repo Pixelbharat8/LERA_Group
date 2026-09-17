@@ -35,7 +35,7 @@ sleep 3
 # Create database and user
 echo "📊 Creating LERA database and user..."
 createuser -s lera 2>/dev/null || echo "User 'lera' already exists"
-psql postgres -c "ALTER USER lera WITH PASSWORD 'lera123';" 2>/dev/null
+psql postgres -c "ALTER USER lera WITH PASSWORD '<DB_PASSWORD>';" 2>/dev/null
 createdb -O lera lera 2>/dev/null || echo "Database 'lera' already exists"
 
 # Run database initialization and migrations
@@ -45,7 +45,7 @@ echo "🗄️  Running database schema initialization..."
 # Run init.sql
 if [ -f "database/init/init.sql" ]; then
     echo "   → Applying init.sql..."
-    PGPASSWORD=lera123 psql -h localhost -U lera -d lera -f database/init/init.sql -q 2>&1 | grep -v "NOTICE" || true
+    PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -f database/init/init.sql -q 2>&1 | grep -v "NOTICE" || true
     echo "   ✓ Base schema applied"
 else
     echo "   ⚠️  Warning: database/init/init.sql not found"
@@ -54,7 +54,7 @@ fi
 # Run migration
 if [ -f "database/migrations/V2__add_missing_66_tables.sql" ]; then
     echo "   → Applying V2 migration (66 missing tables)..."
-    PGPASSWORD=lera123 psql -h localhost -U lera -d lera -f database/migrations/V2__add_missing_66_tables.sql -q 2>&1 | grep -v "NOTICE" || true
+    PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -f database/migrations/V2__add_missing_66_tables.sql -q 2>&1 | grep -v "NOTICE" || true
     echo "   ✓ Migration applied"
 else
     echo "   ⚠️  Warning: database/migrations/V2__add_missing_66_tables.sql not found"
@@ -63,7 +63,7 @@ fi
 # Count tables
 echo ""
 echo "📊 Verifying database schema..."
-TABLE_COUNT=$(PGPASSWORD=lera123 psql -h localhost -U lera -d lera -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" 2>/dev/null | tr -d ' ')
+TABLE_COUNT=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" 2>/dev/null | tr -d ' ')
 
 echo ""
 echo "✅ PostgreSQL is now running locally on localhost!"
@@ -73,7 +73,7 @@ echo "   Host: localhost"
 echo "   Port: 5432"
 echo "   Database: lera"
 echo "   Username: lera"
-echo "   Password: lera123"
+echo "   Password: <see DB_PASSWORD in .env.example>"
 echo ""
 echo "📊 Database Status:"
 echo "   Tables: ${TABLE_COUNT}/107"

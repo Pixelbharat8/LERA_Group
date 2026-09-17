@@ -19,7 +19,7 @@ WHERE u.email = 'admin@lera.edu.vn';
 EOF
 
 echo ""
-echo "Step 2: Updating password to 'admin123'..."
+echo "Step 2: Updating password to '<LERA_SEED_ADMIN_PASSWORD>'..."
 echo ""
 
 psql -h localhost -U lera -d lera << 'EOF'
@@ -51,7 +51,7 @@ echo ""
 
 response=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@lera.edu.vn","password":"admin123"}')
+  -d '{"email":"admin@lera.edu.vn","password":"<LERA_SEED_ADMIN_PASSWORD>"}')
 
 http_code=$(echo "$response" | grep "HTTP_CODE" | cut -d: -f2)
 body=$(echo "$response" | grep -v "HTTP_CODE")
@@ -69,7 +69,7 @@ if [ "$http_code" = "200" ]; then
   echo ""
   echo "📋 Credentials:"
   echo "   Email: admin@lera.edu.vn"
-  echo "   Password: admin123"
+  echo "   Password: <see LERA_SEED_ADMIN_PASSWORD>"
   echo ""
   echo "🌐 Login URL: http://localhost:3000/auth/login"
   echo ""

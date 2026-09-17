@@ -18,7 +18,7 @@ if ! brew services list | grep -q "postgresql@15.*started"; then
 fi
 
 # Check database connection
-if ! PGPASSWORD=lera123 psql -h localhost -U lera -d lera -c "SELECT 1" > /dev/null 2>&1; then
+if ! PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -c "SELECT 1" > /dev/null 2>&1; then
     echo "❌ Cannot connect to database. Please check your connection settings."
     exit 1
 fi
@@ -27,7 +27,7 @@ echo "✅ Connected to database successfully"
 echo ""
 
 # Count tables
-TABLE_COUNT=$(PGPASSWORD=lera123 psql -h localhost -U lera -d lera -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" | tr -d ' ')
+TABLE_COUNT=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" | tr -d ' ')
 
 echo "📊 Database Statistics:"
 echo "   Tables found: ${TABLE_COUNT}"
@@ -53,7 +53,7 @@ echo "📋 Running detailed verification..."
 echo ""
 
 # Run detailed verification
-PGPASSWORD=lera123 psql -h localhost -U lera -d lera -f database/verify-107-tables.sql
+PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -f database/verify-107-tables.sql
 
 echo ""
 echo "✅ Verification complete!"

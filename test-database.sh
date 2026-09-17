@@ -34,7 +34,7 @@ fi
 # Test database connection
 echo ""
 echo "3️⃣  Testing database connection..."
-if PGPASSWORD=lera123 psql -h localhost -U lera -d lera -c "SELECT 1;" &> /dev/null; then
+if PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -c "SELECT 1;" &> /dev/null; then
     echo "   ✅ Successfully connected to database"
 else
     echo "   ❌ Cannot connect to database"
@@ -45,7 +45,7 @@ fi
 # Count tables
 echo ""
 echo "4️⃣  Counting tables..."
-TABLE_COUNT=$(PGPASSWORD=lera123 psql -h localhost -U lera -d lera -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" 2>/dev/null | tr -d ' ')
+TABLE_COUNT=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" 2>/dev/null | tr -d ' ')
 
 if [ -z "$TABLE_COUNT" ]; then
     echo "   ❌ Could not count tables"
@@ -71,7 +71,7 @@ echo "   Host:     localhost"
 echo "   Port:     5432"
 echo "   Database: lera"
 echo "   Username: lera"
-echo "   Password: lera123"
+echo "   Password: <see DB_PASSWORD in .env.example>"
 echo ""
 echo "💡 Quick commands:"
 echo "   psql -h localhost -U lera -d lera    # Connect"

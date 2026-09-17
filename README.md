@@ -52,7 +52,7 @@ Host:     localhost
 Port:     5432
 Database: lera
 Username: lera
-Password: lera123
+Password: <see DB_PASSWORD in .env.example>
 ```
 
 ---
@@ -241,14 +241,14 @@ docker compose ps
 
 **PgAdmin Login:**
 - Email: `admin@lera.com`
-- Password: `admin123`
+- Password: `<LERA_SEED_ADMIN_PASSWORD>`
 
 **Database Connection (from PgAdmin):**
 - Host: `postgres` ⚠️ (use service name, NOT localhost)
 - Port: `5432`
 - Database: `lera`
 - Username: `lera`
-- Password: `lera123`
+- Password: `<DB_PASSWORD from .env.example>`
 
 ---
 
@@ -548,7 +548,7 @@ DB_HOST=postgres
 DB_PORT=5432
 DB_NAME=lera
 DB_USER=lera
-DB_PASSWORD=lera123
+DB_PASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}"
 
 # JWT Configuration
 JWT_SECRET=your-secret-key-here

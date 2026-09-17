@@ -8,7 +8,7 @@ echo "1️⃣ Testing Identity Service directly..."
 echo ""
 response=$(curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@lera.com","password":"admin123"}')
+  -d "{\"email\":\"admin@lera.com\",\"password\":\"${ADMIN_PASSWORD:?ADMIN_PASSWORD not set - see LERA_SEED_ADMIN_PASSWORD in .env.example}\"}")
 
 echo "Response from backend:"
 echo "$response" | jq . 2>/dev/null || echo "$response"

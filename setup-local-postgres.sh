@@ -78,7 +78,7 @@ echo "📊 Creating LERA database and user..."
 if ! psql -h localhost -U "$BOOTSTRAP_USER" -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='lera';" | grep -q 1; then
     psql -h localhost -U "$BOOTSTRAP_USER" -d postgres -c "CREATE ROLE lera WITH LOGIN SUPERUSER;" >/dev/null
 fi
-psql -h localhost -U "$BOOTSTRAP_USER" -d postgres -c "ALTER USER lera WITH PASSWORD 'lera123';" >/dev/null
+psql -h localhost -U "$BOOTSTRAP_USER" -d postgres -c "ALTER USER lera WITH PASSWORD '<DB_PASSWORD>';" >/dev/null
 
 # Create database if missing (run via bootstrap user)
 if ! psql -h localhost -U "$BOOTSTRAP_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='lera';" | grep -q 1; then
@@ -92,7 +92,7 @@ echo "🗄️  Running database schema initialization..."
 # Run init.sql
 if [ -f "database/init/init.sql" ]; then
     echo "   → Applying init.sql..."
-    PGPASSWORD=lera123 psql -h localhost -U lera -d lera -f database/init/init.sql -q 2>&1 | grep -v "NOTICE" || true
+    PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -f database/init/init.sql -q 2>&1 | grep -v "NOTICE" || true
     echo "   ✓ Base schema applied"
 else
     echo "   ⚠️  Warning: database/init/init.sql not found"
@@ -101,7 +101,7 @@ fi
 # Run migration
 if [ -f "database/migrations/V2__add_missing_66_tables.sql" ]; then
     echo "   → Applying V2 migration (66 missing tables)..."
-    PGPASSWORD=lera123 psql -h localhost -U lera -d lera -f database/migrations/V2__add_missing_66_tables.sql -q 2>&1 | grep -v "NOTICE" || true
+    PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -f database/migrations/V2__add_missing_66_tables.sql -q 2>&1 | grep -v "NOTICE" || true
     echo "   ✓ Migration applied"
 else
     echo "   ⚠️  Warning: database/migrations/V2__add_missing_66_tables.sql not found"
@@ -110,7 +110,7 @@ fi
 # Run migration V3 (107 required list compatibility)
 if [ -f "database/migrations/V3__required_107_missing_tables.sql" ]; then
     echo "   → Applying V3 migration (required 107 missing tables)..."
-    PGPASSWORD=lera123 psql -h localhost -U lera -d lera -f database/migrations/V3__required_107_missing_tables.sql -q 2>&1 | grep -v "NOTICE" || true
+    PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -f database/migrations/V3__required_107_missing_tables.sql -q 2>&1 | grep -v "NOTICE" || true
     echo "   ✓ Migration V3 applied"
 else
     echo "   ⚠️  Warning: database/migrations/V3__required_107_missing_tables.sql not found"
@@ -121,7 +121,7 @@ echo ""
 echo "📊 Verifying database schema..."
 
 # Count ALL base tables (diagnostic)
-ALL_TABLE_COUNT=$(PGPASSWORD=lera123 psql -h localhost -U lera -d lera -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" 2>/dev/null | tr -d ' ')
+ALL_TABLE_COUNT=$(PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" 2>/dev/null | tr -d ' ')
 
 # Count REQUIRED tables (authoritative list)
 REQUIRED_TABLES=(
@@ -148,7 +148,7 @@ REQUIRED_TOTAL=${#REQUIRED_TABLES[@]}
 REQUIRED_COUNT=0
 MISSING_TABLES=()
 for t in "${REQUIRED_TABLES[@]}"; do
-  if PGPASSWORD=lera123 psql -h localhost -U lera -d lera -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' AND table_name='${t}';" 2>/dev/null | grep -q 1; then
+  if PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' AND table_name='${t}';" 2>/dev/null | grep -q 1; then
     REQUIRED_COUNT=$((REQUIRED_COUNT+1))
   else
     MISSING_TABLES+=("$t")
@@ -163,7 +163,7 @@ echo "   Host: localhost"
 echo "   Port: 5432"
 echo "   Database: lera"
 echo "   Username: lera"
-echo "   Password: lera123"
+echo "   Password: <see DB_PASSWORD in .env.example>"
 echo ""
 echo "Database Status:"
 echo "   Tables (required): ${REQUIRED_COUNT}/${REQUIRED_TOTAL}"

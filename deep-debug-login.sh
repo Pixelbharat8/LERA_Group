@@ -10,7 +10,7 @@ echo ""
 # Test if the identity service is even reaching the password check
 curl -v -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@lera.edu.vn","password":"admin123"}' 2>&1 | grep -E "HTTP|Content-Type|{"
+  -d '{"email":"admin@lera.edu.vn","password":"<LERA_SEED_ADMIN_PASSWORD>"}' 2>&1 | grep -E "HTTP|Content-Type|{"
 
 echo ""
 echo ""

@@ -117,7 +117,7 @@ TESTING:
 
 FRONTEND:
   ✅ Loads at http://localhost:3000
-  ✅ Can login with admin@lera.com / admin123
+  ✅ Can login with admin@lera.com / <see LERA_SEED_ADMIN_PASSWORD>
   ✅ SuperAdmin dashboard working
   ✅ All pages display data
 
@@ -195,7 +195,7 @@ FRONTEND:
   http://localhost:3000
 
 DATABASE:
-  PGPASSWORD=lera123 psql -h localhost -U lera -d lera
+  PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD not set - see .env.example}" psql -h localhost -U lera -d lera
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

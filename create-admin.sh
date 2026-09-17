@@ -17,7 +17,7 @@ echo ""
 # Create super admin user
 echo "Creating super admin user..."
 echo "Email: admin@lera.com"
-echo "Password: admin123"
+echo "Password: <see LERA_SEED_ADMIN_PASSWORD>"
 echo ""
 
 psql -h localhost -U lera -d lera << 'EOF'
@@ -27,7 +27,7 @@ VALUES (gen_random_uuid(), 'superadmin', 'Super Administrator', NOW(), NOW())
 ON CONFLICT (name) DO NOTHING;
 
 -- Create the super admin user
--- Password: admin123 (bcrypt hash)
+-- Password: <see LERA_SEED_ADMIN_PASSWORD> (bcrypt hash)
 INSERT INTO users (id, email, password, full_name, role_id, is_active, created_at, updated_at)
 SELECT 
   gen_random_uuid(),
@@ -62,7 +62,7 @@ echo "✅ Admin User Created Successfully!"
 echo ""
 echo "📋 Login Credentials:"
 echo "   Email: admin@lera.com"
-echo "   Password: admin123"
+echo "   Password: <see LERA_SEED_ADMIN_PASSWORD>"
 echo ""
 echo "🌐 Access URLs:"
 echo "   Login: http://localhost:3000/auth/login"

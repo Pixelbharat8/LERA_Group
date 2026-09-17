@@ -136,7 +136,7 @@ echo "${BLUE}🧪 Testing API Endpoints:${NC}"
 echo -n "   POST /api/auth/login: "
 login_response=$(curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@lera.com","password":"admin123"}' 2>/dev/null)
+  -d "{\"email\":\"admin@lera.com\",\"password\":\"${ADMIN_PASSWORD:?ADMIN_PASSWORD not set - see LERA_SEED_ADMIN_PASSWORD in .env.example}\"}" 2>/dev/null)
 
 if echo "$login_response" | grep -q "token"; then
     echo "${GREEN}✅ Working (returns token)${NC}"
@@ -199,7 +199,7 @@ if [ $running_count -eq $total_core ]; then
     echo ""
     echo "${BLUE}🔐 Login with:${NC}"
     echo "   Email:    admin@lera.com"
-    echo "   Password: admin123"
+    echo "   Password: <see LERA_SEED_ADMIN_PASSWORD>"
 elif [ $running_count -gt 0 ]; then
     echo "${YELLOW}⚠️  Some services are running ($running_count/$total_core)${NC}"
     echo ""

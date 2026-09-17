@@ -28,7 +28,7 @@ echo ""
 echo "3️⃣ Testing Identity Service API..."
 response=$(curl -s -w "\n%{http_code}" -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@lera.com","password":"admin123"}' 2>&1)
+  -d "{\"email\":\"admin@lera.com\",\"password\":\"${ADMIN_PASSWORD:?ADMIN_PASSWORD not set - see LERA_SEED_ADMIN_PASSWORD in .env.example}\"}" 2>&1)
 
 http_code=$(echo "$response" | tail -n1)
 body=$(echo "$response" | head -n-1)

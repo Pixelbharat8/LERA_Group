@@ -271,7 +271,7 @@ Archived status: [NEW_LOOPHOLES_GAPS_ANALYSIS.md](archive/2026-05/NEW_LOOPHOLES_
 
 ## How to verify current status yourself
 
-1. **DB:** `./setup-local-postgres.sh` or Docker Postgres (`lera` / `lera123`).
+1. **DB:** `./setup-local-postgres.sh` or Docker Postgres (`lera` / `<DB_PASSWORD from .env.example>`).
 2. **Stack:** `./start-lera.sh` → open `http://localhost:3000`.
 3. **Health:** `http://localhost:8081/api/health` (aggregates all services).
 4. **Smoke:** `frontend/e2e/smoke.spec.ts` (Playwright).
