@@ -7,11 +7,47 @@ set -e
 echo "🚀 LERA Platform - AWS Deployment Script"
 echo "=========================================="
 
-# Configuration
-REGION="ap-south-1"  # Mumbai region, change as needed
-ENVIRONMENT="prod"
-DB_PASSWORD="YourSecurePassword123!"  # CHANGE THIS!
-JWT_SECRET="your-super-secret-jwt-key-minimum-256-bits-long"  # CHANGE THIS!
+# ─────────────────────────────────────────────────────────────────────────────
+# Configuration — every secret comes from the environment. Nothing is defaulted
+# here: this file is committed, so a default IS a published credential. It used to
+# ship a placeholder DB password and a literal JWT signing secret, either of which
+# would have gone straight to production for anyone who ran it as-is.
+#
+# Export these before running, e.g. from a password manager or `aws secretsmanager
+# get-secret-value`:
+#
+#   export DB_PASSWORD=...              # >= 8 chars
+#   export JWT_SECRET=...               # >= 32 chars, valid Base64 (HS256 decodes it)
+#   export LERA_INTERNAL_API_KEY=...    # >= 16 chars; openssl rand -base64 24
+#   export IMAGE_REGISTRY=...           # Docker Hub namespace CI pushes to
+#
+# Optional but the platform is crippled without them — see aws/AWS_DEPLOYMENT_GUIDE.md:
+#   LERA_SEED_CHAIRMAN_PASSWORD, LERA_SEED_CEO_PASSWORD, LERA_SEED_ADMIN_PASSWORD
+#   MAIL_USERNAME, MAIL_PASSWORD, MAIL_ENABLED
+#   VNPAY_TMN_CODE, VNPAY_HASH_SECRET
+#   ANTHROPIC_API_KEY
+# ─────────────────────────────────────────────────────────────────────────────
+REGION="${AWS_REGION:-us-east-1}"   # The template's WAFv2 WebACL is Scope=CLOUDFRONT,
+                                    # which AWS only accepts in us-east-1.
+ENVIRONMENT="${ENVIRONMENT:-prod}"
+
+require() {
+    local name="$1" min="$2"
+    local value="${!name:-}"
+    if [ -z "$value" ]; then
+        echo -e "\033[0;31m$name is not set.\033[0m See the header of this script." >&2
+        exit 1
+    fi
+    if [ -n "$min" ] && [ "${#value}" -lt "$min" ]; then
+        echo -e "\033[0;31m$name is shorter than $min characters (the template rejects it).\033[0m" >&2
+        exit 1
+    fi
+}
+
+require DB_PASSWORD 8
+require JWT_SECRET 32
+require LERA_INTERNAL_API_KEY 16
+require IMAGE_REGISTRY ""
 
 # Colors
 RED='\033[0;31m'
@@ -39,11 +75,32 @@ aws cloudformation deploy \
     --template-file aws/cloudformation-template.yaml \
     --stack-name lera-platform-${ENVIRONMENT} \
     --parameter-overrides \
-        Environment=${ENVIRONMENT} \
-        DBPassword=${DB_PASSWORD} \
-        JWTSecret=${JWT_SECRET} \
+        Environment="${ENVIRONMENT}" \
+        DBPassword="${DB_PASSWORD}" \
+        JWTSecret="${JWT_SECRET}" \
+        LeraInternalApiKey="${LERA_INTERNAL_API_KEY}" \
+        ImageRegistry="${IMAGE_REGISTRY}" \
+        ImageTag="${IMAGE_TAG:-latest}" \
+        SeedChairmanPassword="${LERA_SEED_CHAIRMAN_PASSWORD:-}" \
+        SeedCeoPassword="${LERA_SEED_CEO_PASSWORD:-}" \
+        SeedAdminPassword="${LERA_SEED_ADMIN_PASSWORD:-}" \
+        MailEnabled="${MAIL_ENABLED:-false}" \
+        MailUsername="${MAIL_USERNAME:-}" \
+        MailPassword="${MAIL_PASSWORD:-}" \
+        VnpayTmnCode="${VNPAY_TMN_CODE:-}" \
+        VnpayHashSecret="${VNPAY_HASH_SECRET:-}" \
+        AnthropicApiKey="${ANTHROPIC_API_KEY:-}" \
     --capabilities CAPABILITY_IAM \
     --region ${REGION}
+
+# The seeded Chairman/CEO/admin passwords only take effect on the FIRST boot of an
+# empty database. DataLoader skips those accounts once they exist, so setting them
+# after the fact does nothing — you would need a password reset instead.
+if [ -z "${LERA_SEED_CHAIRMAN_PASSWORD:-}" ]; then
+    echo -e "${YELLOW}WARNING: LERA_SEED_CHAIRMAN_PASSWORD is unset. On a fresh database the"
+    echo -e "         Chairman password will be randomly generated and written to the logs"
+    echo -e "         exactly once. If you miss it, that account is unreachable.${NC}"
+fi
 
 # Get outputs
 DB_ENDPOINT=$(aws cloudformation describe-stacks \
@@ -68,6 +125,24 @@ echo -e "${GREEN}✓ Infrastructure deployed${NC}"
 echo "  Database: ${DB_ENDPOINT}"
 echo "  S3 Bucket: ${S3_BUCKET}"
 echo "  CloudFront: ${CLOUDFRONT_URL}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STOP — steps 4-8 below contradict the CloudFormation stack deployed above.
+#
+# The template runs all 9 backend services AND the frontend as ECS Fargate tasks
+# behind service discovery; once `cloudformation deploy` returns, the platform is
+# already running. The steps below then deploy a SECOND, separate copy of
+# identity_service to Elastic Beanstalk (on the java-17 platform — the services
+# are Java 25 now) and push a static export of the frontend to S3.
+#
+# Running them gives you two identity services on different hostnames sharing one
+# database, and a static frontend that cannot serve the dashboard's API routes.
+# Decide which deployment model LERA is using and delete the other half. Until
+# then these steps are left in place rather than removed on our own judgement.
+# ─────────────────────────────────────────────────────────────────────────────
+echo -e "${YELLOW}Steps 4-8 are stale (see the comment above). Skipping.${NC}"
+echo -e "${GREEN}Stack deployed. Frontend: https://${CLOUDFRONT_URL}${NC}"
+exit 0
 
 # Build and deploy backend
 echo -e "${YELLOW}Step 4: Building Identity Service...${NC}"

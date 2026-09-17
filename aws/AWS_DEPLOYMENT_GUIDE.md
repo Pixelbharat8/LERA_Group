@@ -53,7 +53,8 @@ pip install awsebcli
 4. Set:
    - DB Instance ID: `lera-db`
    - Master Username: `lera`
-   - Master Password: `YourSecurePassword`
+   - Master Password: generate one and store it in a password manager. Do NOT reuse
+     any value from this repository — anything written here is public.
 5. Enable public access (for initial setup)
 6. Create database
 
@@ -65,7 +66,7 @@ aws rds create-db-instance \
     --engine postgres \
     --engine-version 15 \
     --master-username lera \
-    --master-user-password YourSecurePassword123! \
+    --master-user-password "$DB_PASSWORD" \   # exported from your password manager
     --allocated-storage 20 \
     --publicly-accessible
 ```
@@ -103,8 +104,8 @@ eb create lera-identity-prod --single
 eb setenv \
     SPRING_DATASOURCE_URL=jdbc:postgresql://<rds-endpoint>:5432/postgres \
     SPRING_DATASOURCE_USERNAME=lera \
-    SPRING_DATASOURCE_PASSWORD=YourSecurePassword123! \
-    JWT_SECRET=your-256-bit-secret-key \
+    SPRING_DATASOURCE_PASSWORD="$DB_PASSWORD" \
+    JWT_SECRET="$JWT_SECRET" \
     SPRING_PROFILES_ACTIVE=prod
 
 # Deploy

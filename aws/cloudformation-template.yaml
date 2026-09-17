@@ -61,6 +61,141 @@ Parameters:
     MinValue: 1
     Description: Tasks per backend service. Raise to 2+ for real availability.
 
+  # ── Seeded accounts ──────────────────────────────────────────────────────
+  # DataLoader seeds Chairman/CEO/admin on the FIRST boot of an empty database,
+  # taking each password from LERA_SEED_*. Leave one blank and it generates a
+  # random password and logs it exactly once — which is how the dev Chairman
+  # login was lost. Set these before the first deploy or you cannot log in.
+  SeedChairmanPassword:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: LERA_SEED_CHAIRMAN_PASSWORD. Blank = random, logged once, unrecoverable.
+
+  SeedCeoPassword:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: LERA_SEED_CEO_PASSWORD. Blank = random, logged once, unrecoverable.
+
+  SeedAdminPassword:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: LERA_SEED_ADMIN_PASSWORD. Blank = random, logged once, unrecoverable.
+
+  # ── Outbound mail (connect_service) ──────────────────────────────────────
+  # Without these the platform cannot send anything: no password reset, no
+  # notification email, no privacy@ mailbox.
+  MailEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: Turn on once MailUsername/MailPassword are set and verified.
+
+  MailHost:
+    Type: String
+    Default: smtp.gmail.com
+    MinLength: 1
+    Description: SMTP host. Must not be blank — an empty value overrides the property default.
+
+  MailPort:
+    Type: String
+    Default: '587'
+    MinLength: 1
+    Description: SMTP port.
+
+  MailUsername:
+    Type: String
+    Default: ''
+    Description: SMTP username.
+
+  MailPassword:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: SMTP password / app password. Stored in Secrets Manager when set.
+
+  MailFrom:
+    Type: String
+    Default: noreply@leraacademy.edu.vn
+    MinLength: 1
+    Description: From address on outbound mail.
+
+  # ── VNPay (payment_service) ──────────────────────────────────────────────
+  VnpayTmnCode:
+    Type: String
+    Default: ''
+    Description: VNPay merchant code. Blank leaves online payment unconfigured.
+
+  VnpayHashSecret:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: VNPay hash secret. Stored in Secrets Manager when set.
+
+  VnpayPayUrl:
+    Type: String
+    Default: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+    MinLength: 1
+    Description: >-
+      VNPay gateway URL. The default is the SANDBOX — switch to the production
+      URL before taking real money.
+
+  VnpayReturnUrl:
+    Type: String
+    Default: ''
+    Description: >-
+      Where VNPay sends the payer back. Blank derives it from the CloudFront
+      domain, which is what you want unless you front the stack with your own.
+
+  # ── Push notifications (connect_service) ─────────────────────────────────
+  ApnsTeamId:
+    Type: String
+    Default: ''
+    Description: Apple developer team id.
+
+  ApnsKeyId:
+    Type: String
+    Default: ''
+    Description: APNs auth key id.
+
+  ApnsBundleId:
+    Type: String
+    Default: com.lera.app
+    MinLength: 1
+    Description: iOS bundle id.
+
+  ApnsKeyPath:
+    Type: String
+    Default: ''
+    Description: Path to the .p8 auth key inside the container image.
+
+  ApnsSandbox:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: Set 'false' for App Store builds.
+
+  FcmProjectId:
+    Type: String
+    Default: ''
+    Description: Firebase project id for Android push.
+
+  FcmServiceAccountPath:
+    Type: String
+    Default: ''
+    Description: Path to the FCM service-account JSON inside the container image.
+
+  # ── AI gateway ───────────────────────────────────────────────────────────
+  AnthropicApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: >-
+      Optional. A key set in Super Admin → AI Gateway is stored in system_settings
+      and overrides this, so it is only the bootstrap value.
+
   FlywayEnabled:
     Type: String
     Default: 'true'
@@ -76,6 +211,18 @@ Parameters:
 # NOTE: the WAFv2 WebACL below uses Scope=CLOUDFRONT, which AWS only allows in the
 # us-east-1 region. Deploy this stack (or at least the WebACL) in us-east-1, or split the
 # WebACL into a separate us-east-1 stack and pass its ARN in.
+
+Conditions:
+  # An ECS Secrets entry pointing at a secret that does not exist stops the task
+  # from starting, so each optional secret is created and referenced only when a
+  # value was supplied.
+  HasChairmanSeed: !Not [!Equals [!Ref SeedChairmanPassword, '']]
+  HasCeoSeed: !Not [!Equals [!Ref SeedCeoPassword, '']]
+  HasAdminSeed: !Not [!Equals [!Ref SeedAdminPassword, '']]
+  HasMailPassword: !Not [!Equals [!Ref MailPassword, '']]
+  HasVnpayHashSecret: !Not [!Equals [!Ref VnpayHashSecret, '']]
+  HasAnthropicKey: !Not [!Equals [!Ref AnthropicApiKey, '']]
+  HasVnpayReturnUrl: !Not [!Equals [!Ref VnpayReturnUrl, '']]
 
 Resources:
   # VPC
@@ -574,6 +721,48 @@ Resources:
   # SECRETS — task definitions reference these by ARN, so the values never
   # appear in the rendered task definition or the ECS console.
   # ===========================================================================
+  SeedChairmanPasswordSecret:
+    Condition: HasChairmanSeed
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub lera-${Environment}-seed-chairman-password
+      SecretString: !Ref SeedChairmanPassword
+
+  SeedCeoPasswordSecret:
+    Condition: HasCeoSeed
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub lera-${Environment}-seed-ceo-password
+      SecretString: !Ref SeedCeoPassword
+
+  SeedAdminPasswordSecret:
+    Condition: HasAdminSeed
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub lera-${Environment}-seed-admin-password
+      SecretString: !Ref SeedAdminPassword
+
+  MailPasswordSecret:
+    Condition: HasMailPassword
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub lera-${Environment}-mail-password
+      SecretString: !Ref MailPassword
+
+  VnpayHashSecretSecret:
+    Condition: HasVnpayHashSecret
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub lera-${Environment}-vnpay-hash-secret
+      SecretString: !Ref VnpayHashSecret
+
+  AnthropicApiKeySecret:
+    Condition: HasAnthropicKey
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub lera-${Environment}-anthropic-api-key
+      SecretString: !Ref AnthropicApiKey
+
   DbPasswordSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
@@ -637,6 +826,12 @@ Resources:
                   - !Ref DbPasswordSecret
                   - !Ref JwtSecret
                   - !Ref InternalApiKeySecret
+                  - !If [HasChairmanSeed, !Ref SeedChairmanPasswordSecret, !Ref 'AWS::NoValue']
+                  - !If [HasCeoSeed, !Ref SeedCeoPasswordSecret, !Ref 'AWS::NoValue']
+                  - !If [HasAdminSeed, !Ref SeedAdminPasswordSecret, !Ref 'AWS::NoValue']
+                  - !If [HasMailPassword, !Ref MailPasswordSecret, !Ref 'AWS::NoValue']
+                  - !If [HasVnpayHashSecret, !Ref VnpayHashSecretSecret, !Ref 'AWS::NoValue']
+                  - !If [HasAnthropicKey, !Ref AnthropicApiKeySecret, !Ref 'AWS::NoValue']
 
   # The role the application itself runs as: S3 uploads + ECS Exec shell access.
   EcsTaskRole:
@@ -718,6 +913,21 @@ Resources:
             - Name: FRONTEND_URL
               Value: !Sub https://${CloudFrontDistribution.DomainName}
           Secrets:
+            - !If
+              - HasChairmanSeed
+              - Name: LERA_SEED_CHAIRMAN_PASSWORD
+                ValueFrom: !Ref SeedChairmanPasswordSecret
+              - !Ref 'AWS::NoValue'
+            - !If
+              - HasCeoSeed
+              - Name: LERA_SEED_CEO_PASSWORD
+                ValueFrom: !Ref SeedCeoPasswordSecret
+              - !Ref 'AWS::NoValue'
+            - !If
+              - HasAdminSeed
+              - Name: LERA_SEED_ADMIN_PASSWORD
+                ValueFrom: !Ref SeedAdminPasswordSecret
+              - !Ref 'AWS::NoValue'
             - Name: DB_PASSWORD
               ValueFrom: !Ref DbPasswordSecret
             - Name: JWT_SECRET
@@ -869,6 +1079,15 @@ Resources:
               Name: payment
               AppProtocol: http
           Environment:
+            - Name: VNPAY_TMN_CODE
+              Value: !Ref VnpayTmnCode
+            - Name: VNPAY_PAY_URL
+              Value: !Ref VnpayPayUrl
+            - Name: VNPAY_RETURN_URL
+              Value: !If
+                - HasVnpayReturnUrl
+                - !Ref VnpayReturnUrl
+                - !Sub https://${CloudFrontDistribution.DomainName}/api/public/payment/vnpay-return
             - Name: SPRING_PROFILES_ACTIVE
               Value: prod
             - Name: SPRING_FLYWAY_ENABLED
@@ -894,6 +1113,11 @@ Resources:
             - Name: FRONTEND_URL
               Value: !Sub https://${CloudFrontDistribution.DomainName}
           Secrets:
+            - !If
+              - HasVnpayHashSecret
+              - Name: VNPAY_HASH_SECRET
+                ValueFrom: !Ref VnpayHashSecretSecret
+              - !Ref 'AWS::NoValue'
             - Name: DB_PASSWORD
               ValueFrom: !Ref DbPasswordSecret
             - Name: JWT_SECRET
@@ -1126,6 +1350,30 @@ Resources:
               Name: connect
               AppProtocol: http
           Environment:
+            - Name: MAIL_ENABLED
+              Value: !Ref MailEnabled
+            - Name: MAIL_HOST
+              Value: !Ref MailHost
+            - Name: MAIL_PORT
+              Value: !Ref MailPort
+            - Name: MAIL_USERNAME
+              Value: !Ref MailUsername
+            - Name: MAIL_FROM
+              Value: !Ref MailFrom
+            - Name: APNS_TEAM_ID
+              Value: !Ref ApnsTeamId
+            - Name: APNS_KEY_ID
+              Value: !Ref ApnsKeyId
+            - Name: APNS_BUNDLE_ID
+              Value: !Ref ApnsBundleId
+            - Name: APNS_KEY_PATH
+              Value: !Ref ApnsKeyPath
+            - Name: APNS_SANDBOX
+              Value: !Ref ApnsSandbox
+            - Name: FCM_PROJECT_ID
+              Value: !Ref FcmProjectId
+            - Name: FCM_SERVICE_ACCOUNT_PATH
+              Value: !Ref FcmServiceAccountPath
             - Name: SPRING_PROFILES_ACTIVE
               Value: prod
             - Name: SPRING_FLYWAY_ENABLED
@@ -1151,6 +1399,11 @@ Resources:
             - Name: FRONTEND_URL
               Value: !Sub https://${CloudFrontDistribution.DomainName}
           Secrets:
+            - !If
+              - HasMailPassword
+              - Name: MAIL_PASSWORD
+                ValueFrom: !Ref MailPasswordSecret
+              - !Ref 'AWS::NoValue'
             - Name: DB_PASSWORD
               ValueFrom: !Ref DbPasswordSecret
             - Name: JWT_SECRET
@@ -1232,6 +1485,11 @@ Resources:
             - Name: ACADEMY_SERVICE_URL
               Value: http://academy-service:8082
           Secrets:
+            - !If
+              - HasAnthropicKey
+              - Name: ANTHROPIC_API_KEY
+                ValueFrom: !Ref AnthropicApiKeySecret
+              - !Ref 'AWS::NoValue'
             - Name: DB_PASSWORD
               ValueFrom: !Ref DbPasswordSecret
             - Name: JWT_SECRET
