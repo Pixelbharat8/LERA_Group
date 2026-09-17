@@ -7,6 +7,7 @@ import com.lera.academy_service.security.PermissionGateFilter;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -28,6 +29,17 @@ import org.springframework.http.HttpMethod;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    /**
+     * Browser origins allowed to send credentialed requests. Deployed profiles override this
+     * (see application-prod.properties) so a localhost origin is never trusted against the
+     * live API — this CORS config sets allowCredentials=true, so a trusted
+     * http://localhost:3000 would let anything bound to that port on a user's machine call
+     * the API with their cookies. capacitor:// and ionic:// are app schemes, not network
+     * origins, so they stay allowed in production for the mobile shell.
+     */
+    @Value("${lera.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002,capacitor://localhost,ionic://localhost,https://*.leraacademy.edu.vn}")
+    private List<String> allowedOrigins;
 
     private final InternalApiKeyAuthFilter internalApiKeyAuthFilter;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -114,17 +126,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of(
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            "http://localhost:3001",
-            "http://127.0.0.1:3001",
-            "http://localhost:3002",
-            "http://127.0.0.1:3002",
-            "capacitor://localhost",
-            "ionic://localhost",
-            "https://*.leraacademy.edu.vn"
-        ));
+        configuration.setAllowedOriginPatterns(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", "X-User-Id"));
         configuration.setExposedHeaders(List.of("Authorization"));

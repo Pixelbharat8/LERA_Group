@@ -3,6 +3,7 @@ package com.lera.social_media_service.config;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,6 +24,16 @@ import jakarta.servlet.http.HttpServletResponse;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    /**
+     * Browser origins allowed to send credentialed requests. Deployed profiles override this
+     * (see application-prod.properties) so a localhost origin is never trusted against the
+     * live API — this CORS config sets allowCredentials=true, so a trusted
+     * http://localhost:3000 would let anything bound to that port on a user's machine call
+     * the API with their cookies.
+     */
+    @Value("${lera.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000,https://*.leraacademy.edu.vn}")
+    private List<String> allowedOrigins;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -57,11 +68,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of(
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            "https://*.leraacademy.edu.vn"
-        ));
+        configuration.setAllowedOriginPatterns(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", "X-User-Id"));
         configuration.setExposedHeaders(List.of("Authorization"));

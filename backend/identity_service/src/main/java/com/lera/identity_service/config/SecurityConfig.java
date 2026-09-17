@@ -3,6 +3,7 @@ package com.lera.identity_service.config;
 import com.lera.identity_service.security.JwtAuthenticationFilter;
 import com.lera.identity_service.security.PermissionGateFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -27,6 +28,17 @@ import java.util.List;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
+    /**
+     * Browser origins allowed to send credentialed requests. Deployed profiles override this
+     * (see application-prod.properties) so a localhost origin is never trusted against the
+     * live API — this CORS config sets allowCredentials=true, so a trusted
+     * http://localhost:3000 would let anything bound to that port on a user's machine call
+     * the API with their cookies. capacitor:// and ionic:// are app schemes, not network
+     * origins, so they stay allowed in production for the mobile shell.
+     */
+    @Value("${lera.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000,capacitor://localhost,ionic://localhost,https://*.leraacademy.edu.vn}")
+    private List<String> allowedOrigins;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final PermissionGateFilter permissionGateFilter;
@@ -77,14 +89,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Restrict CORS to known frontend origins — add production domain when deploying
-        configuration.setAllowedOriginPatterns(List.of(
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            "capacitor://localhost",
-            "ionic://localhost",
-            "https://*.leraacademy.edu.vn"
-        ));
+        // Restrict CORS to known frontend origins — configured per profile.
+        configuration.setAllowedOriginPatterns(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", "X-User-Id"));
         configuration.setExposedHeaders(List.of("Authorization"));
