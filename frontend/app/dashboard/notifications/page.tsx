@@ -16,9 +16,6 @@ interface Notification {
   type: string;
   isRead: boolean;
   createdAt: string;
-  link?: string;
-  category?: string;
-  conversationId?: string;
   senderId?: string;
   referenceType?: string;
   referenceId?: string;
@@ -32,6 +29,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [userId, setUserId] = useState<string | null>(null);
+  const [role, setRole] = useState<string>("");
 
   // Get user ID from cookies
   useEffect(() => {
@@ -40,6 +38,7 @@ export default function NotificationsPage() {
       try {
         const userData = JSON.parse(userDataStr);
         setUserId(userData.id);
+        setRole(String(userData.roleName || "").toUpperCase());
       } catch (e) {
         console.error("Failed to parse user data");
       }
@@ -106,43 +105,58 @@ export default function NotificationsPage() {
     // Mark as read first
     await markAsRead(notification.id);
     
-    // Navigate based on referenceType first (most specific)
-    if (notification.referenceType) {
-      const refRoutes: Record<string, string> = {
-        student: `/dashboard/superadmin/students/${notification.referenceId || ""}`,
-        teacher: `/dashboard/superadmin/teachers/${notification.referenceId || ""}`,
-        payment: `/dashboard/finance/payments${notification.referenceId ? "?id=" + notification.referenceId : ""}`,
-        fee: `/dashboard/finance/payments${notification.referenceId ? "?id=" + notification.referenceId : ""}`,
-        enrollment: `/dashboard/superadmin/approvals${notification.referenceId ? "?id=" + notification.referenceId : ""}`,
-        leave: "/dashboard/staff/leave",
-        lesson_plan: "/dashboard/staff/lesson-plans",
-        assignment: "/dashboard/student/assignments",
-        assignment_submission: "/dashboard/student/assignments",
-        exam: "/dashboard/student/exams",
-        attendance: "/dashboard/student/attendance",
-        grade_report: "/dashboard/student/grades",
-        certificate: "/dashboard/student/certificates",
-        class: "/dashboard/student/schedule",
-        transport: "/dashboard/student/transport",
-        curriculum: "/dashboard/staff/curriculum",
-        message: "/dashboard/connect",
-        task: "/dashboard/staff/tasks",
-      };
-      if (refRoutes[notification.referenceType]) {
-        router.push(refRoutes[notification.referenceType]);
-        return;
-      }
+    // Where a notification takes you depends on who is reading it: a parent tapping a
+    // payment reminder must not be sent to the finance back office. Six of the routes that
+    // used to be here had no page at all (student/exams, student/certificates,
+    // student/transport, staff/leave, staff/lesson-plans, staff/curriculum), so those
+    // notifications landed on a 404.
+    const isParent = role === "PARENT";
+    const isStudent = role === "STUDENT";
+    const ref = notification.referenceId || "";
+
+    const pick = (parent: string, student: string, staff: string) =>
+      isParent ? parent : isStudent ? student : staff;
+
+    const refRoutes: Record<string, string> = {
+      // Student/teacher detail pages live under /dashboard/academy — /dashboard/superadmin
+      // only has the list, so appending an id there produced a 404.
+      student: pick("/dashboard/parent/children", "/dashboard/student/profile",
+                    ref ? `/dashboard/academy/students/${ref}` : "/dashboard/superadmin/students"),
+      teacher: ref ? `/dashboard/academy/teachers/${ref}` : "/dashboard/superadmin/teachers",
+      payment: pick("/dashboard/parent/payments", "/dashboard/student/payments",
+                    `/dashboard/finance/payments${ref ? "?id=" + ref : ""}`),
+      fee: pick("/dashboard/parent/payments", "/dashboard/student/payments",
+                `/dashboard/finance/payments${ref ? "?id=" + ref : ""}`),
+      enrollment: `/dashboard/superadmin/approvals${ref ? "?id=" + ref : ""}`,
+      leave: "/dashboard/teacher/leave",
+      lesson_plan: "/dashboard/superadmin/lesson-plans",
+      curriculum: "/dashboard/superadmin/curriculum",
+      assignment: pick("/dashboard/parent/homework", "/dashboard/student/assignments",
+                       "/dashboard/superadmin/assignments"),
+      assignment_submission: pick("/dashboard/parent/homework", "/dashboard/student/assignments",
+                                  "/dashboard/superadmin/assignments"),
+      exam: pick("/dashboard/parent/grades", "/dashboard/exams", "/dashboard/exams"),
+      attendance: pick("/dashboard/parent/attendance", "/dashboard/student/attendance",
+                       "/dashboard/superadmin/attendance"),
+      grade_report: pick("/dashboard/parent/grades", "/dashboard/student/grades",
+                         "/dashboard/teacher/grades"),
+      certificate: "/dashboard/superadmin/certificates",
+      class: pick("/dashboard/parent/schedule", "/dashboard/student/schedule", "/dashboard/timetable"),
+      // attendance_service's parent digest ("class tomorrow") defaults to this reference type.
+      schedule: pick("/dashboard/parent/schedule", "/dashboard/student/schedule", "/dashboard/timetable"),
+      transport: "/dashboard/transport",
+      message: pick("/dashboard/parent/messages", "/dashboard/student/messages", "/dashboard/connect"),
+      task: "/dashboard/staff/tasks",
+    };
+
+    if (notification.referenceType && refRoutes[notification.referenceType]) {
+      router.push(refRoutes[notification.referenceType]);
+      return;
     }
 
-    // Navigate based on notification type
-    if (notification.type === "MESSAGE" || notification.type === "message" || notification.category === "Message" || notification.title?.includes("message")) {
-      if (notification.conversationId) {
-        router.push(`/dashboard/connect?conversation=${notification.conversationId}`);
-      } else {
-        router.push("/dashboard/connect");
-      }
-    } else if (notification.link) {
-      router.push(notification.link);
+    const type = String(notification.type || "").toUpperCase();
+    if (type === "MESSAGE" || notification.title?.toLowerCase().includes("message")) {
+      router.push(refRoutes.message);
     }
   };
 
@@ -329,11 +343,6 @@ export default function NotificationsPage() {
                   {notification.referenceType && (
                     <span className="inline-block mt-2 px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded-full capitalize">
                       {notification.referenceType.replace(/_/g, " ")}
-                    </span>
-                  )}
-                  {notification.category && !notification.referenceType && (
-                    <span className="inline-block mt-2 px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded-full">
-                      {notification.category}
                     </span>
                   )}
                   {/* Show link/action hint */}
