@@ -30,7 +30,7 @@ echo ""
 ########################################################
 echo -e "${CYAN}━━━ [1] DATABASE CONFIG (application.properties) ━━━${NC}"
 
-CORRECT_JWT="bGVyYUFjYWRlbXlTZWNyZXRLZXkyMDI0VmVyeUxvbmdTZWN1cmVLZXlGb3JKd3RUb2tlbkdlbmVyYXRpb24="
+# (the former CORRECT_JWT literal lived here; removed — it is a real signing key)
 
 SERVICES=(
   "identity_service:8081"
@@ -78,13 +78,22 @@ for entry in "${SERVICES[@]}"; do
     fail "$SVC: DB user wrong → $DB_USER"
   fi
 
-  # Check JWT secret
-  JWT=$(grep "^jwt.secret=" "$PROPS" | cut -d= -f2)
-  if [ "$JWT" = "$CORRECT_JWT" ]; then
-    ok "$SVC: JWT secret ✓"
-  else
-    fail "$SVC: JWT secret MISMATCH (will cause auth failures)"
-  fi
+  # Check the JWT secret comes from the environment.
+  #
+  # This used to assert equality with a literal held in this script — so the check PASSED only
+  # while every service shipped the same hardcoded signing key, and started failing the moment
+  # that key was purged. It rewarded the insecure configuration and failed the secure one. The
+  # literal is also a real signing secret that is already in git history; see
+  # docs/SECURITY_SECRET_ROTATION_RUNBOOK.md and scripts/scrub-history.sh.
+  JWT=$(grep "^jwt.secret=" "$PROPS" | cut -d= -f2-)
+  case "$JWT" in
+    '${JWT_SECRET'*)
+      ok "$SVC: JWT secret from \$JWT_SECRET (not hardcoded)" ;;
+    "")
+      fail "$SVC: no jwt.secret property found" ;;
+    *)
+      fail "$SVC: jwt.secret must be \${JWT_SECRET} — never a literal key" ;;
+  esac
 done
 
 echo ""
