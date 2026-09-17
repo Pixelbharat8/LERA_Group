@@ -115,53 +115,13 @@ ON CONFLICT (department_code) DO UPDATE SET
     updated_at = NOW();
 
 -- =====================================================
--- USERS (Sample users for different roles)
--- Entity: id, email, password_hash, fullname, fullname_vi, phone, role_id, center_id, department_id, job_title, employment_type, org_level, status, email_verified, created_at, updated_at
--- Password hash for 'admin123': $2a$10$e0MYzXyjpJS7Pd0RVvHwHe1yv2qdE5FRZhYp6WCk7Y.PJqKq8LmDu
--- Password hash for 'password123': $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.cL/z4mGb4rZwk6Bku6
+-- USERS — REMOVED (2026-09-09)
+-- This block created working logins whose passwords were written in the comments
+-- (Chairman@Leraacademy.edu.vn / admin123, and others). DataLoader already creates
+-- the Chairman, CEO and admin accounts in every profile, using LERA_SEED_* passwords
+-- or a strong random one logged once at startup — so these rows were redundant as
+-- well as dangerous. Nothing below depends on them.
 -- =====================================================
-INSERT INTO users (id, email, password_hash, fullname, fullname_vi, phone, role_id, center_id, department_id, job_title, employment_type, org_level, status, email_verified, created_at, updated_at)
-VALUES 
-    -- CHAIRMAN (Chairman@Leraacademy.edu.vn / admin123)
-    ('e0000000-0000-0000-0000-000000000001', 'Chairman@Leraacademy.edu.vn', '$2a$10$e0MYzXyjpJS7Pd0RVvHwHe1yv2qdE5FRZhYp6WCk7Y.PJqKq8LmDu', 'Rahul Sharma', 'Rahul Sharma', '+84 900 000 001', '00000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 'Chairman', 'FULL_TIME', 200, 'ACTIVE', true, NOW(), NOW()),
-    
-    -- CEO (CEO@Leraacademy.edu.vn / admin123)
-    ('e0000000-0000-0000-0000-000000000002', 'CEO@Leraacademy.edu.vn', '$2a$10$e0MYzXyjpJS7Pd0RVvHwHe1yv2qdE5FRZhYp6WCk7Y.PJqKq8LmDu', 'Ledia Balliu', 'Ledia Balliu', '+84 900 000 002', '00000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 'Chief Executive Officer', 'FULL_TIME', 90, 'ACTIVE', true, NOW(), NOW()),
-    
-    -- DIRECTOR (director@lera.edu.vn / password123)
-    ('e0000000-0000-0000-0000-000000000004', 'director@lera.edu.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.cL/z4mGb4rZwk6Bku6', 'Le Van Director', 'Lê Văn Giám Đốc', '+84 900 000 004', '00000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002', 'Academic Director', 'FULL_TIME', 80, 'ACTIVE', true, NOW(), NOW()),
-    
-    -- CENTER MANAGERS
-    ('e0000000-0000-0000-0000-000000000005', 'manager.hq@lera.edu.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.cL/z4mGb4rZwk6Bku6', 'Pham Van Manager', 'Phạm Văn Quản Lý', '+84 900 000 005', '00000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000007', 'Center Manager', 'FULL_TIME', 70, 'ACTIVE', true, NOW(), NOW()),
-    ('e0000000-0000-0000-0000-000000000006', 'manager.d7@lera.edu.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.cL/z4mGb4rZwk6Bku6', 'Hoang Van Manager', 'Hoàng Văn Quản Lý', '+84 900 000 006', '00000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000007', 'Center Manager', 'FULL_TIME', 70, 'ACTIVE', true, NOW(), NOW()),
-    
-    -- ACADEMIC MANAGER (P@gmail.com / admin123)
-    ('e0000000-0000-0000-0000-000000000007', 'P@gmail.com', '$2a$10$e0MYzXyjpJS7Pd0RVvHwHe1yv2qdE5FRZhYp6WCk7Y.PJqKq8LmDu', 'Phoung', 'Phoung', '+84 900 000 007', '00000000-0000-0000-0000-000000000007', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002', 'Academic Manager', 'FULL_TIME', 65, 'ACTIVE', true, NOW(), NOW()),
-    
-    -- CENTER ADMIN (centeradmin@lera.edu.vn / password123)
-    ('e0000000-0000-0000-0000-000000000008', 'centeradmin@lera.edu.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.cL/z4mGb4rZwk6Bku6', 'Center Admin User', 'Quản trị trung tâm', '+84 900 000 008', '00000000-0000-0000-0000-000000000006', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000007', 'Center Admin', 'FULL_TIME', 60, 'ACTIVE', true, NOW(), NOW()),
-    
-    -- TEACHERS
-    ('e0000000-0000-0000-0000-000000000010', 'Mo@gmail.com', '$2a$10$e0MYzXyjpJS7Pd0RVvHwHe1yv2qdE5FRZhYp6WCk7Y.PJqKq8LmDu', 'MO', 'MO', '+84 900 000 010', '00000000-0000-0000-0000-000000000008', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002', 'Teacher', 'FULL_TIME', 40, 'ACTIVE', true, NOW(), NOW()),
-    ('e0000000-0000-0000-0000-000000000011', 'teacher1@lera.edu.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.cL/z4mGb4rZwk6Bku6', 'John Smith', 'John Smith', '+84 900 000 011', '00000000-0000-0000-0000-000000000008', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002', 'Senior Teacher', 'FULL_TIME', 40, 'ACTIVE', true, NOW(), NOW()),
-    ('e0000000-0000-0000-0000-000000000012', 'teacher2@lera.edu.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.cL/z4mGb4rZwk6Bku6', 'Sarah Johnson', 'Sarah Johnson', '+84 900 000 012', '00000000-0000-0000-0000-000000000008', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002', 'Teacher', 'FULL_TIME', 40, 'ACTIVE', true, NOW(), NOW()),
-    
-    -- TA (TA@lera.com / admin123)
-    ('e0000000-0000-0000-0000-000000000020', 'TA@lera.com', '$2a$10$e0MYzXyjpJS7Pd0RVvHwHe1yv2qdE5FRZhYp6WCk7Y.PJqKq8LmDu', 'R', 'R', '+84 900 000 020', '00000000-0000-0000-0000-000000000009', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002', 'Teaching Assistant', 'PART_TIME', 35, 'ACTIVE', true, NOW(), NOW()),
-    
-    -- STAFF (staff1@lera.edu.vn / password123)
-    ('e0000000-0000-0000-0000-000000000030', 'staff1@lera.edu.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.cL/z4mGb4rZwk6Bku6', 'Le Thi Staff', 'Lê Thị Nhân Viên', '+84 900 000 030', '00000000-0000-0000-0000-000000000010', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000008', 'Student Services', 'FULL_TIME', 30, 'ACTIVE', true, NOW(), NOW()),
-    
-    -- PARENTS (password123)
-    ('e0000000-0000-0000-0000-000000000040', 'parent1@gmail.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.cL/z4mGb4rZwk6Bku6', 'Nguyen Van Parent', 'Nguyễn Văn Phụ Huynh', '+84 900 000 040', '00000000-0000-0000-0000-000000000011', 'c0000000-0000-0000-0000-000000000001', NULL, 'Parent', NULL, 20, 'ACTIVE', true, NOW(), NOW()),
-    ('e0000000-0000-0000-0000-000000000041', 'parent2@gmail.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.cL/z4mGb4rZwk6Bku6', 'Tran Thi Parent', 'Trần Thị Phụ Huynh', '+84 900 000 041', '00000000-0000-0000-0000-000000000011', 'c0000000-0000-0000-0000-000000000001', NULL, 'Parent', NULL, 20, 'ACTIVE', true, NOW(), NOW()),
-    
-    -- STUDENTS (password123)
-    ('e0000000-0000-0000-0000-000000000050', 'student1@lera.edu.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.cL/z4mGb4rZwk6Bku6', 'Nguyen Van Student', 'Nguyễn Văn Học Sinh', '+84 900 000 050', '00000000-0000-0000-0000-000000000012', 'c0000000-0000-0000-0000-000000000001', NULL, 'Student', NULL, 10, 'ACTIVE', true, NOW(), NOW()),
-    ('e0000000-0000-0000-0000-000000000051', 'student2@lera.edu.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.cL/z4mGb4rZwk6Bku6', 'Tran Thi Student', 'Trần Thị Học Sinh', '+84 900 000 051', '00000000-0000-0000-0000-000000000012', 'c0000000-0000-0000-0000-000000000001', NULL, 'Student', NULL, 10, 'ACTIVE', true, NOW(), NOW())
-ON CONFLICT (email) DO UPDATE SET
-    fullname = EXCLUDED.fullname,
-    updated_at = NOW();
 
 -- =====================================================
 -- ROLE_PERMISSIONS (Assign all permissions to CHAIRMAN)
