@@ -4,14 +4,19 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 
+/**
+ * A CrmAutomation stores automationName, triggerConditions and actions. This page used name,
+ * conditions and actionType, so all three were dropped on save — and automation_name is NOT NULL,
+ * which meant creating an automation failed outright every time.
+ */
 interface CrmAutomation {
   id: string;
-  name: string;
+  automationName: string;
   description?: string;
   triggerType: string;
-  actionType: string;
+  actions?: string;
   isActive: boolean;
-  conditions?: string;
+  triggerConditions?: string;
   createdAt?: string;
 }
 
@@ -40,12 +45,12 @@ export default function CrmAutomationsPage() {
   const [editingAutomation, setEditingAutomation] = useState<CrmAutomation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: "",
+    automationName: "",
     description: "",
     triggerType: "LEAD_CREATED",
-    actionType: "SEND_EMAIL",
+    actions: "SEND_EMAIL",
     isActive: true,
-    conditions: "",
+    triggerConditions: "",
   });
 
   useEffect(() => {
@@ -82,7 +87,7 @@ export default function CrmAutomationsPage() {
       }
       setShowModal(false);
       setEditingAutomation(null);
-      setFormData({ name: "", description: "", triggerType: "LEAD_CREATED", actionType: "SEND_EMAIL", isActive: true, conditions: "" });
+      setFormData({ automationName: "", description: "", triggerType: "LEAD_CREATED", actions: "SEND_EMAIL", isActive: true, triggerConditions: "" });
       fetchAutomations();
     } catch (err) {
       console.error("Error saving automation:", err);
@@ -107,12 +112,12 @@ export default function CrmAutomationsPage() {
   const handleEdit = (automation: CrmAutomation) => {
     setEditingAutomation(automation);
     setFormData({
-      name: automation.name,
+      automationName: automation.automationName,
       description: automation.description || "",
       triggerType: automation.triggerType,
-      actionType: automation.actionType,
+      actions: automation.actions || "SEND_EMAIL",
       isActive: automation.isActive,
-      conditions: automation.conditions || "",
+      triggerConditions: automation.triggerConditions || "",
     });
     setShowModal(true);
   };
@@ -156,7 +161,7 @@ export default function CrmAutomationsPage() {
           <p className="text-gray-500">Automate your lead management workflows</p>
         </div>
         <button
-          onClick={() => { setEditingAutomation(null); setFormData({ name: "", description: "", triggerType: "LEAD_CREATED", actionType: "SEND_EMAIL", isActive: true, conditions: "" }); setShowModal(true); }}
+          onClick={() => { setEditingAutomation(null); setFormData({ automationName: "", description: "", triggerType: "LEAD_CREATED", actions: "SEND_EMAIL", isActive: true, triggerConditions: "" }); setShowModal(true); }}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           + Create Automation
@@ -204,7 +209,7 @@ export default function CrmAutomationsPage() {
           <div className="divide-y">
             {automations.map((automation) => {
               const trigger = getTriggerInfo(automation.triggerType);
-              const action = getActionInfo(automation.actionType);
+              const action = getActionInfo(automation.actions || "");
               return (
                 <div key={automation.id} className="p-6 hover:bg-gray-50">
                   <div className="flex items-start justify-between">
@@ -214,7 +219,7 @@ export default function CrmAutomationsPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-lg">{automation.name}</h3>
+                          <h3 className="font-semibold text-lg">{automation.automationName}</h3>
                           <span className={`px-2 py-0.5 text-xs rounded-full ${automation.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
                             {automation.isActive ? "Active" : "Paused"}
                           </span>
@@ -269,8 +274,8 @@ export default function CrmAutomationsPage() {
                 <label className="block text-sm font-medium mb-1">Automation Name *</label>
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.automationName}
+                  onChange={(e) => setFormData({ ...formData, automationName: e.target.value })}
                   className="w-full px-4 py-2 border rounded-lg"
                   placeholder="e.g., Welcome Email Sequence"
                 />
@@ -301,8 +306,8 @@ export default function CrmAutomationsPage() {
               <div>
                 <label className="block text-sm font-medium mb-1">Action (Then)</label>
                 <select
-                  value={formData.actionType}
-                  onChange={(e) => setFormData({ ...formData, actionType: e.target.value })}
+                  value={formData.actions}
+                  onChange={(e) => setFormData({ ...formData, actions: e.target.value })}
                   className="w-full px-4 py-2 border rounded-lg"
                 >
                   {ACTION_TYPES.map((action) => (
@@ -332,7 +337,7 @@ export default function CrmAutomationsPage() {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!formData.name.trim()}
+                disabled={!formData.automationName.trim()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 {editingAutomation ? "Update" : "Create"}

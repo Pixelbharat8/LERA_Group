@@ -9,7 +9,7 @@ interface Staff {
   id: string;
   userId: string;
   staffCode: string;
-  fullName: string;
+  fullname: string;
   email: string;
   phone: string;
   jobTitle: string;
@@ -17,7 +17,6 @@ interface Staff {
   departmentId?: string;
   centerId?: string;
   employmentType: string;
-  hireDate: string;
   status: string;
   createdAt: string;
 }
@@ -50,18 +49,15 @@ export default function StaffListPage() {
     employmentType: "",
     status: "",
     staffCode: "",
-    hireDateFrom: "",
-    hireDateTo: "",
   });
   const [formData, setFormData] = useState({
-    fullName: "",
+    fullname: "",
     email: "",
     phone: "",
     jobTitle: "",
     departmentId: "",
     centerId: "",
     employmentType: "FULL_TIME",
-    hireDate: "",
   });
 
   useEffect(() => {
@@ -118,7 +114,7 @@ export default function StaffListPage() {
         setStaffList([...staffList, newStaff]);
       }
       setShowAddModal(false);
-      setFormData({ fullName: "", email: "", phone: "", jobTitle: "", departmentId: "", centerId: "", employmentType: "FULL_TIME", hireDate: "" });
+      setFormData({ fullname: "", email: "", phone: "", jobTitle: "", departmentId: "", centerId: "", employmentType: "FULL_TIME" });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -129,14 +125,13 @@ export default function StaffListPage() {
   const handleEdit = (staff: Staff) => {
     setEditingStaff(staff);
     setFormData({
-      fullName: staff.fullName || "",
+      fullname: staff.fullname || "",
       email: staff.email || "",
       phone: staff.phone || "",
       jobTitle: staff.jobTitle || "",
       departmentId: staff.departmentId || "",
       centerId: staff.centerId || "",
       employmentType: staff.employmentType || "FULL_TIME",
-      hireDate: staff.hireDate || "",
     });
     setShowAddModal(true);
   };
@@ -178,7 +173,7 @@ export default function StaffListPage() {
 
   const filteredStaff = staffList.filter(staff => {
     const matchesSearch = staff.staffCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      staff.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      staff.fullname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       staff.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       staff.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCenter = !filters.centerId || staff.centerId === filters.centerId;
@@ -186,9 +181,7 @@ export default function StaffListPage() {
     const matchesEmploymentType = !filters.employmentType || staff.employmentType === filters.employmentType;
     const matchesStatus = !filters.status || staff.status === filters.status;
     const matchesStaffCode = !filters.staffCode || staff.staffCode?.toLowerCase().includes(filters.staffCode.toLowerCase());
-    const matchesHireDateFrom = !filters.hireDateFrom || new Date(staff.hireDate) >= new Date(filters.hireDateFrom);
-    const matchesHireDateTo = !filters.hireDateTo || new Date(staff.hireDate) <= new Date(filters.hireDateTo);
-    return matchesSearch && matchesCenter && matchesDepartment && matchesEmploymentType && matchesStatus && matchesStaffCode && matchesHireDateFrom && matchesHireDateTo;
+    return matchesSearch && matchesCenter && matchesDepartment && matchesEmploymentType && matchesStatus && matchesStaffCode;
   });
 
   if (loading) {
@@ -218,13 +211,12 @@ export default function StaffListPage() {
             rows={staffList}
             columns={[
               { key: "staffCode", label: "Code" },
-              { key: "fullName", label: "Name" },
+              { key: "fullname", label: "Name" },
               { key: "email", label: "Email" },
               { key: "phone", label: "Phone" },
               { key: "jobTitle", label: "Job Title" },
               { key: "department", label: "Department" },
               { key: "employmentType", label: "Employment Type" },
-              { key: "hireDate", label: "Hire Date" },
               { key: "status", label: "Status" },
             ]}
           />
@@ -357,26 +349,11 @@ export default function StaffListPage() {
             <option value="INACTIVE">Inactive</option>
             <option value="ON_LEAVE">On Leave</option>
           </select>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500 whitespace-nowrap">Hire Date:</label>
-            <input
-              type="date"
-              value={filters.hireDateFrom}
-              onChange={(e) => setFilters({ ...filters, hireDateFrom: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500 whitespace-nowrap">To:</label>
-            <input
-              type="date"
-              value={filters.hireDateTo}
-              onChange={(e) => setFilters({ ...filters, hireDateTo: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-          </div>
+              {/* A Hire Date box used to sit here. Nothing stores a hire date — there is no such
+                  column on users — so it saved nothing, the CSV column was always blank, and the
+                  hire-date filters compared against undefined, which made them match no one. */}
           <button
-            onClick={() => { setSearchQuery(""); setFilters({ centerId: "", departmentId: "", employmentType: "", status: "", staffCode: "", hireDateFrom: "", hireDateTo: "" }); }}
+            onClick={() => { setSearchQuery(""); setFilters({ centerId: "", departmentId: "", employmentType: "", status: "", staffCode: "" }); }}
             className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             Clear Filters
@@ -411,10 +388,10 @@ export default function StaffListPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                        {staff.fullName?.charAt(0) || "S"}
+                        {staff.fullname?.charAt(0) || "S"}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{staff.fullName}</p>
+                        <p className="font-medium text-gray-900">{staff.fullname}</p>
                         <p className="text-xs font-mono text-gray-500">{staff.staffCode || staff.email}</p>
                       </div>
                     </div>
@@ -487,8 +464,8 @@ export default function StaffListPage() {
                 <input 
                   type="text" 
                   required
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  value={formData.fullname}
+                  onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Staff member's full name"
                 />
@@ -569,15 +546,8 @@ export default function StaffListPage() {
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hire Date</label>
-                <input 
-                  type="date" 
-                  value={formData.hireDate}
-                  onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              {/* A Hire Date box used to sit here. Nothing stores a hire date — users has no
+                  such column — so it saved nothing and the CSV column was always blank. */}
               <div className="flex justify-end gap-3 pt-4">
                 <button 
                   type="button" 
