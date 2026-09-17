@@ -1,9 +1,60 @@
 # LERA — Go-Live Checklist
 
-## Current status (updated 2026-06-29)
-Code is feature-complete, builds clean, and the recent hardening is **merged to `main` and
-pushed** (origin in sync at `2a2ee72`). The remaining blockers are **deploy / ops / security
-execution** — they need YOUR git + AWS credentials, so they can't be run from the dev assistant.
+## Current status (updated 2026-09-09)
+Code is feature-complete and builds clean. `origin/main` is in sync at `233eb48`.
+
+> **Correcting the previous entry.** This file claimed origin was in sync at `2a2ee72` from
+> 2026-06-29 onward. It was not: `main` sat **182 commits ahead of origin for two months**
+> (2026-06-30 → 2026-08-27), including the Java 25 upgrade and every security sweep. All of it
+> lived only on one laptop, was never seen by CI, and was never backed up. Pushed 2026-09-07.
+> Treat "in sync" claims here as needing `git rev-list --count origin/main..main` to confirm.
+
+**Resolved since the last revision:**
+- **CI was red on every run since at least 2026-06-29** — `aquasecurity/trivy-action@0.28.0` does
+  not resolve (the tags are `v`-prefixed), so the job died in 3s at "Set up job" and the dependency
+  CVE gate had **never once executed**. Fixed; it now runs.
+- **Dependency CVEs**, surfaced the moment that gate worked: 1 CRITICAL (BouncyCastle
+  CVE-2025-14813) + 2 HIGH (jose4j, PostgreSQL JDBC) in the backend, all patched; the frontend went
+  from 14 npm advisories (11 high) to 0.
+- **The prod profile could not boot.** Every service's `application-prod.properties` set
+  `ddl-auto=validate` — see §3, which had asserted the opposite. Now `update`.
+- **There was no compute layer at all** — the CloudFormation template built VPC/RDS/S3/CloudFront/WAF
+  and nothing to run the code on. ECS Fargate added (see §3).
+- **`aws/deploy-aws.sh` contained hard-coded production credentials** and deployed 1 of 9 services.
+  Rewritten.
+- **Public lead-form e2e tests were stale**, not broken code: the PDPD consent checkbox gates submit
+  and the tests never ticked it. They had not run in CI in months because the frontend job dies at
+  `npm audit`, which precedes Playwright.
+
+Remaining blockers are **deploy / ops / legal execution** — they need your AWS + git credentials
+and, per the jurisdiction question below, a decision only you can make.
+
+---
+
+## ⚠️ Decide first: which country hosts production?
+
+Two mutually exclusive deployment paths are committed in this repo, and they put personal data in
+different jurisdictions:
+
+| Path | Artifacts | Data resides in |
+|---|---|---|
+| **AWS** | `aws/cloudformation-template.yaml`, `aws/deploy-aws.sh`, the CI `deploy` job | **us-east-1 (USA)** |
+| **Vietnam VPS** | `docker-compose.https.yml`, `gateway/Caddyfile`, `DOMAIN` | **Vietnam** |
+
+§6 Layer 3 of this document requires hosting the app **and** database inside Vietnam under the
+Cybersecurity Law (Nghị định 53/2022), and notes that a foreign cloud may not satisfy it. **AWS has
+no Vietnam region**, and the stack is pinned to us-east-1 because the WAFv2 WebACL is
+`Scope=CLOUDFRONT`, which AWS only creates there. So the AWS path as built hosts Vietnamese
+students' and parents' data — including minors' — in the United States.
+
+These cannot both be right. Resolve this **before** deploying, with counsel:
+- If Vietnam hosting is required → the VPS path is the compliant one; the AWS work is unused.
+- If a foreign cloud is acceptable for your data volume/category → AWS is ready, but record the
+  legal basis.
+- A middle option exists (app + RDS in `ap-southeast-1` Singapore, WebACL alone in us-east-1) but
+  Singapore is still not Vietnam and does not by itself satisfy localization.
+
+Everything below assumes the AWS path, because that is what the templates automate.
 
 **✅ Done & verified this round:**
 - Flyway baselines deploy on a fresh DB — all 9 services dry-run clean (see 3a/3b).
@@ -47,7 +98,34 @@ environment** — they were edited, so a stale Flyway history would fail on a ch
 ---
 
 ## 🔴 2. Rotate secrets + scrub git history
-The old JWT/DB secrets are still in history. Tracked source is already clean (0 `lera123`).
+The old JWT/DB secrets are still in history.
+
+> **CORRECTION (2026-09-09).** This line previously read *"Tracked source is already clean
+> (0 `lera123`)"*. That is false. A scan of every blob on every ref (masked results):
+>
+> | Pattern | Paths in history | **Still tracked at HEAD** |
+> |---|---|---|
+> | `lera123` (local DB password) | 77 | **59** |
+> | `admin123` | 103 | **100** |
+> | `password123` | 5 | **4** |
+> | bcrypt hashes (`$2a$…`) | several | **12** |
+> | AWS keys / OpenAI / Anthropic keys | 0 | 0 |
+> | Real private key blocks | 0 | 0 (the two `ApnsClient`/`FcmClient` hits are PEM *parsing* code) |
+>
+> `lera123` is live in 24 non-doc files — `setup-db.sh`, `setup-database.sh`,
+> `setup-local-postgres*.sh`, `test-database.sh`, `verify-config.sh`, `verify-schema.sh`,
+> `scripts/ensure-local-db.sh`, and in `README.md` / `QUICKSTART.md` — mostly as
+> `PGPASSWORD=lera123`.
+>
+> **Severity:** this is the LOCAL development database password, not a production one, so it
+> is embarrassing rather than urgent. But the "already clean" claim would have led someone to
+> skip remediation entirely, which is why it is corrected here rather than quietly fixed.
+>
+> The credentials that actually matter were removed from the seed data separately: identity's
+> `data.sql` created working CHAIRMAN/CEO logins documented as `admin123`. Those rows are
+> deleted and the file no longer auto-loads — see `backend/README-DEMO-DATA.md`. **Rotating the
+> live Chairman/CEO passwords matters more than scrubbing history**: a hash for a password you
+> no longer use is inert, whereas a scrub that leaves the password in use fixes nothing.
 
 ```bash
 # (a) rotate the live values first (generate strong ones)
@@ -72,6 +150,26 @@ Full detail: `docs/SECURITY_SECRET_ROTATION_RUNBOOK.md`.
 ## 🔴 3. Deploy the hardened infrastructure + run migrations
 The Multi-AZ/encrypted/WAF/port-locked CloudFormation is code only.
 
+> **Compute layer (added 2026-09-07).** Until then the template defined **no compute at all** — no
+> ECS, EC2, Beanstalk or Lambda. It built a VPC, RDS, S3, CloudFront and a WAF, CI pushed images to
+> Docker Hub, and nothing existed to run them; the deploy job's own notice said "roll out the pushed
+> images on your compute layer", a layer that did not exist. The VPC also had an InternetGateway
+> attached but **no route tables**, so nothing in it could route anywhere.
+>
+> Now added: an ECS Fargate cluster running all 11 tasks (9 services + Next.js frontend + nginx
+> gateway), an ALB in front of the gateway only, Service Connect aliases that reproduce the
+> docker-compose hostnames (`academy_service:8082`, …) so `gateway/nginx/*.conf` needs no changes,
+> route tables + a NAT gateway, Secrets Manager for the three secrets, and CloudFront's default
+> origin moved from S3 to the ALB (the frontend is server-rendered and a static S3 origin could
+> never have served it). Structurally validated only — **never run against real AWS**.
+>
+> Rough cost: 11 Fargate tasks at 512 CPU / 1 GB (gateway 256/512) plus a NAT gateway is on the
+> order of **$300–400/month before RDS**. `ServiceDesiredCount` defaults to 1, so there is no
+> per-service redundancy at that price.
+>
+> `aws/deploy-aws.sh` now drives this stack and performs the §3a bootstrap automatically via the
+> `FlywayEnabled` parameter.
+
 ```bash
 # WAF WebACL is CLOUDFRONT scope -> deploy this stack in us-east-1
 aws cloudformation deploy --template-file aws/cloudformation-template.yaml \
@@ -80,10 +178,18 @@ aws cloudformation deploy --template-file aws/cloudformation-template.yaml \
                         DBInstanceClass=db.t3.small --region us-east-1
 ```
 - Build & push images (CI `docker-build` job does this on `main`, or manually).
-- **Prod runs Flyway with `ddl-auto=update`** — this is the actual config in every service's
-  `application.properties`; there is NO `validate` override. Flyway applies the overlay migrations,
-  then Hibernate reconciles. The new migrations (`V20260606*`, `V20260607*` in academy + connect)
-  must apply cleanly. Run a staging migration dry-run first.
+- **Prod runs Flyway with `ddl-auto=update`.** Flyway applies the overlay migrations, then Hibernate
+  reconciles. The new migrations (`V20260606*`, `V20260607*` in academy + connect) must apply
+  cleanly. Run a staging migration dry-run first.
+  - **CORRECTION (2026-09-07).** This bullet previously read "this is the actual config in every
+    service's `application.properties`; there is NO `validate` override." That was false and had
+    been since 2026-06-06: `7ac96ce` added an `application-prod.properties` to all 9 services
+    setting `ddl-auto=validate`, and the AWS path activates exactly that profile
+    (`SPRING_PROFILES_ACTIVE=prod`). The claim held only for `application.properties`; nobody had
+    checked the profile-specific file, because every verification in §3a/3b/3c was run under the
+    **docker** profile. Booting academy under `prod` on an empty DB fails at
+    `V999__replace_sports_with_english_courses.sql` → `relation "course_programs" does not exist`.
+    All 9 prod profiles now say `update`, matching the verified requirement below.
   - **NOTE (verified 2026-07-04): `update` is REQUIRED, not just preferred — `validate` is
     architecturally incompatible.** Migration `V20260701__fix_library_transport_id_drift.sql` (and
     the same pattern elsewhere) deliberately `DROP`s empty type-drifted tables (e.g.
@@ -131,6 +237,53 @@ Equivalent alternative: load a known-good `pg_dump --schema-only` of the dev sch
 first, then let update+Flyway adopt it. Either way the **full** schema must exist before the
 first Flyway boot. (This `pg_dump --schema-only` base + docker-profile boot is exactly how the
 2026-07-04 verification was run — all 9 services clean.)
+
+#### ✅ 3a-verified. The two-phase bootstrap now has an end-to-end proof (2026-09-11)
+
+Previous verifications ran service-by-service, or against a `pg_dump` of an already-correct
+schema. This one ran the **actual deploy sequence** against a real, empty Postgres in an isolated
+Docker project — identity + academy together (academy carries the `V999` failure; identity's
+migrations reach across into academy's `students`), with a **control arm** so the result means
+something:
+
+| Arm | Setup | Result |
+|---|---|---|
+| **Control** | Flyway ON from the start, empty DB | **FAILED**, exactly as predicted: `Script V999__replace_sports_with_english_courses.sql failed` → `ERROR: relation "course_programs" does not exist`; academy container exited; 2 tables in the DB |
+| **Phase 1** | `ddl-auto=update`, `SPRING_FLYWAY_ENABLED=false` | 2/2 healthy; **111 tables** built by Hibernate; `users` ✓ `course_programs` ✓; 0 flyway history tables |
+| **Phase 2** | same DB, Flyway ON | 2/2 healthy; **academy 22 migrations applied, all successful**; **identity 9, all successful**; 0 failed rows; 113 tables |
+
+Two things the run also confirmed:
+- **`DataLoader` seeds correctly on a fresh DB** — 14 roles created, so the app is usable
+  immediately after bootstrap without any SQL seed file.
+- **No fabricated data reached the database** — `students` = 0. Note the mechanism: the
+  deliberately stale images used here still contain the old `data.sql`, and it did not load
+  because the **prod profile sets `spring.sql.init.mode=never`**. The rename to `data-demo.sql`
+  (on `chore/real-data-only`) is the belt to that braces — it protects the profiles that do *not*
+  set `never`, which is where the real exposure was.
+
+That run covered 2 of 9 services on an **empty** database. Harmless `constraint … does not
+exist, skipping` warnings appear in phase 2; that is `ddl-auto` reconciling, not an error.
+
+**Extended to all 9 services the same day**, on the real local dev database — which turned out
+to be **partially** built (89 tables, missing `student_skill_levels` and `activity_logs`, which
+is exactly why 3 services were crash-looping). The same two phases were applied:
+
+| | Result |
+|---|---|
+| Phase 1 — Flyway off, all 9 | **89 → 238 tables**; the missing tables appeared |
+| Phase 2 — Flyway on, all 9 | **65 migrations applied, every one successful** — academy 22, identity 9, connect 8, payment 6, payroll 6, attendance 5, ai_gateway 4, social_media 3, rule_engine 2 |
+| Stack afterwards | 13/13 containers healthy; `GET /api/courses/active` through nginx → 200 |
+
+So the procedure is now measured, not inferred, for **all nine services**, against both an empty
+database (2-service run, with the control) and a partially-built one (9-service run). The
+partial case matters more than it sounds: a first deploy that fails halfway leaves exactly that
+state, and re-running the two phases recovers it without touching data.
+
+**Three Docker blockers were found in the process** (see `fix/docker-stack-blockers`) —
+`LERA_INTERNAL_API_KEY` was passed to none of the 9 services, academy/connect could not write
+`/var/lera/uploads` as uid 1001, and the gateway could not write `/run/nginx.pid`. The stack had
+never served a request. None of these are visible to `docker compose config`; they require
+actually starting the stack.
 
 **This must be dry-run on an empty staging DB before prod** — verified 2026-06-28 with a
 single-service fresh-DB test, which already surfaced real baseline bugs (now fixed):
@@ -275,8 +428,16 @@ ALL 9 services** (2026-07-01) · secret tokens `@JsonProperty(WRITE_ONLY)`.
 ---
 
 ## Quick go/no-go gate
-- [x] On `main`, code merged + pushed; backend test suite green (2026-06-29)
+- [ ] **Hosting jurisdiction decided** (see the callout at the top) — AWS us-east-1 vs Vietnam VPS
+- [x] On `main`, code merged + pushed; backend test suite green — 503 tests, 9/9 modules (2026-09-07)
 - [x] App-layer cybersecurity hardened; Swagger off on all 9 (2026-07-01)
+- [x] CI dependency gate actually executes (trivy-action ref fixed) and is green (2026-09-07)
+- [x] Prod profile boots — `ddl-auto` corrected from `validate` to `update` on all 9 (2026-09-07)
+- [x] Compute layer exists (ECS Fargate) — **structurally validated, never deployed** (2026-09-07)
+- [ ] CORS no longer trusts `http://localhost` in prod — PR open, not merged
+- [ ] Next 15 upgrade (clears the last 4 npm advisories) — PR open, not merged
+- [ ] `LERA_INTERNAL_API_KEY` + `DOCKER_USERNAME` set as repo secrets, or the deploy job self-skips
+- [ ] Two-phase bootstrap rehearsed on a throwaway DB **before** the real first deploy
 - [ ] Confirmed edited migrations were never applied in any env (checksum safety) + secrets rotated + history scrubbed
 - [ ] Infra deployed (us-east-1 WAF); **first-deploy schema bootstrap done (step 3a)** then migrations applied on prod
 - [ ] Logs + metrics + alerts live
