@@ -26,7 +26,8 @@ interface BorrowedBook {
   bookTitle: string;
   borrowDate: string;
   dueDate: string;
-  status: "borrowed" | "overdue" | "returned";
+  // BookBorrowing.status is stored uppercase: BORROWED, RETURNED, OVERDUE, LOST.
+  status: string;
 }
 
 export default function LibraryPage() {
@@ -89,7 +90,8 @@ export default function LibraryPage() {
     return matchesSearch && matchesCategory;
   });
 
-  const overdueCount = borrowedBooks.filter(b => b.status === "overdue").length;
+  const isOverdue = (b: BorrowedBook) => String(b.status).toUpperCase() === "OVERDUE";
+  const overdueCount = borrowedBooks.filter(isOverdue).length;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -140,16 +142,16 @@ export default function LibraryPage() {
           <h2 className="text-xl font-bold text-gray-900 mb-4">{t.myBooks}</h2>
           <div className="space-y-3">
             {borrowedBooks.map(book => (
-              <div key={book.id} className={`flex items-center justify-between p-4 rounded-lg ${book.status === 'overdue' ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>
+              <div key={book.id} className={`flex items-center justify-between p-4 rounded-lg ${isOverdue(book) ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>
                 <div className="flex items-center gap-4">
                   <span className="text-2xl">📖</span>
                   <div>
-                    <p className="font-medium text-gray-900">{book.bookTitle}</p>
+                    <p className="font-medium text-gray-900">{book.bookTitle || "Untitled"}</p>
                     <p className="text-sm text-gray-500">{t.dueDate}: {book.dueDate ? new Date(book.dueDate).toLocaleDateString() : "—"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  {book.status === "overdue" && (
+                  {isOverdue(book) && (
                     <span className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded-full">{t.overdue}</span>
                   )}
                   <button disabled title="Coming soon" className="px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed">{t.return}</button>

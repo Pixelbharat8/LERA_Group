@@ -2,6 +2,7 @@ package com.lera.academy_service.controller;
 
 import com.lera.academy_service.entity.Author;
 import com.lera.academy_service.entity.Book;
+import com.lera.academy_service.entity.BookBorrowing;
 import com.lera.academy_service.entity.BookCategory;
 import com.lera.academy_service.entity.Publisher;
 import com.lera.academy_service.repository.AuthorRepository;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Library catalogue &amp; circulation. Previously this controller fabricated every response
@@ -172,9 +174,44 @@ public class LibraryController {
     @GetMapping("/borrowed")
     public ResponseEntity<?> getBorrowedBooks(@RequestParam(required = false) String studentId) {
         UUID student = parseUuid(studentId);
-        if (student != null) return ResponseEntity.ok(bookBorrowingRepository.findByStudentId(student));
+        if (student != null) return ResponseEntity.ok(withBookTitles(bookBorrowingRepository.findByStudentId(student)));
         if (studentId != null && !studentId.isBlank()) return ResponseEntity.ok(List.of());
-        return ResponseEntity.ok(bookBorrowingRepository.findAll());
+        return ResponseEntity.ok(withBookTitles(bookBorrowingRepository.findAll()));
+    }
+
+    /**
+     * A borrowing row carries only bookId, so a list of them renders with no title at all.
+     * Resolve the titles in one query rather than one per row.
+     */
+    private List<Map<String, Object>> withBookTitles(List<BookBorrowing> borrowings) {
+        Set<String> bookIds = borrowings.stream()
+                .map(b -> b.getBookId() != null ? b.getBookId().toString() : null)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, Book> byId = bookIds.isEmpty()
+                ? Map.of()
+                : bookRepository.findAllById(bookIds).stream()
+                        .collect(Collectors.toMap(Book::getId, b -> b, (a, b) -> a));
+
+        List<Map<String, Object>> out = new ArrayList<>(borrowings.size());
+        for (BookBorrowing borrowing : borrowings) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", borrowing.getId());
+            row.put("bookId", borrowing.getBookId());
+            row.put("studentId", borrowing.getStudentId());
+            row.put("borrowDate", borrowing.getBorrowDate());
+            row.put("dueDate", borrowing.getDueDate());
+            row.put("returnDate", borrowing.getReturnDate());
+            row.put("status", borrowing.getStatus());
+            row.put("renewalCount", borrowing.getRenewalCount());
+            row.put("notes", borrowing.getNotes());
+            Book book = borrowing.getBookId() != null ? byId.get(borrowing.getBookId().toString()) : null;
+            row.put("bookTitle", book != null ? book.getTitle() : null);
+            row.put("bookTitleVi", book != null ? book.getTitleVi() : null);
+            row.put("isbn", book != null ? book.getIsbn() : null);
+            out.add(row);
+        }
+        return out;
     }
 
     @PostMapping("/borrow")
