@@ -56,6 +56,12 @@ describe("every surface that touches an FAQ uses those names", () => {
   });
 });
 
+describe("the empty state", () => {
+  it("hides the whole FAQ section rather than heading an empty space", () => {
+    expect(publicPage).toMatch(/\{faqs\.length > 0 && \(/);
+  });
+});
+
 describe("no invented public commitments ship in the bundle", () => {
   it("has no hardcoded FAQ content", () => {
     expect(publicPage).toMatch(/const defaultFaqs: FaqItem\[\] = \[\];/);

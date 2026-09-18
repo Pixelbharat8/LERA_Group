@@ -357,7 +357,9 @@ export default function ContactPage() {
         </div>
       </section>
       
-      {/* FAQ Section */}
+      {/* FAQ Section — hidden entirely when nothing has been published, rather than showing a
+          heading and a promise to answer questions above an empty space. */}
+      {faqs.length > 0 && (
       <section className="py-16 bg-gray-50">
         <div className="reveal max-w-4xl mx-auto px-4">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
@@ -384,6 +386,7 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
+      )}
       
       {/* Map Section */}
       <section className="py-16 bg-white">
