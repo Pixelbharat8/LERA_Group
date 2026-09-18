@@ -27,7 +27,17 @@ interface AboutSettings {
   centers_count: string;
 }
 
-interface TeamMember {
+/**
+ * This is the public site's leadership team, stored in `leadership_team` and served by
+ * /api/leadership-members — which is what the public About page reads.
+ *
+ * Every call here used to go to /api/team-members, which is the SPORTS TEAM ROSTER
+ * (team_id, student_id, jersey_number, goals_scored). Both of those columns are NOT NULL, so
+ * adding a leader was rejected outright; the list above it rendered sports roster rows as
+ * blank names and roles; and had anything saved, the public About page would never have shown
+ * it, because it reads a different table.
+ */
+interface LeadershipMember {
   id: string;
   name: string;
   nameVi?: string;
@@ -69,9 +79,9 @@ export default function AboutPageEditor() {
     centers_count: "3",
   });
 
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [teamMembers, setTeamMembers] = useState<LeadershipMember[]>([]);
   const [showAddMember, setShowAddMember] = useState(false);
-  const [newMember, setNewMember] = useState<Partial<TeamMember>>({
+  const [newMember, setNewMember] = useState<Partial<LeadershipMember>>({
     name: "",
     role: "",
     bio: "",
@@ -99,7 +109,7 @@ export default function AboutPageEditor() {
 
   const fetchTeamMembers = async () => {
     try {
-      const data = await apiFetch("/api/team-members");
+      const data = await apiFetch("/api/leadership-members");
       if (Array.isArray(data)) {
         setTeamMembers(data);
       }
@@ -134,7 +144,7 @@ export default function AboutPageEditor() {
 
   const handleAddMember = async () => {
     try {
-      const member = await apiFetch("/api/team-members", {
+      const member = await apiFetch("/api/leadership-members", {
         method: "POST",
         body: JSON.stringify({
           ...newMember,
@@ -153,7 +163,7 @@ export default function AboutPageEditor() {
   const handleDeleteMember = async (id: string) => {
     if (!confirm("Delete this team member?")) return;
     try {
-      await apiFetch(`/api/team-members/${id}`, { method: "DELETE" });
+      await apiFetch(`/api/leadership-members/${id}`, { method: "DELETE" });
       setTeamMembers(teamMembers.filter(m => m.id !== id));
       setMessage("✅ Team member deleted!");
     } catch (err: any) {
