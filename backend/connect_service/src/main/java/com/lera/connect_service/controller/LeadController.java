@@ -141,6 +141,29 @@ public class LeadController {
         return ResponseEntity.ok(stats);
     }
     
+    /**
+     * The status column has a fixed vocabulary and the rest of this class compares against it
+     * with case-sensitive equals — `!"CONVERTED".equals(status)` treats a lead stored as
+     * "converted" as still open, and the NEW check below stamps firstContactedAt on a lead
+     * stored as "new". A client writing the wrong case therefore does not merely display
+     * oddly, it changes what the server decides. The superadmin lead console was doing exactly
+     * that. Normalise here so no client can reintroduce it.
+     */
+    private static final java.util.Set<String> LEAD_STATUSES = java.util.Set.of(
+            "NEW", "CONTACTED", "QUALIFIED", "TRIAL_BOOKED", "TRIAL_ATTENDED",
+            "NO_SHOW", "CONVERTED", "LOST");
+
+    private static String normaliseStatus(String status) {
+        if (status == null) return null;
+        String upper = status.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!LEAD_STATUSES.contains(upper)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Unknown lead status: " + status + " (expected one of " + LEAD_STATUSES + ")");
+        }
+        return upper;
+    }
+
     @PostMapping
     public ResponseEntity<Lead> createLead(
             @Valid @RequestBody Lead lead,
@@ -149,6 +172,9 @@ public class LeadController {
                 || lead.getParentPhone() == null || lead.getParentPhone().isBlank()) {
             throw new org.springframework.web.server.ResponseStatusException(
                     org.springframework.http.HttpStatus.BAD_REQUEST, "parentName and parentPhone are required");
+        }
+        if (lead.getStatus() != null) {
+            lead.setStatus(normaliseStatus(lead.getStatus()));
         }
         if (!ConnectSecurity.isOrgWide(authUser)) {
             UUID jwt = authUser != null ? authUser.getCenterId() : null;
@@ -203,7 +229,7 @@ public class LeadController {
             if (leadDetails.getParentPhone() != null) lead.setParentPhone(leadDetails.getParentPhone());
             if (leadDetails.getStudentName() != null) lead.setStudentName(leadDetails.getStudentName());
             if (leadDetails.getStudentAge() != null) lead.setStudentAge(leadDetails.getStudentAge());
-            if (leadDetails.getStatus() != null) lead.setStatus(leadDetails.getStatus());
+            if (leadDetails.getStatus() != null) lead.setStatus(normaliseStatus(leadDetails.getStatus()));
             if (leadDetails.getAssignedTo() != null) lead.setAssignedTo(leadDetails.getAssignedTo());
             if (leadDetails.getNotes() != null) lead.setNotes(leadDetails.getNotes());
             // Speed-to-lead: stamp first-contact when the lead leaves NEW for the first time.
