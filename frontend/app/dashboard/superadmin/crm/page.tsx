@@ -3,6 +3,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 
+/**
+ * View shape. The API's Lead has parentName / parentPhone / parentEmail / utmSource — reading
+ * name / email / phone / source left every column of this table blank, and POSTing those names
+ * dropped them, so lead creation failed outright against the NOT NULL parent_name and
+ * parent_phone. Status is stored UPPERCASE (NEW, CONTACTED, QUALIFIED, CONVERTED, LOST); the
+ * lowercase values this page used matched nothing and wrote a status no other screen recognises.
+ */
 interface Lead {
   id: string;
   name: string;
@@ -38,37 +45,47 @@ export default function CRMManagement() {
   const [showDealModal, setShowDealModal] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
-  const [formData, setFormData] = useState({ name: "", email: "", phone: "", source: "website", status: "new" });
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({ name: "", email: "", phone: "", source: "website", status: "NEW" });
   const [dealForm, setDealForm] = useState({ dealCode: "", title: "", leadId: "", value: 0, stage: "prospecting", probability: 10, expectedCloseDate: "", notes: "" });
 
   useEffect(() => {
-    fetchLeads();
-    fetchDeals();
+    fetchLeads().then(fetchDeals);
   }, []);
 
-  const fetchLeads = async () => {
+  const toView = (l: any): Lead => ({
+    ...l,
+    name: l.parentName || l.studentName || "",
+    email: l.parentEmail || "",
+    phone: l.parentPhone || "",
+    source: l.utmSource || "",
+    status: String(l.status || "NEW").toUpperCase(),
+  });
+
+  const fetchLeads = async (): Promise<Lead[]> => {
     try {
       const data = await apiFetch("/api/leads");
-      setLeads(Array.isArray(data) ? data : []);
+      const mapped = (Array.isArray(data) ? data : []).map(toView);
+      setLeads(mapped);
+      return mapped;
     } catch (error) {
       console.error("Error fetching leads:", error);
+      return [];
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchDeals = async () => {
+  // Takes the leads it needs as an argument: this used to read the `leads` state, which is still
+  // empty when both fetches start together, so every deal was labelled "Unknown" regardless.
+  const fetchDeals = async (knownLeads: Lead[]) => {
     try {
       const data = await apiFetch("/api/deals");
       const dealsArr = Array.isArray(data) ? data : [];
-      // Hydrate with lead names
-      const hydratedDeals = await Promise.all(dealsArr.map(async (deal: Deal) => {
-        if (deal.leadId) {
-          const lead = leads.find(l => l.id === deal.leadId);
-          return { ...deal, leadName: lead?.name || "Unknown" };
-        }
-        return deal;
-      }));
+      const byId = new Map(knownLeads.map((l) => [l.id, l]));
+      const hydratedDeals = dealsArr.map((deal: Deal) =>
+        deal.leadId ? { ...deal, leadName: byId.get(deal.leadId)?.name || "" } : deal
+      );
       setDeals(hydratedDeals);
     } catch (error) {
       console.error("Error fetching deals:", error);
@@ -78,24 +95,36 @@ export default function CRMManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaveError(null);
+    // The API binds the Lead entity: parent_name and parent_phone are NOT NULL and the
+    // controller rejects either blank, so these names are not cosmetic.
+    const body = {
+      parentName: formData.name,
+      parentEmail: formData.email || null,
+      parentPhone: formData.phone,
+      utmSource: formData.source || null,
+      status: formData.status,
+    };
     try {
       if (editingLead) {
         await apiFetch(`/api/leads/${editingLead.id}`, {
           method: "PUT",
-          body: JSON.stringify(formData),
+          body: JSON.stringify(body),
         });
       } else {
         await apiFetch("/api/leads", {
           method: "POST",
-          body: JSON.stringify(formData),
+          body: JSON.stringify(body),
         });
       }
       setShowModal(false);
       setEditingLead(null);
-      fetchLeads();
-      setFormData({ name: "", email: "", phone: "", source: "website", status: "new" });
+      const refreshed = await fetchLeads();
+      await fetchDeals(refreshed);
+      setFormData({ name: "", email: "", phone: "", source: "website", status: "NEW" });
     } catch (error) {
       console.error("Error saving lead:", error);
+      setSaveError("Could not save the lead. Name and phone are both required.");
     }
   };
 
@@ -112,13 +141,17 @@ export default function CRMManagement() {
   };
 
   const handleFollowUp = async (lead: Lead) => {
-    const newStatus = lead.status === "new" ? "contacted" : lead.status === "contacted" ? "qualified" : lead.status;
+    const newStatus = lead.status === "NEW" ? "CONTACTED" : lead.status === "CONTACTED" ? "QUALIFIED" : lead.status;
+    if (newStatus === lead.status) return;
     try {
+      // Send only the status — spreading the view object back would post the view's own field
+      // names, and writing a lowercase status made the lead invisible to every other screen.
       await apiFetch(`/api/leads/${lead.id}`, {
         method: "PUT",
-        body: JSON.stringify({ ...lead, status: newStatus }),
+        body: JSON.stringify({ status: newStatus }),
       });
-      fetchLeads();
+      const refreshed = await fetchLeads();
+      await fetchDeals(refreshed);
       alert(`Lead "${lead.name}" moved to ${newStatus} status`);
     } catch (error) {
       console.error("Error following up:", error);
@@ -129,7 +162,8 @@ export default function CRMManagement() {
     if (!confirm("Are you sure you want to delete this lead?")) return;
     try {
       await apiFetch(`/api/leads/${id}`, { method: "DELETE" });
-      fetchLeads();
+      const refreshed = await fetchLeads();
+      await fetchDeals(refreshed);
     } catch (error) {
       console.error("Error deleting lead:", error);
     }
@@ -162,7 +196,7 @@ export default function CRMManagement() {
       }
       setShowDealModal(false);
       setEditingDeal(null);
-      fetchDeals();
+      fetchDeals(leads);
       setDealForm({ dealCode: "", title: "", leadId: "", value: 0, stage: "prospecting", probability: 10, expectedCloseDate: "", notes: "" });
     } catch (error) {
       console.error("Error saving deal:", error);
@@ -173,7 +207,7 @@ export default function CRMManagement() {
     if (!confirm("Are you sure you want to delete this deal?")) return;
     try {
       await apiFetch(`/api/deals/${id}`, { method: "DELETE" });
-      fetchDeals();
+      fetchDeals(leads);
     } catch (error) {
       console.error("Error deleting deal:", error);
     }
@@ -217,23 +251,23 @@ export default function CRMManagement() {
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
           <h3 className="text-gray-500 text-sm">New Leads</h3>
-          <p className="text-2xl font-bold">{leads.filter(l => l.status === "new").length}</p>
+          <p className="text-2xl font-bold">{leads.filter(l => l.status === "NEW").length}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500">
           <h3 className="text-gray-500 text-sm">Contacted</h3>
-          <p className="text-2xl font-bold">{leads.filter(l => l.status === "contacted").length}</p>
+          <p className="text-2xl font-bold">{leads.filter(l => l.status === "CONTACTED").length}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500">
           <h3 className="text-gray-500 text-sm">Qualified</h3>
-          <p className="text-2xl font-bold">{leads.filter(l => l.status === "qualified").length}</p>
+          <p className="text-2xl font-bold">{leads.filter(l => l.status === "QUALIFIED").length}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
           <h3 className="text-gray-500 text-sm">Converted</h3>
-          <p className="text-2xl font-bold">{leads.filter(l => l.status === "converted").length}</p>
+          <p className="text-2xl font-bold">{leads.filter(l => l.status === "CONVERTED").length}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-red-500">
           <h3 className="text-gray-500 text-sm">Lost</h3>
-          <p className="text-2xl font-bold">{leads.filter(l => l.status === "lost").length}</p>
+          <p className="text-2xl font-bold">{leads.filter(l => l.status === "LOST").length}</p>
         </div>
       </div>
 
@@ -313,7 +347,7 @@ export default function CRMManagement() {
         {activeTab === "clients" && (
           <div className="p-8 text-center text-gray-500">
             <p>Client management - Converted leads become clients</p>
-            <p className="mt-2">{leads.filter(l => l.status === "converted").length} clients</p>
+            <p className="mt-2">{leads.filter(l => l.status === "CONVERTED").length} clients</p>
           </div>
         )}
 
@@ -401,14 +435,19 @@ export default function CRMManagement() {
                     <option value="other">Other</option>
                   </select>
                 </div>
+                {saveError && (
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                    {saveError}
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                   <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full border rounded-lg px-3 py-2">
-                    <option value="new">New</option>
-                    <option value="contacted">Contacted</option>
-                    <option value="qualified">Qualified</option>
-                    <option value="converted">Converted</option>
-                    <option value="lost">Lost</option>
+                    <option value="NEW">New</option>
+                    <option value="CONTACTED">Contacted</option>
+                    <option value="QUALIFIED">Qualified</option>
+                    <option value="CONVERTED">Converted</option>
+                    <option value="LOST">Lost</option>
                   </select>
                 </div>
               </div>
