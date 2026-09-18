@@ -8,7 +8,6 @@ interface Campaign {
   id: string;
   name: string;
   description: string;
-  campaignType: string;
   channel: string;
   budget: number;
   spent: number;
@@ -30,7 +29,6 @@ interface AdAccount {
   currency: string;
 }
 
-const CAMPAIGN_TYPES = ["AWARENESS", "LEAD_GEN", "CONVERSION", "RETARGETING", "BRAND"];
 const CHANNELS = ["FACEBOOK", "INSTAGRAM", "GOOGLE", "TIKTOK", "ZALO", "YOUTUBE", "EMAIL", "SMS"];
 const STATUSES = ["DRAFT", "ACTIVE", "PAUSED", "COMPLETED", "CANCELLED"];
 
@@ -53,7 +51,6 @@ export default function AdsCampaignsPage() {
   const [newCampaign, setNewCampaign] = useState<Partial<Campaign>>({
     name: "",
     description: "",
-    campaignType: "LEAD_GEN",
     channel: "FACEBOOK",
     budget: 0,
     startDate: "",
@@ -74,7 +71,6 @@ export default function AdsCampaignsPage() {
           id: c.id as string,
           name: c.campaignName as string || "",
           description: c.description as string || "",
-          campaignType: c.campaignType as string || "LEAD_GEN",
           channel: c.campaignType as string || "FACEBOOK",
           budget: Number(c.budget) || 0,
           spent: Number(c.spentAmount) || 0,
@@ -119,14 +115,26 @@ export default function AdsCampaignsPage() {
       // No .catch here: a campaign that failed to save must not appear in the list as though it
       // had. It previously fell through to a "local add for demo", so an unsaved campaign was
       // indistinguishable from a saved one until the page was reloaded.
+      // MarketingCampaign's column is campaign_name (NOT NULL) — posting `name` dropped it and
+      // the insert was rejected, so no campaign could be created here at all. The entity has one
+      // type column, and the read above maps it to this page's `channel`, so the write has to
+      // agree with that or a saved campaign would come back under a different channel.
       const created = await apiFetch("/api/marketing-campaigns", {
         method: "POST",
-        body: JSON.stringify(newCampaign),
+        body: JSON.stringify({
+          campaignName: newCampaign.name,
+          description: newCampaign.description || null,
+          campaignType: newCampaign.channel,
+          budget: newCampaign.budget || 0,
+          startDate: newCampaign.startDate || null,
+          endDate: newCampaign.endDate || null,
+          status: newCampaign.status || "DRAFT",
+        }),
       });
 
       setCampaigns([...campaigns, { ...newCampaign, id: created?.id || "", spent: 0, leads: 0, conversions: 0, roi: 0 } as Campaign]);
       setShowCreateModal(false);
-      setNewCampaign({ name: "", description: "", campaignType: "LEAD_GEN", channel: "FACEBOOK", budget: 0, startDate: "", endDate: "", status: "DRAFT" });
+      setNewCampaign({ name: "", description: "", channel: "FACEBOOK", budget: 0, startDate: "", endDate: "", status: "DRAFT" });
     } catch (error: any) {
       console.error("Error creating campaign:", error);
       setActionError(error?.message || "The campaign could not be saved.");
@@ -534,19 +542,10 @@ export default function AdsCampaignsPage() {
                   rows={2}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Campaign Type</label>
-                  <select
-                    value={newCampaign.campaignType}
-                    onChange={(e) => setNewCampaign({ ...newCampaign, campaignType: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    {CAMPAIGN_TYPES.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
+              {/* Campaign Type (AWARENESS / LEAD_GEN / ...) had a select here, but the entity has
+                  a single type column and it already carries the channel. Nothing could store the
+                  campaign type, so the control was silently discarding whatever was chosen. */}
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Channel</label>
                   <select
