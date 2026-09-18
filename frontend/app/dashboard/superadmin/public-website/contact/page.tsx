@@ -24,11 +24,17 @@ interface ContactSettings {
   linkedin_url: string;
 }
 
+/**
+ * The Faq entity's own column names. `question` and `answer` are NOT NULL; the VI pair is
+ * optional. This editor used questionEN/answerEN, which the entity has no field for, so every
+ * FAQ it POSTed arrived with both required columns null and the insert was rejected — nobody
+ * could add an FAQ here — while the list above it showed blanks for the ones that did exist.
+ */
 interface FaqItem {
   id: string;
-  questionEN: string;
+  question: string;
   questionVI: string;
-  answerEN: string;
+  answer: string;
   answerVI: string;
   displayOrder: number;
   isActive: boolean;
@@ -63,9 +69,9 @@ export default function ContactPageEditor() {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [showAddFaq, setShowAddFaq] = useState(false);
   const [newFaq, setNewFaq] = useState<Partial<FaqItem>>({
-    questionEN: "",
+    question: "",
     questionVI: "",
-    answerEN: "",
+    answer: "",
     answerVI: "",
     isActive: true,
   });
@@ -133,7 +139,7 @@ export default function ContactPageEditor() {
         }),
       });
       setFaqs([...faqs, faq]);
-      setNewFaq({ questionEN: "", questionVI: "", answerEN: "", answerVI: "", isActive: true });
+      setNewFaq({ question: "", questionVI: "", answer: "", answerVI: "", isActive: true });
       setShowAddFaq(false);
       setMessage("✅ FAQ added successfully!");
     } catch (err: any) {
@@ -410,8 +416,8 @@ export default function ContactPageEditor() {
                       <label className="block text-sm font-medium mb-1">Question (English)</label>
                       <input
                         type="text"
-                        value={newFaq.questionEN || ""}
-                        onChange={(e) => setNewFaq({ ...newFaq, questionEN: e.target.value })}
+                        value={newFaq.question || ""}
+                        onChange={(e) => setNewFaq({ ...newFaq, question: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
@@ -427,8 +433,8 @@ export default function ContactPageEditor() {
                     <div>
                       <label className="block text-sm font-medium mb-1">Answer (English)</label>
                       <textarea
-                        value={newFaq.answerEN || ""}
-                        onChange={(e) => setNewFaq({ ...newFaq, answerEN: e.target.value })}
+                        value={newFaq.answer || ""}
+                        onChange={(e) => setNewFaq({ ...newFaq, answer: e.target.value })}
                         rows={3}
                         className="w-full px-3 py-2 border rounded-lg"
                       />
@@ -463,9 +469,9 @@ export default function ContactPageEditor() {
                     <div key={faq.id} className="bg-gray-50 rounded-lg p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">Q{index + 1}: {faq.questionEN}</p>
+                          <p className="font-medium text-gray-900">Q{index + 1}: {faq.question}</p>
                           <p className="text-sm text-gray-500 mt-1">{faq.questionVI}</p>
-                          <p className="text-sm text-gray-700 mt-2">{faq.answerEN}</p>
+                          <p className="text-sm text-gray-700 mt-2">{faq.answer}</p>
                         </div>
                         <button
                           onClick={() => handleDeleteFaq(faq.id)}

@@ -25,13 +25,20 @@ interface ContactInfo {
   mapEmbedUrl: string;
 }
 
+/**
+ * Matches the Faq entity exactly. The English text is `question`/`answer` (both NOT NULL); the
+ * Vietnamese translation is optional and is null on every row currently stored. This page used
+ * to declare questionEN/answerEN, which the API has never emitted — so once the fetch replaced
+ * the built-in defaults, every row of the public FAQ accordion rendered blank, in both
+ * languages.
+ */
 interface FaqItem {
   id: string;
-  questionEN: string;
-  questionVI: string;
-  answerEN: string;
-  answerVI: string;
-  order: number;
+  question: string;
+  questionVI?: string | null;
+  answer: string;
+  answerVI?: string | null;
+  displayOrder?: number;
 }
 
 // Default contact info (fallback) - REAL DATA from LERA Academy
@@ -48,57 +55,12 @@ const defaultContactInfo: ContactInfo = {
   mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3727.5!2d106.7!3d20.87!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x314a7a9e81eb07c3%3A0x1234567890abcdef!2sVinhomes%20Marina!5e0!3m2!1sen!2s!4v1234567890"
 };
 
-// Default FAQs (fallback)
-const defaultFaqs: FaqItem[] = [
-  {
-    id: "1",
-    questionEN: "What age groups do you teach?",
-    questionVI: "Bạn dạy các nhóm tuổi nào?",
-    answerEN: "We teach students from 3 years old to adults. Our programs include LERA Starters (3-6 years), Speaking Pro (6-10 years), LERA Teens (10-15 years), and adult courses including IELTS and Business English.",
-    answerVI: "Chúng tôi dạy học viên từ 3 tuổi đến người lớn. Các chương trình bao gồm LERA Starters (3-6 tuổi), Speaking Pro (6-10 tuổi), LERA Teens (10-15 tuổi), và các khóa học cho người lớn bao gồm IELTS và Tiếng Anh thương mại.",
-    order: 1
-  },
-  {
-    id: "2",
-    questionEN: "How long is each course?",
-    questionVI: "Mỗi khóa học kéo dài bao lâu?",
-    answerEN: "Courses typically run for 12-16 weeks, with 2-3 sessions per week. Each session lasts 60-90 minutes depending on the age group.",
-    answerVI: "Các khóa học thường kéo dài 12-16 tuần, với 2-3 buổi mỗi tuần. Mỗi buổi học kéo dài 60-90 phút tùy theo độ tuổi.",
-    order: 2
-  },
-  {
-    id: "3",
-    questionEN: "Do you offer trial classes?",
-    questionVI: "Bạn có cung cấp lớp học thử không?",
-    answerEN: "Yes! We offer a free trial class for all new students. Register through our website or call us to schedule your trial session.",
-    answerVI: "Có! Chúng tôi cung cấp lớp học thử miễn phí cho tất cả học viên mới. Đăng ký qua website hoặc gọi điện để đặt lịch học thử.",
-    order: 3
-  },
-  {
-    id: "4",
-    questionEN: "What qualifications do your teachers have?",
-    questionVI: "Giáo viên của bạn có bằng cấp gì?",
-    answerEN: "All our teachers are native English speakers from USA, UK, and Australia. They hold international teaching certificates such as CELTA, TESOL, or TEFL with at least 2 years of teaching experience.",
-    answerVI: "Tất cả giáo viên của chúng tôi đều là người bản ngữ từ Mỹ, Anh và Úc. Họ có chứng chỉ giảng dạy quốc tế như CELTA, TESOL, hoặc TEFL với ít nhất 2 năm kinh nghiệm.",
-    order: 4
-  },
-  {
-    id: "5",
-    questionEN: "What is your refund policy?",
-    questionVI: "Chính sách hoàn tiền của bạn là gì?",
-    answerEN: "We offer a full refund within the first 2 weeks if you're not satisfied. After that, pro-rated refunds are available based on remaining classes.",
-    answerVI: "Chúng tôi hoàn tiền 100% trong 2 tuần đầu nếu bạn không hài lòng. Sau đó, hoàn tiền theo tỷ lệ dựa trên số buổi còn lại.",
-    order: 5
-  },
-  {
-    id: "6",
-    questionEN: "Can parents observe classes?",
-    questionVI: "Phụ huynh có thể quan sát lớp học không?",
-    answerEN: "Yes! Parents can observe classes through our viewing windows or via live video stream. We believe in transparency and parent involvement in the learning journey.",
-    answerVI: "Có! Phụ huynh có thể quan sát lớp học qua cửa kính hoặc qua video trực tiếp. Chúng tôi tin vào sự minh bạch và sự tham gia của phụ huynh trong hành trình học tập.",
-    order: 6
-  }
-];
+// No built-in FAQs. What used to sit here was invented marketing copy — a refund policy, a
+// free-trial promise, and a claim that every teacher is a native speaker from the USA/UK/
+// Australia holding CELTA/TESOL/TEFL with 2+ years' experience. None of it came from LERA, and
+// all of it is a public commitment. The accordion now shows only what the FAQ editor has
+// published (Super Admin -> Public Website -> FAQ).
+const defaultFaqs: FaqItem[] = [];
 
 // Gallery images from LERA Academy (using centralized config)
 const galleryImages = GALLERY_IMAGES;
@@ -411,11 +373,11 @@ export default function ContactPage() {
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
                   className="w-full px-6 py-5 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
                 >
-                  <span className="font-semibold text-brand-navy pr-4">{language === "EN" ? faq.questionEN : faq.questionVI}</span>
+                  <span className="font-semibold text-brand-navy pr-4">{language === "EN" ? faq.question : faq.questionVI || faq.question}</span>
                   <span className={`text-brand-navy text-xl font-bold transition-transform duration-200 ${openFaq === index ? "rotate-45" : ""}`}>+</span>
                 </button>
                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openFaq === index ? "max-h-48 opacity-100" : "max-h-0 opacity-0"}`}>
-                  <div className="px-6 pb-5 text-gray-600 leading-relaxed">{language === "EN" ? faq.answerEN : faq.answerVI}</div>
+                  <div className="px-6 pb-5 text-gray-600 leading-relaxed">{language === "EN" ? faq.answer : faq.answerVI || faq.answer}</div>
                 </div>
               </div>
             ))}
