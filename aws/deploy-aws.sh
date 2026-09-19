@@ -127,84 +127,40 @@ echo "  S3 Bucket: ${S3_BUCKET}"
 echo "  CloudFront: ${CLOUDFRONT_URL}"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STOP — steps 4-8 below contradict the CloudFormation stack deployed above.
+# The CloudFormation stack above IS the deployment. It runs all nine services and
+# the frontend as ECS Fargate tasks; once it finishes, the platform is up.
 #
-# The template runs all 9 backend services AND the frontend as ECS Fargate tasks
-# behind service discovery; once `cloudformation deploy` returns, the platform is
-# already running. The steps below then deploy a SECOND, separate copy of
-# identity_service to Elastic Beanstalk (on the java-17 platform — the services
-# are Java 25 now) and push a static export of the frontend to S3.
+# Steps 4-8 used to live here: build identity_service, push it to Elastic Beanstalk
+# on the java-17 platform, then `npm run export` the frontend to S3 + CloudFront.
+# They were removed rather than left commented, because they cannot work:
 #
-# Running them gives you two identity services on different hostnames sharing one
-# database, and a static frontend that cannot serve the dashboard's API routes.
-# Decide which deployment model LERA is using and delete the other half. Until
-# then these steps are left in place rather than removed on our own judgement.
+#   * the frontend is a Next.js SERVER build. next.config.js defines rewrites() and
+#     the app ships middleware.ts, and static export supports neither — `next export`
+#     refuses to run. There is no bundle of files for S3 to serve.
+#   * the services are Java 25; the Beanstalk platform named there was java-17.
+#   * running them alongside the stack gave two identity services on different
+#     hostnames sharing one database.
+#
+# If LERA ever does want a second, Beanstalk-based deployment, it needs writing
+# against the current architecture — not restoring from here.
 # ─────────────────────────────────────────────────────────────────────────────
-echo -e "${YELLOW}Steps 4-8 are stale (see the comment above). Skipping.${NC}"
-echo -e "${GREEN}Stack deployed. Frontend: https://${CLOUDFRONT_URL}${NC}"
-exit 0
 
-# Build and deploy backend
-echo -e "${YELLOW}Step 4: Building Identity Service...${NC}"
-cd backend/identity_service
-mvn clean package -DskipTests
-
-echo -e "${YELLOW}Step 5: Deploying to Elastic Beanstalk...${NC}"
-eb init lera-identity --platform java-17 --region ${REGION} || true
-eb create lera-identity-${ENVIRONMENT} --single || eb deploy lera-identity-${ENVIRONMENT}
-
-eb setenv \
-    SPRING_DATASOURCE_URL=jdbc:postgresql://${DB_ENDPOINT}:5432/postgres \
-    SPRING_DATASOURCE_USERNAME=lera \
-    SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD} \
-    JWT_SECRET=${JWT_SECRET} \
-    SPRING_PROFILES_ACTIVE=prod \
-    FRONTEND_URL=https://${CLOUDFRONT_URL}
-
-cd ../..
-
-# Build and deploy frontend
-echo -e "${YELLOW}Step 6: Building Frontend...${NC}"
-cd frontend
-
-# Update environment
-cat > .env.production << EOF
-NEXT_PUBLIC_API_URL=https://lera-identity-${ENVIRONMENT}.${REGION}.elasticbeanstalk.com
-NEXT_PUBLIC_IDENTITY_API=https://lera-identity-${ENVIRONMENT}.${REGION}.elasticbeanstalk.com
-NEXT_PUBLIC_APP_URL=https://${CLOUDFRONT_URL}
-EOF
-
-npm run build
-npm run export 2>/dev/null || npm run build
-
-echo -e "${YELLOW}Step 7: Deploying to S3...${NC}"
-aws s3 sync out/ s3://${S3_BUCKET} --delete --region ${REGION}
-
-# Invalidate CloudFront cache
-echo -e "${YELLOW}Step 8: Invalidating CloudFront cache...${NC}"
-DISTRIBUTION_ID=$(aws cloudfront list-distributions \
-    --query "DistributionList.Items[?Origins.Items[0].DomainName=='${S3_BUCKET}.s3.${REGION}.amazonaws.com'].Id" \
-    --output text)
-
-if [ -n "$DISTRIBUTION_ID" ]; then
-    aws cloudfront create-invalidation \
-        --distribution-id ${DISTRIBUTION_ID} \
-        --paths "/*"
-fi
-
-cd ..
 
 echo ""
 echo -e "${GREEN}=========================================="
 echo "🎉 DEPLOYMENT COMPLETE!"
 echo "==========================================${NC}"
 echo ""
-echo "Frontend URL: https://${CLOUDFRONT_URL}"
-echo "Backend URL:  https://lera-identity-${ENVIRONMENT}.${REGION}.elasticbeanstalk.com"
-echo "Database:     ${DB_ENDPOINT}"
+echo "Public URL:  https://${CLOUDFRONT_URL}   (CloudFront -> ALB -> nginx gateway)"
+echo "Database:    ${DB_ENDPOINT}"
+echo ""
+echo "The API is reached through the same host, under /api — there is no separate"
+echo "backend URL. All nine services and the frontend run as ECS tasks behind the"
+echo "gateway; the stack finishing IS the deployment."
 echo ""
 echo -e "${YELLOW}Next Steps:${NC}"
 echo "1. Update DNS to point to CloudFront"
 echo "2. Add SSL certificate via AWS Certificate Manager"
-echo "3. Test all endpoints"
+echo "3. Smoke-test: curl -sS https://${CLOUDFRONT_URL}/api/auth/health"
+echo "4. FIRST DEPLOY ONLY: redeploy with FlywayEnabled=true once all 9 services are RUNNING"
 echo ""

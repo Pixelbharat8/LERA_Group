@@ -21,6 +21,9 @@ import * as path from "path";
 const REPO = path.resolve(__dirname, "..", "..");
 const TEMPLATE = fs.readFileSync(path.join(REPO, "aws", "cloudformation-template.yaml"), "utf8");
 const DEPLOY = fs.readFileSync(path.join(REPO, "aws", "deploy-aws.sh"), "utf8");
+/** The script's executable lines. Its comments explain what was removed and why, and naming
+ *  the removed commands there must not read as still shipping them. */
+const DEPLOY_CODE = DEPLOY.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
 
 function properties(service: string): string {
   return fs.readFileSync(
@@ -163,6 +166,25 @@ describe("the deploy script", () => {
       missing,
       `aws cloudformation deploy fails outright when a parameter with no Default is omitted: ${missing.join(", ")}`
     ).toEqual([]);
+  });
+
+  it("no longer ships the Elastic Beanstalk / S3 deployment that cannot work", () => {
+    // The frontend is a Next.js SERVER build: next.config.js defines rewrites() and the app
+    // ships middleware.ts, neither of which static export supports, so `next export` refuses
+    // to run and there is no bundle for S3 to serve. Those steps also named the java-17
+    // Beanstalk platform for services that are on Java 25, and running them alongside the
+    // stack produced two identity services sharing one database.
+    for (const dead of ["eb create", "eb deploy", "eb setenv", "npm run export", "aws s3 sync"]) {
+      expect(DEPLOY_CODE, `${dead} cannot work against this architecture`).not.toContain(dead);
+    }
+    expect(DEPLOY_CODE).not.toMatch(/elasticbeanstalk\.com/);
+  });
+
+  it("the frontend really is a server build, which is why the above is true", () => {
+    const cfg = fs.readFileSync(path.join(REPO, "frontend/next.config.js"), "utf8");
+    expect(cfg).toMatch(/rewrites\s*\(/);
+    expect(cfg).not.toMatch(/output:\s*["']export["']/);
+    expect(fs.existsSync(path.join(REPO, "frontend/middleware.ts"))).toBe(true);
   });
 
   it("warns when the Chairman seed password is unset", () => {
