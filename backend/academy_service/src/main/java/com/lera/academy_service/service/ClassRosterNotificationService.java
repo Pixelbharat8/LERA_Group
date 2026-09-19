@@ -60,12 +60,19 @@ public class ClassRosterNotificationService {
         if (classId == null) return new ArrayList<>(ids);
 
         List<Enrollment> enrollments = enrollmentRepository.findByClassId(classId);
+        // One lookup for the whole roster. This used to call findById per enrolment, so
+        // notifying a class of 30 cost 30 queries before the message was even composed.
+        // A null status counts as active, exactly as the per-row filter did.
+        List<UUID> enrolledStudentIds = enrollments.stream()
+                .filter(e -> e.getStatus() == null || "ACTIVE".equalsIgnoreCase(e.getStatus()))
+                .map(Enrollment::getStudentId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
         List<UUID> studentIds = new ArrayList<>();
-        for (Enrollment e : enrollments) {
-            if (e.getStatus() != null && !"ACTIVE".equalsIgnoreCase(e.getStatus())) continue;
-            Optional<Student> st = studentRepository.findById(e.getStudentId());
-            if (st.isEmpty()) continue;
-            Student s = st.get();
+        // A student id with no row is skipped, as before — findAllById simply omits it.
+        for (Student s : enrolledStudentIds.isEmpty()
+                ? List.<Student>of() : studentRepository.findAllById(enrolledStudentIds)) {
             studentIds.add(s.getId());
             if (s.getUserId() != null) ids.add(s.getUserId());
             // students.parent_id is the older single-parent column; the admin "Link a child" UI
