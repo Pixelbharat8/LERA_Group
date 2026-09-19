@@ -76,3 +76,32 @@ describe("no invented public commitments ship in the bundle", () => {
     expect(publicPage.toLowerCase()).not.toContain(claim.toLowerCase());
   });
 });
+
+
+/**
+ * The blog carried three invented articles as a fallback — bylined "LERA Academy", dated, with
+ * stock photographs. Nothing referenced them: the page's state starts empty on purpose. But a
+ * fabricated article sitting in the bundle is one accidental wiring away from being published,
+ * which is exactly how the leadership team and the FAQs ended up on the live site.
+ */
+describe("the blog ships no fabricated articles", () => {
+  const blog = code("frontend/app/blog/page.tsx");
+
+  it("declares no fallback post array", () => {
+    expect(blog).not.toMatch(/fallbackPosts/);
+  });
+
+  it("starts empty and shows what the backend published", () => {
+    expect(blog).toMatch(/useState<BlogPost\[\]>\(\[\]\)/);
+  });
+
+  it("carries no invented headlines", () => {
+    for (const headline of [
+      "5 Tips to Help Your Child Learn English Faster",
+      "Why Native Teachers Matter",
+      "Preparing for Cambridge English Exams",
+    ]) {
+      expect(blog).not.toContain(headline);
+    }
+  });
+});

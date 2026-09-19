@@ -25,45 +25,10 @@ interface BlogPost {
   isPublished?: boolean;
 }
 
-// Fallback blog posts
-const fallbackPosts: BlogPost[] = [
-  {
-    id: "1",
-    title: "5 Tips to Help Your Child Learn English Faster",
-    titleVi: "5 Mẹo Giúp Con Bạn Học Tiếng Anh Nhanh Hơn",
-    slug: "5-tips-learn-english-faster",
-    excerpt: "Discover proven strategies to accelerate your child's English learning journey with these expert tips from our teachers.",
-    excerptVi: "Khám phá các chiến lược đã được chứng minh để tăng tốc hành trình học tiếng Anh của con bạn với những mẹo từ chuyên gia của chúng tôi.",
-    featuredImage: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600",
-    author: "LERA Academy",
-    publishedAt: "2026-01-15",
-    category: "Tips & Tricks",
-  },
-  {
-    id: "2",
-    title: "Why Native Teachers Matter for Language Learning",
-    titleVi: "Tại Sao Giáo Viên Bản Ngữ Quan Trọng Cho Việc Học Ngôn Ngữ",
-    slug: "native-teachers-matter",
-    excerpt: "Learn why having native English teachers can make a significant difference in your child's pronunciation and fluency.",
-    excerptVi: "Tìm hiểu tại sao có giáo viên tiếng Anh bản ngữ có thể tạo nên sự khác biệt đáng kể trong phát âm và sự lưu loát của con bạn.",
-    featuredImage: "https://images.unsplash.com/photo-1577896851231-70ef18881754?w=600",
-    author: "LERA Academy",
-    publishedAt: "2026-01-10",
-    category: "Education",
-  },
-  {
-    id: "3",
-    title: "Preparing for Cambridge English Exams",
-    titleVi: "Chuẩn Bị Cho Kỳ Thi Cambridge English",
-    slug: "cambridge-exam-preparation",
-    excerpt: "A comprehensive guide to help your child succeed in Cambridge Young Learners English tests.",
-    excerptVi: "Hướng dẫn toàn diện giúp con bạn thành công trong các kỳ thi Cambridge Young Learners English.",
-    featuredImage: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600",
-    author: "LERA Academy",
-    publishedAt: "2026-01-05",
-    category: "Exams",
-  },
-];
+// No fallback posts. Three invented articles used to sit here — "5 Tips to Help Your Child Learn
+// English Faster", "Why Native Teachers Matter", "Preparing for Cambridge English Exams" — bylined
+// "LERA Academy", dated, with stock photographs. Nothing referenced them (the state below starts
+// empty on purpose), but a fabricated article is one accidental wiring away from being published.
 
 export default function BlogPage() {
   const { language, t } = useLanguage();
