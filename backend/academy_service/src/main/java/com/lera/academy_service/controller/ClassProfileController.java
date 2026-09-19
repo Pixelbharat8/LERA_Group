@@ -56,12 +56,17 @@ public class ClassProfileController {
                 List<UUID> sessionIds = sessions.stream().map(ClassSession::getId).toList();
                 long lowAttendanceDays = 0;
                 if (activeEnrollments > 0 && !sessionIds.isEmpty()) {
+                    // One grouped query for the whole term. This used to call findBySessionId per
+                    // session — 120 queries for a term, each pulling every attendance row for that
+                    // session, to derive a single count per session.
+                    java.util.Map<UUID, Long> presentBySession = new java.util.HashMap<>();
+                    for (Object[] row : sessionAttendanceRepository.countPresentBySessionIds(sessionIds)) {
+                        presentBySession.put((UUID) row[0], ((Number) row[1]).longValue());
+                    }
                     for (UUID sessionId : sessionIds) {
-                        long present = sessionAttendanceRepository.findBySessionId(sessionId).stream()
-                                .filter(a -> "PRESENT".equalsIgnoreCase(a.getStatus()))
-                                .count();
+                        long present = presentBySession.getOrDefault(sessionId, 0L);
                         if (present * 2 < activeEnrollments) {
-                            lowAttendanceDays++;
+                            lowAttendanceDays++;   // a session nobody attended still counts
                         }
                     }
                 }
