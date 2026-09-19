@@ -43,7 +43,9 @@ export default function SuperAdminDashboard() {
         realRole = (parsed.roleName || parsed.role || role || "").toString();
       }
     } catch {}
-    setUser({ role: realRole, name: fullname, email: Cookies.get("email") || "admin@lera.com" });
+    // No invented address: lera.com is not LERA's domain, and printing a plausible-looking
+    // admin address for a session with no email cookie is worse than printing nothing.
+    setUser({ role: realRole, name: fullname, email: Cookies.get("email") || "" });
 
     // Fetch real dashboard data
     const fetchDashboardData = async () => {

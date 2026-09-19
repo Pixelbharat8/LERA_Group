@@ -512,7 +512,7 @@ export default function TeachersPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-                  placeholder="e.g., john.smith@lera.com" 
+                  placeholder="e.g., john.smith@leraacademy.edu.vn" 
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
