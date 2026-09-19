@@ -12,6 +12,9 @@ import java.util.UUID;
 public interface ExamResultRepository extends JpaRepository<ExamResult, UUID> {
     
     List<ExamResult> findByExamId(UUID examId);
+
+    /** Every result for a set of exams, in one query — see ExamResultController.resultsForClass. */
+    List<ExamResult> findByExamIdIn(java.util.Collection<UUID> examIds);
     
     List<ExamResult> findByStudentId(UUID studentId);
     

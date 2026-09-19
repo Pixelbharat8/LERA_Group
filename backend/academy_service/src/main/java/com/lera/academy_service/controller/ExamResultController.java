@@ -57,22 +57,12 @@ public class ExamResultController {
             Pageable pageable) {
         if (classId != null) {
             authz.assertCanViewClassRoster(classId);
-            List<ExamResult> results = resultsForClass(classId);
-            List<Map<String, Object>> response = new ArrayList<>();
-            for (ExamResult result : results) {
-                response.add(buildResultResponse(result));
-            }
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(buildResultResponses(resultsForClass(classId)));
         }
         if (centerId != null) {
             authz.assertStaff();
             UUID effCenter = authz.effectiveListCenterId(centerId);
-            List<ExamResult> results = resultsForCenter(effCenter);
-            List<Map<String, Object>> response = new ArrayList<>();
-            for (ExamResult result : results) {
-                response.add(buildResultResponse(result));
-            }
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(buildResultResponses(resultsForCenter(effCenter)));
         }
         authz.assertStaff();
         if (!authz.isOrgWide()) {
@@ -80,11 +70,7 @@ public class ExamResultController {
                     "Specify classId, centerId, or use /api/exam-results/student/{studentId}");
         }
         List<ExamResult> results = examResultRepository.findAll(pageable).getContent();
-        List<Map<String, Object>> response = new ArrayList<>();
-        for (ExamResult result : results) {
-            response.add(buildResultResponse(result));
-        }
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(buildResultResponses(results));
     }
 
     @GetMapping("/{id}")
@@ -107,22 +93,14 @@ public class ExamResultController {
             authz.assertStaff();
         }
         List<ExamResult> results = examResultRepository.findByExamId(examId);
-        List<Map<String, Object>> response = new ArrayList<>();
-        for (ExamResult result : results) {
-            response.add(buildResultResponse(result));
-        }
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(buildResultResponses(results));
     }
 
     @GetMapping("/student/{studentId}")
     public ResponseEntity<List<Map<String, Object>>> getResultsByStudent(@PathVariable UUID studentId) {
         authz.assertCanViewStudent(studentId);
         List<ExamResult> results = examResultRepository.findByStudentId(studentId);
-        List<Map<String, Object>> response = new ArrayList<>();
-        for (ExamResult result : results) {
-            response.add(buildResultResponse(result));
-        }
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(buildResultResponses(results));
     }
 
     /** Resolve an exam's class and enforce teacher-ownership / centre-scope for grading. */
@@ -180,26 +158,70 @@ public class ExamResultController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    // Both of these used to query once per exam, and resultsForCenter nested that inside a loop
+    // over the centre's classes. A centre of 20 classes with 6 exams each cost 1 + 20 + 120
+    // queries just to GATHER the rows, before rendering them.
     private List<ExamResult> resultsForClass(UUID classId) {
-        List<ExamResult> results = new ArrayList<>();
-        for (Exam exam : examRepository.findByClassId(classId)) {
-            results.addAll(examResultRepository.findByExamId(exam.getId()));
-        }
-        return results;
+        return resultsForExams(examRepository.findByClassId(classId));
     }
 
     private List<ExamResult> resultsForCenter(UUID centerId) {
         if (centerId == null) {
             return List.of();
         }
-        List<ExamResult> results = new ArrayList<>();
-        for (ClassEntity clazz : classRepository.findByCenterId(centerId)) {
-            results.addAll(resultsForClass(clazz.getId()));
+        List<UUID> classIds = classRepository.findByCenterId(centerId).stream()
+                .map(ClassEntity::getId).filter(Objects::nonNull).toList();
+        if (classIds.isEmpty()) {
+            return List.of();
         }
-        return results;
+        return resultsForExams(examRepository.findByClassIdIn(classIds));
     }
 
+    private List<ExamResult> resultsForExams(List<Exam> exams) {
+        List<UUID> examIds = exams.stream().map(Exam::getId).filter(Objects::nonNull).toList();
+        return examIds.isEmpty() ? List.of() : examResultRepository.findByExamIdIn(examIds);
+    }
+
+    /**
+     * Render a whole list of results with two lookups in total. buildResultResponse resolves the
+     * student and the exam for ONE row, so rendering a centre's results called findById twice per
+     * row — on 3,000 results that is 6,000 queries, and the exams had already been loaded and
+     * thrown away while gathering.
+     */
+    private List<Map<String, Object>> buildResultResponses(List<ExamResult> results) {
+        Set<UUID> studentIds = results.stream().map(ExamResult::getStudentId)
+                .filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+        Set<UUID> examIds = results.stream().map(ExamResult::getExamId)
+                .filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+
+        Map<UUID, Student> students = studentIds.isEmpty() ? Map.of()
+                : studentRepository.findAllById(studentIds).stream()
+                    .collect(java.util.stream.Collectors.toMap(Student::getId, x -> x, (a, b) -> a));
+        Map<UUID, Exam> exams = examIds.isEmpty() ? Map.of()
+                : examRepository.findAllById(examIds).stream()
+                    .collect(java.util.stream.Collectors.toMap(Exam::getId, x -> x, (a, b) -> a));
+
+        List<Map<String, Object>> out = new ArrayList<>(results.size());
+        for (ExamResult r : results) {
+            out.add(buildResultResponse(r, students, exams));
+        }
+        return out;
+    }
+
+    /** Single-row render: resolves its own student and exam. Use buildResultResponses for lists. */
     private Map<String, Object> buildResultResponse(ExamResult result) {
+        Map<UUID, Student> student = result.getStudentId() == null ? Map.of()
+                : studentRepository.findById(result.getStudentId())
+                    .map(x -> Map.of(result.getStudentId(), x)).orElse(Map.of());
+        Map<UUID, Exam> exam = result.getExamId() == null ? Map.of()
+                : examRepository.findById(result.getExamId())
+                    .map(x -> Map.of(result.getExamId(), x)).orElse(Map.of());
+        return buildResultResponse(result, student, exam);
+    }
+
+    private Map<String, Object> buildResultResponse(ExamResult result,
+                                                   Map<UUID, Student> students,
+                                                   Map<UUID, Exam> exams) {
         Map<String, Object> item = new HashMap<>();
         item.put("id", result.getId());
         item.put("examId", result.getExamId());
@@ -212,11 +234,13 @@ public class ExamResultController {
         item.put("gradedBy", result.getGradedBy());
         item.put("gradedAt", result.getGradedAt());
         item.put("createdAt", result.getCreatedAt());
-        item.put("studentName", getStudentName(result.getStudentId()));
+        Student student = result.getStudentId() == null ? null : students.get(result.getStudentId());
+        String name = student == null ? null : student.getFullname();
+        item.put("studentName", name == null || name.isEmpty() ? "Unknown Student" : name);
         if (result.getExamId() != null) {
-            Optional<Exam> exam = examRepository.findById(result.getExamId());
-            item.put("examName", exam.map(Exam::getName).orElse("Unknown Exam"));
-            item.put("examDate", exam.map(Exam::getExamDate).orElse(null));
+            Exam exam = exams.get(result.getExamId());
+            item.put("examName", exam == null ? "Unknown Exam" : exam.getName());
+            item.put("examDate", exam == null ? null : exam.getExamDate());
         }
         return item;
     }
