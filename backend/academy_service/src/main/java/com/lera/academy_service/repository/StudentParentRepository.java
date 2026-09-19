@@ -21,6 +21,13 @@ public interface StudentParentRepository extends JpaRepository<StudentParent, UU
     List<StudentParent> findByStudentIdAndIsPrimaryTrue(UUID studentId);
     
     boolean existsByStudentIdAndParentId(UUID studentId, UUID parentId);
+
+    /**
+     * "Is this parent linked to ANY of these students?" in one query. The authorisation path
+     * used to ask existsByStudentIdAndParentId once per enrolled student, so a class of 30
+     * cost 30 round trips on every access check.
+     */
+    boolean existsByParentIdAndStudentIdIn(UUID parentId, Collection<UUID> studentIds);
     
     void deleteByStudentIdAndParentId(UUID studentId, UUID parentId);
 }

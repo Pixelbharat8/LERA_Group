@@ -174,17 +174,26 @@ public class AcademyAuthorizationService {
         if (isTeacherAssignedToClass(clazz, uid)) {
             return;
         }
-        for (Enrollment e : enrollmentRepository.findByClassId(classId)) {
-            if (e.getStudentId() != null) {
-                if (studentParentRepository.existsByStudentIdAndParentId(e.getStudentId(), uid)) {
-                    return;
-                }
-                if (studentRepository.findById(e.getStudentId())
-                        .map(s -> uid.equals(s.getUserId()))
-                        .orElse(false)) {
-                    return;
-                }
-            }
+        // Set-based on purpose. This used to loop the class roster and ask two questions per
+        // enrolled student — is this parent linked to them, and are they this user — so a class
+        // of 30 cost up to 60 round trips on EVERY access check a parent or student made, with
+        // latency that depended on where they happened to sit in the roster. Three queries now,
+        // whatever the class size.
+        java.util.List<UUID> studentIds = enrollmentRepository.findByClassId(classId).stream()
+                .map(Enrollment::getStudentId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        if (studentIds.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        if (studentParentRepository.existsByParentIdAndStudentIdIn(uid, studentIds)) {
+            return;   // a parent of someone on this roster
+        }
+        boolean isEnrolledStudent = studentRepository.findAllById(studentIds).stream()
+                .anyMatch(s -> uid.equals(s.getUserId()));
+        if (isEnrolledStudent) {
+            return;   // the student themselves
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
