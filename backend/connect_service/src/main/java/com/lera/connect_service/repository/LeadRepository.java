@@ -48,18 +48,24 @@ public interface LeadRepository extends JpaRepository<Lead, UUID> {
 
     // --- Marketing ROI: lead funnel grouped by channel ---
     // Row: [bucket, totalLeads, trialStage, converted]
-    @Query("SELECT COALESCE(l.utmSource, 'Direct / Unknown'), COUNT(l), "
+    //
+    // Grouped case-insensitively on purpose. The public lead forms send utm_source in lower case
+    // ("website"); the CRM's own Add Lead form offers "Website", "Facebook", "Zalo" capitalised.
+    // A case-sensitive GROUP BY therefore reports one channel as two rows and splits its
+    // conversion rate — on the Chairman's marketing report, which is what the ad budget is set
+    // from. LOWER() here fixes rows already stored; LeadController normalises new ones.
+    @Query("SELECT COALESCE(LOWER(l.utmSource), 'direct / unknown'), COUNT(l), "
          + "SUM(CASE WHEN l.status IN ('TRIAL_BOOKED','TRIAL_ATTENDED') THEN 1 ELSE 0 END), "
          + "SUM(CASE WHEN l.status = 'CONVERTED' THEN 1 ELSE 0 END) "
          + "FROM Lead l WHERE (:centerId IS NULL OR l.centerId = :centerId) "
-         + "GROUP BY l.utmSource ORDER BY COUNT(l) DESC")
+         + "GROUP BY LOWER(l.utmSource) ORDER BY COUNT(l) DESC")
     List<Object[]> conversionBySource(UUID centerId);
 
-    @Query("SELECT COALESCE(l.utmCampaign, '(none)'), COUNT(l), "
+    @Query("SELECT COALESCE(LOWER(l.utmCampaign), '(none)'), COUNT(l), "
          + "SUM(CASE WHEN l.status IN ('TRIAL_BOOKED','TRIAL_ATTENDED') THEN 1 ELSE 0 END), "
          + "SUM(CASE WHEN l.status = 'CONVERTED' THEN 1 ELSE 0 END) "
          + "FROM Lead l WHERE (:centerId IS NULL OR l.centerId = :centerId) "
-         + "GROUP BY l.utmCampaign ORDER BY COUNT(l) DESC")
+         + "GROUP BY LOWER(l.utmCampaign) ORDER BY COUNT(l) DESC")
     List<Object[]> conversionByCampaign(UUID centerId);
 
     /** [status, count] for every pipeline stage — drives the conversion funnel view. */

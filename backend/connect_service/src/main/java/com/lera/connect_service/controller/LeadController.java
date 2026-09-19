@@ -149,6 +149,18 @@ public class LeadController {
      * oddly, it changes what the server decides. The superadmin lead console was doing exactly
      * that. Normalise here so no client can reintroduce it.
      */
+    /**
+     * UTM values are conventionally lower case, and the public lead forms send them that way.
+     * The CRM's own form offers them capitalised, so without this a channel is stored under two
+     * spellings and reported as two channels. Normalise on the way in so new data converges;
+     * LeadRepository groups case-insensitively for the rows already stored.
+     */
+    private static String normaliseUtm(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed.toLowerCase(java.util.Locale.ROOT);
+    }
+
     private static final java.util.Set<String> LEAD_STATUSES = java.util.Set.of(
             "NEW", "CONTACTED", "QUALIFIED", "TRIAL_BOOKED", "TRIAL_ATTENDED",
             "NO_SHOW", "CONVERTED", "LOST");
@@ -176,6 +188,9 @@ public class LeadController {
         if (lead.getStatus() != null) {
             lead.setStatus(normaliseStatus(lead.getStatus()));
         }
+        lead.setUtmSource(normaliseUtm(lead.getUtmSource()));
+        lead.setUtmMedium(normaliseUtm(lead.getUtmMedium()));
+        lead.setUtmCampaign(normaliseUtm(lead.getUtmCampaign()));
         if (!ConnectSecurity.isOrgWide(authUser)) {
             UUID jwt = authUser != null ? authUser.getCenterId() : null;
             if (jwt == null) {
@@ -230,6 +245,8 @@ public class LeadController {
             if (leadDetails.getStudentName() != null) lead.setStudentName(leadDetails.getStudentName());
             if (leadDetails.getStudentAge() != null) lead.setStudentAge(leadDetails.getStudentAge());
             if (leadDetails.getStatus() != null) lead.setStatus(normaliseStatus(leadDetails.getStatus()));
+            if (leadDetails.getUtmSource() != null) lead.setUtmSource(normaliseUtm(leadDetails.getUtmSource()));
+            if (leadDetails.getUtmCampaign() != null) lead.setUtmCampaign(normaliseUtm(leadDetails.getUtmCampaign()));
             if (leadDetails.getAssignedTo() != null) lead.setAssignedTo(leadDetails.getAssignedTo());
             if (leadDetails.getNotes() != null) lead.setNotes(leadDetails.getNotes());
             // Speed-to-lead: stamp first-contact when the lead leaves NEW for the first time.
