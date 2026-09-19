@@ -221,6 +221,16 @@ public class GradeController {
 
     private List<Map<String, Object>> mapGrades(
             List<ExamResult> results, UUID classId, String subject) {
+        // One lookup for every exam referenced, instead of one per grade row. A student's
+        // history of 50 results cost 50 queries here; for an org-wide caller, where `results`
+        // is every exam result in the system, it cost one per row over an unbounded list.
+        java.util.Set<UUID> examIds = results.stream()
+                .map(ExamResult::getExamId).filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+        Map<UUID, Exam> examsById = examIds.isEmpty() ? Map.of()
+                : examRepository.findAllById(examIds).stream()
+                    .collect(java.util.stream.Collectors.toMap(Exam::getId, e -> e, (a, b) -> a));
+
         List<Map<String, Object>> grades = new ArrayList<>();
         for (ExamResult result : results) {
             String subjectName = "General";
@@ -228,7 +238,7 @@ public class GradeController {
             BigDecimal maxScore = new BigDecimal("100");
 
             if (result.getExamId() != null) {
-                Optional<Exam> exam = examRepository.findById(result.getExamId());
+                Optional<Exam> exam = Optional.ofNullable(examsById.get(result.getExamId()));
                 if (exam.isPresent()) {
                     Exam e = exam.get();
                     if (e.getName() != null) {
