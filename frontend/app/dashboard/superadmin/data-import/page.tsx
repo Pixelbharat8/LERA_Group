@@ -62,7 +62,10 @@ export default function BulkImportPage() {
   const [fetchingSheet, setFetchingSheet] = useState(false);
   // Login accounts auto-created by the last import (for the "download credentials" handout).
   const [credentials, setCredentials] = useState<{ name: string; email: string; role: string; phone: string }[]>([]);
-  const IMPORT_DEFAULT_PASSWORD = "Lera@123";
+  // No shared password any more. Provisioned accounts get a random one that nobody is shown —
+  // it used to be the constant "Lera@123", which lives in this repository, so anyone with the
+  // source could sign in as any imported teacher or parent. Onboarding is the one-time
+  // set-password link below, which is what that endpoint exists for.
   // Sending login links over WhatsApp/Zalo/SMS
   const [channelStatus, setChannelStatus] = useState<Record<string, boolean>>({});
   const [sendChannel, setSendChannel] = useState<string>("");
@@ -335,8 +338,8 @@ export default function BulkImportPage() {
     if (credentials.length === 0) return;
     const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
     const rows = [
-      ["name", "email", "role", "temporaryPassword"].join(","),
-      ...credentials.map((c) => [c.name, c.email, c.role, IMPORT_DEFAULT_PASSWORD].map(esc).join(",")),
+      ["name", "email", "role", "phone"].join(","),
+      ...credentials.map((c) => [c.name, c.email, c.role, c.phone].map(esc).join(",")),
     ].join("\n");
     const blob = new Blob([rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -439,8 +442,8 @@ export default function BulkImportPage() {
       <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
         🔐 <b>Login profiles are created automatically.</b> Importing <b>students</b> creates a{" "}
         <b>Parent</b> account (from <code>parentEmail</code>); <b>teachers</b> and <b>staff</b> get their own login (from{" "}
-        <code>email</code>, with the role you set for staff). New accounts get the default password{" "}
-        <b>Lera@123</b> and must change it on first login — then hand out credentials or a set-password link below.
+        <code>email</code>, with the role you set for staff). Each new account gets a random password
+        that nobody is shown — send the person a <b>one-time set-password link</b> from the panel below.
       </div>
 
       {/* Step 1: Select Type and Center */}
@@ -710,8 +713,9 @@ export default function BulkImportPage() {
                 🔑 {credentials.length} login {credentials.length === 1 ? "account" : "accounts"} to hand out
               </p>
               <p className="text-xs text-green-700 mt-1 mb-3">
-                New accounts use the temporary password <b>{IMPORT_DEFAULT_PASSWORD}</b> — users must change it on first
-                login. Anyone who already had an account keeps their existing password (ignore those rows).
+                New accounts are created without a password anyone can use. Send each person a
+                one-time set-password link below — by email, or over Zalo/WhatsApp/SMS where those are
+                configured. Anyone who already had an account keeps their existing password (ignore those rows).
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <button

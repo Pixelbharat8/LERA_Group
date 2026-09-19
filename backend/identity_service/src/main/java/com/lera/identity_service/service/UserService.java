@@ -152,6 +152,29 @@ public class UserService {
      * register() so role/HR fields (jobTitle, centerId, phone) are applied. Returns a summary +
      * the accounts (for the credentials handout / messaging).
      */
+    /**
+     * Unambiguous alphabet — no O/0, I/l/1 — because these are read aloud or copied off a
+     * handout when the account is given to its owner.
+     */
+    private static final String IMPORT_PASSWORD_ALPHABET =
+            "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    private static final java.security.SecureRandom IMPORT_RANDOM = new java.security.SecureRandom();
+
+    /**
+     * A distinct random password per imported account. Every account created by this importer
+     * used to get the same hardcoded "Lera@123" — a value committed to this repository, so
+     * anybody with the source could sign in as any imported member of staff, including
+     * TEACHER accounts, which can read student records. Returned once in the import result,
+     * because nothing else can deliver it to the account holder.
+     */
+    private static String generateImportPassword() {
+        StringBuilder p = new StringBuilder(15);
+        for (int i = 0; i < 14; i++) {
+            p.append(IMPORT_PASSWORD_ALPHABET.charAt(IMPORT_RANDOM.nextInt(IMPORT_PASSWORD_ALPHABET.length())));
+        }
+        return p.append('!').toString();   // satisfy any policy that demands a symbol
+    }
+
     @Transactional
     public Map<String, Object> importStaff(List<Map<String, Object>> rows) {
         int created = 0, existing = 0, failed = 0;
@@ -164,7 +187,7 @@ public class UserService {
             if (ex.isPresent()) {
                 existing++;
                 accounts.add(staffAccount(ex.get().getFullname(), email, str(row.get("phone")),
-                        ex.get().getRole() != null ? ex.get().getRole().getName() : null, false));
+                        ex.get().getRole() != null ? ex.get().getRole().getName() : null, false, null));
                 continue;
             }
             try {
@@ -172,7 +195,8 @@ public class UserService {
                 req.setEmail(email);
                 req.setFullname(orElse(str(row.get("fullname")), email));
                 req.setPhone(str(row.get("phone")));
-                req.setPassword("Lera@123");
+                String tempPassword = generateImportPassword();
+                req.setPassword(tempPassword);
                 String role = str(row.get("roleName"));
                 if (role.isBlank()) role = str(row.get("role"));
                 role = role.isBlank() ? "STAFF" : role.toUpperCase();
@@ -196,7 +220,8 @@ public class UserService {
                         userRepository.save(u);
                     });
                     created++;
-                    accounts.add(staffAccount(req.getFullname(), email, req.getPhone(), req.getRoleName(), true));
+                    accounts.add(staffAccount(req.getFullname(), email, req.getPhone(), req.getRoleName(),
+                            true, tempPassword));
                 } else {
                     failed++;
                     errors.add(email + ": " + (r.getMessage() != null ? r.getMessage() : "failed"));
@@ -218,13 +243,17 @@ public class UserService {
 
     private static String str(Object o) { return o == null ? "" : o.toString().trim(); }
     private static String orElse(String v, String fallback) { return (v == null || v.isBlank()) ? fallback : v; }
-    private static Map<String, Object> staffAccount(String name, String email, String phone, String role, boolean created) {
+    private static Map<String, Object> staffAccount(String name, String email, String phone, String role,
+                                                    boolean created, String temporaryPassword) {
         Map<String, Object> a = new HashMap<>();
         a.put("name", name);
         a.put("email", email);
         a.put("phone", phone);
         a.put("role", role);
         a.put("created", created);
+        // Only for accounts this import created, and only in this response — it is never stored
+        // in the clear and never returned again.
+        if (temporaryPassword != null) a.put("temporaryPassword", temporaryPassword);
         return a;
     }
 

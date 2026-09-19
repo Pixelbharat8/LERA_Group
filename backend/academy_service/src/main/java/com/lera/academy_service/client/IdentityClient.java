@@ -22,8 +22,29 @@ import java.util.UUID;
 @Component
 public class IdentityClient {
 
-    /** Default password for auto-provisioned import accounts. Users change it after first login. */
-    public static final String DEFAULT_IMPORT_PASSWORD = "Lera@123";
+    /**
+     * Auto-provisioned accounts get a random password that nobody is shown.
+     *
+     * This used to be the constant "Lera@123", committed to this repository — so anyone with the
+     * source could sign in as any teacher or parent the importer had created. The
+     * passwordChangeRequired flag did not close that: it is honoured by the frontend router only,
+     * and POST /api/auth/login issues a working token regardless.
+     *
+     * Nothing needs to know this value. Onboarding goes through the one-time link from
+     * /api/auth/set-password-link (or send-set-password-email), which is what that endpoint was
+     * built for.
+     */
+    private static final String PROVISION_ALPHABET =
+            "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    private static final java.security.SecureRandom PROVISION_RANDOM = new java.security.SecureRandom();
+
+    private static String randomProvisionPassword() {
+        StringBuilder p = new StringBuilder(25);
+        for (int i = 0; i < 24; i++) {
+            p.append(PROVISION_ALPHABET.charAt(PROVISION_RANDOM.nextInt(PROVISION_ALPHABET.length())));
+        }
+        return p.append('!').toString();
+    }
 
     private final RestTemplate restTemplate;
 
@@ -50,7 +71,7 @@ public class IdentityClient {
             body.put("fullname", fullname == null ? "" : fullname.trim());
             if (phone != null && !phone.isBlank()) body.put("phone", phone.trim());
             body.put("roleName", roleName);
-            body.put("password", DEFAULT_IMPORT_PASSWORD);
+            body.put("password", randomProvisionPassword());
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
