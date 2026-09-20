@@ -72,7 +72,7 @@ class GradeBatchingTest {
         when(examRepository.findAllById(any())).thenReturn(exams);
 
         List<Map<String, Object>> body =
-                (List<Map<String, Object>>) controller.getGrades(studentId, null, null).getBody();
+                (List<Map<String, Object>>) controller.getGrades(studentId, null, null, org.springframework.data.domain.Pageable.unpaged()).getBody();
 
         assertEquals(50, body.size());
         assertEquals("Test 0", body.get(0).get("subject"));
@@ -91,7 +91,7 @@ class GradeBatchingTest {
                 .thenReturn(List.of(exam(keepId, "Kept", wanted), exam(dropId, "Dropped", other)));
 
         List<Map<String, Object>> body =
-                (List<Map<String, Object>>) controller.getGrades(studentId, wanted, null).getBody();
+                (List<Map<String, Object>>) controller.getGrades(studentId, wanted, null, org.springframework.data.domain.Pageable.unpaged()).getBody();
 
         assertEquals(1, body.size(), "a result belonging to another class must not appear");
         assertEquals("Kept", body.get(0).get("subject"));
@@ -107,9 +107,41 @@ class GradeBatchingTest {
                 .thenReturn(List.of(exam(a, "Maths", null), exam(b, "English", null)));
 
         List<Map<String, Object>> body =
-                (List<Map<String, Object>>) controller.getGrades(studentId, null, "English").getBody();
+                (List<Map<String, Object>>) controller.getGrades(studentId, null, "English", org.springframework.data.domain.Pageable.unpaged()).getBody();
 
         assertEquals(1, body.size());
         assertEquals("English", body.get(0).get("subject"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void filtersByClassInTheDatabaseRatherThanLoadingEveryResult() {
+        UUID classId = UUID.randomUUID(), examId = UUID.randomUUID();
+        Exam e = exam(examId, "Unit 1", classId);
+        when(examRepository.findByClassId(classId)).thenReturn(List.of(e));
+        when(examResultRepository.findByExamIdIn(List.of(examId))).thenReturn(List.of(result(examId)));
+        when(examRepository.findAllById(any())).thenReturn(List.of(e));
+
+        List<Map<String, Object>> body = (List<Map<String, Object>>)
+                controller.getGrades(null, classId, null,
+                        org.springframework.data.domain.Pageable.unpaged()).getBody();
+
+        assertEquals(1, body.size());
+        verify(examResultRepository, never()).findAll();
+        verify(examResultRepository, never()).findAll(any(org.springframework.data.domain.Pageable.class));
+    }
+
+    @Test
+    void anUnfilteredRequestIsBoundedRatherThanLoadingTheWholeTable() {
+        when(authz.isOrgWide()).thenReturn(true);
+        org.springframework.data.domain.Pageable page =
+                org.springframework.data.domain.PageRequest.of(0, 50);
+        when(examResultRepository.findAll(page))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of()));
+
+        controller.getGrades(null, null, null, page);
+
+        verify(examResultRepository, times(1)).findAll(page);
+        verify(examResultRepository, never()).findAll();   // the unbounded overload
     }
 }

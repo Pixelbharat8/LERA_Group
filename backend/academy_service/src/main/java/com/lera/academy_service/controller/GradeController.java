@@ -46,18 +46,29 @@ public class GradeController {
     public ResponseEntity<List<Map<String, Object>>> getGrades(
             @RequestParam(required = false) UUID studentId,
             @RequestParam(required = false) UUID classId,
-            @RequestParam(required = false) String subject) {
+            @RequestParam(required = false) String subject,
+            org.springframework.data.domain.Pageable pageable) {
 
         List<ExamResult> results;
         if (studentId != null) {
             authz.assertCanViewStudent(studentId);
             results = examResultRepository.findByStudentId(studentId);
+        } else if (classId != null) {
+            // classId used to be applied in memory AFTER loading every exam result in the
+            // system. It is a database filter now: the class's exams, then their results.
+            authz.assertCanViewClassRoster(classId);
+            List<UUID> examIds = examRepository.findByClassId(classId).stream()
+                    .map(Exam::getId).filter(Objects::nonNull).toList();
+            results = examIds.isEmpty() ? List.of() : examResultRepository.findByExamIdIn(examIds);
         } else {
             if (!authz.isOrgWide()) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "studentId is required unless you have an org-wide role");
             }
-            results = examResultRepository.findAll();
+            // Bounded. This was findAll() — every exam result in the system, unpaginated, on a
+            // request with no filter at all. No caller in the frontend takes this branch; they
+            // all pass studentId. A direct API client gets a page instead of the table.
+            results = examResultRepository.findAll(pageable).getContent();
         }
 
         return ResponseEntity.ok(mapGrades(results, classId, subject));
@@ -65,7 +76,8 @@ public class GradeController {
 
     @GetMapping("/student/{studentId}")
     public ResponseEntity<List<Map<String, Object>>> getGradesByStudent(@PathVariable UUID studentId) {
-        return getGrades(studentId, null, null);
+        // studentId is always present here, so the pageable is never consulted.
+        return getGrades(studentId, null, null, org.springframework.data.domain.Pageable.unpaged());
     }
 
     @GetMapping("/summary")
