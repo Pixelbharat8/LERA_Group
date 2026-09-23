@@ -1,7 +1,9 @@
 package com.lera.identity_service.controller;
 
+import com.lera.identity_service.security.AuthUser;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -12,6 +14,20 @@ import java.util.*;
 @RequestMapping("/api/approvals")
 @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER','TEACHER','STAFF','STUDENT','PARENT')")
 public class ApprovalController {
+
+    /**
+     * Who is acting, taken from the token rather than the request body.
+     *
+     * Every identity on this controller — approvedBy, rejectedBy, and a comment's author — used
+     * to be whatever the caller typed. Approve and reject are limited to management roles, so
+     * only a manager could approve; but any of them could record the approval under a
+     * colleague's name. Adding a comment is open to every role including STUDENT and PARENT, so
+     * anyone could post one signed "Chairman". An approval trail that accepts its own
+     * attribution from the client records nothing worth having.
+     */
+    private static String actor(AuthUser user) {
+        return user != null && user.getUserId() != null ? user.getUserId().toString() : "unknown";
+    }
 
     // In-memory approval store. NOTE: this is process-local and NOT persisted across restarts —
     // a real ApprovalRequest entity/repository is still needed for production durability. It no
@@ -68,20 +84,21 @@ public class ApprovalController {
     @PostMapping("/{id}/approve")
     public ResponseEntity<Map<String, Object>> approveRequest(
             @PathVariable String id,
-            @RequestBody(required = false) Map<String, Object> body) {
+            @RequestBody(required = false) Map<String, Object> body,
+            @AuthenticationPrincipal AuthUser authUser) {
         Map<String, Object> request = approvalRequests.get(id);
         if (request == null) {
             return ResponseEntity.notFound().build();
         }
         request.put("status", "APPROVED");
         request.put("approvedAt", LocalDateTime.now());
-        request.put("approvedBy", body != null ? body.get("approvedBy") : "System");
+        request.put("approvedBy", actor(authUser));
         if (body != null && body.get("comment") != null) {
             @SuppressWarnings("unchecked")
             List<Object> comments = (List<Object>) request.get("comments");
             Map<String, Object> comment = new HashMap<>();
             comment.put("text", body.get("comment"));
-            comment.put("by", body.get("approvedBy"));
+            comment.put("by", actor(authUser));
             comment.put("at", LocalDateTime.now());
             comments.add(comment);
         }
@@ -92,14 +109,15 @@ public class ApprovalController {
     @PostMapping("/{id}/reject")
     public ResponseEntity<Map<String, Object>> rejectRequest(
             @PathVariable String id,
-            @Valid @RequestBody Map<String, Object> body) {
+            @Valid @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal AuthUser authUser) {
         Map<String, Object> request = approvalRequests.get(id);
         if (request == null) {
             return ResponseEntity.notFound().build();
         }
         request.put("status", "REJECTED");
         request.put("rejectedAt", LocalDateTime.now());
-        request.put("rejectedBy", body.get("rejectedBy"));
+        request.put("rejectedBy", actor(authUser));
         request.put("rejectionReason", body.get("reason"));
         return ResponseEntity.ok(request);
     }
@@ -107,7 +125,8 @@ public class ApprovalController {
     @PostMapping("/{id}/comments")
     public ResponseEntity<Map<String, Object>> addComment(
             @PathVariable String id,
-            @Valid @RequestBody Map<String, Object> body) {
+            @Valid @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal AuthUser authUser) {
         Map<String, Object> request = approvalRequests.get(id);
         if (request == null) {
             return ResponseEntity.notFound().build();
@@ -117,7 +136,7 @@ public class ApprovalController {
         Map<String, Object> comment = new HashMap<>();
         comment.put("id", UUID.randomUUID().toString());
         comment.put("text", body.get("text"));
-        comment.put("by", body.get("by"));
+        comment.put("by", actor(authUser));
         comment.put("at", LocalDateTime.now());
         comments.add(comment);
         return ResponseEntity.ok(request);
