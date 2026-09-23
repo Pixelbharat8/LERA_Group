@@ -31,6 +31,10 @@ UPDATE centers SET
     phone    = '0387.633.141',
     email    = 'info@leraacademy.edu.vn'
   WHERE address LIKE '123 Education Street%';
+
+-- The Vietnamese address column too: the public centres page reads addressVi and falls back to
+-- address, so leaving it null is invisible here only because the address is already Vietnamese.
+UPDATE centers SET address_vi = address WHERE address_vi IS NULL AND address IS NOT NULL;
 -- SECURITY: /api/auth/forgot-password is permitAll and mails a reset link to whatever address
 -- is on the account. These two SUPER_ADMIN accounts sat on domains LERA does not own, so the
 -- moment SMTP is configured either one would hand a stranger a SUPER_ADMIN reset link.
