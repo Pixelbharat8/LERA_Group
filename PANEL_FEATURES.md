@@ -27,18 +27,37 @@ be locked out of a feature.
 | Backend endpoint authorization | ✅ | Spring `@PreAuthorize` on every controller |
 | Feature-flags framework (global / per-tenant / per-user) | ⚠️ partial | `FeatureFlag` entity, `/api/feature-flags`, UI `dashboard/superadmin/feature-flags` |
 
-### What's missing to fully deliver the requirement
-1. **Sidebar honours permissions for ALL sections** — today `dashboard/layout.tsx` filters most
-   items by **role only**; `checkPermission()` is wired for just Academy/Attendance/Finance/CRM.
-   → extend it to every nav section so a revoked feature disappears from the menu.
-2. **Page-level guards** — each feature page should `usePermissions()` and redirect/forbid if the
-   feature is off (defence in depth beyond the hidden menu item).
-3. **A dedicated Chairman "Feature Management" screen** — a `Roles × Features` (and `User × Features`)
-   matrix with toggles, writing to the existing `/api/user-permissions` + `/api/roles/{id}/permissions`.
-4. **`targetRoles` on FeatureFlag** (optional) — to flip whole features per role centrally, plus a
-   frontend feature-flag reader and a backend gate, so brand-new features can be rolled out per role.
-5. **Registry of features** — a single source-of-truth list (the tables below) keyed so UI + backend
-   reference the same feature codes.
+### State of the requirement
+
+Verified against the code on 2026-09-24. Two of the five items below were already built and
+one was fixed today; the rest are genuinely outstanding.
+
+1. **Sidebar honours a grant** — ✅ done (`e4e5f5c`). The Academy, Attendance, Exams and Finance
+   sections used to read `isSuperAdmin && checkPermission(x)`. `checkPermission()` short-circuits
+   to true for high-level admins, so the `isSuperAdmin` half decided the whole expression and no
+   grant could widen anyone. They now open on `grantedOrAdmin(...)`, which is true only where an
+   admin saved a per-user row switching that module on — a role default still reveals nothing.
+   Platform Admin stays admin-only by design. Public Website, CRM, Chat Admin and Other Services
+   are **not** grantable: they have no key in `UserPermission`, which is item 5 below.
+2. **Page-level guards** — ❌ outstanding, and deliberately not done piecemeal. Only 5 dashboard
+   pages call `usePermissions()`. Adding guards without item 5 would lock people out of pages they
+   legitimately reach today, because there is no agreed list of which module each page belongs to.
+3. **Chairman "Feature Management" screen** — ✅ already built:
+   `frontend/app/dashboard/chairman/feature-management/page.tsx`, linked from the sidebar. It
+   writes the real `/api/user-permissions/user/{id}` and sets an AI budget. It is per-user only;
+   a Roles × Features matrix does not exist.
+4. **`targetRoles` on FeatureFlag** — ❌ outstanding. `FeatureFlag` carries `targetTenants` and
+   `targetUsers`; there is no role dimension, and no frontend reader.
+5. **Registry of features** — ❌ outstanding. The 16 keys in `UserPermission` are the de-facto
+   registry, duplicated across the entity, the DTO, the context and the editor's own list. Nav
+   sections that have no key cannot be granted at all.
+
+**Also fixed today (`e4e5f5c`), found while checking the above:** the permissions endpoint
+answered 200 with a synthesised all-denied default when a user had no row, indistinguishable
+from a real one, so the per-role defaults table never applied to anyone and a full revoke was
+read as "never configured"; the AI Assistant entry asked for a key that does not exist; and the
+context failed **open** on any thrown error, handing the full admin sidebar to whoever hit it.
+`user_permissions` currently holds **zero rows**.
 
 > Implementation note: CHAIRMAN (and SUPER_ADMIN) must be excluded from every gate — always allowed.
 
