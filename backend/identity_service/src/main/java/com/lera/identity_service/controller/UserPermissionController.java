@@ -50,6 +50,7 @@ public class UserPermissionController {
         
         UserPermissionDTO defaultPermissions = new UserPermissionDTO();
         defaultPermissions.setUserId(userId);
+        defaultPermissions.setConfigured(false);
         defaultPermissions.setDashboard(true);
         defaultPermissions.setCenters(false);
         defaultPermissions.setUsers(false);
@@ -199,6 +200,7 @@ public class UserPermissionController {
         UserPermissionDTO dto = new UserPermissionDTO();
         dto.setId(entity.getId());
         dto.setUserId(entity.getUserId());
+        dto.setConfigured(true);
         dto.setDashboard(entity.getDashboard());
         dto.setCenters(entity.getCenters());
         dto.setUsers(entity.getUsers());

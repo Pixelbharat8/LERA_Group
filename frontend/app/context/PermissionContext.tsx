@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { apiFetch, hasAuthSession } from "@/lib/api";
 
+export type PermissionSource = "grant" | "role" | "default";
+
 export interface UserPermission {
   dashboard: boolean;
   centers: boolean;
@@ -137,6 +139,9 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, UserPermission> = {
 interface PermissionContextType {
   permissions: UserPermission;
   hasPermission: (permission: keyof UserPermission) => boolean;
+  /** "grant" = a per-user row an admin saved; "role"/"default" = nobody configured this user. */
+  source: PermissionSource;
+  isGranted: (permission: keyof UserPermission) => boolean;
   refreshPermissions: () => void;
 }
 
@@ -146,11 +151,21 @@ const PermissionContext = createContext<PermissionContextType | undefined>(undef
  * Loads fine-grained permissions from identity_service using {@link apiFetch}
  * so HttpOnly auth cookies work (no readable `token` cookie required).
  */
-const fetchUserPermissionsFromAPI = async (userId: string): Promise<UserPermission | null> => {
-  try {
-    const data = await apiFetch(`/api/user-permissions/user/${userId}`);
+/**
+ * Maps a /api/user-permissions/user/{id} body onto the client flag set, and reports whether
+ * a real stored row backs it. Pure so the rule is testable without a session.
+ */
+export const mapApiPermissions = (
+  data: unknown,
+): { permissions: UserPermission; configured: boolean } | null => {
+  {
     if (data && typeof data === "object") {
-      return {
+      // `configured` false means the server synthesised an all-denied default because this
+      // user has no row. Older builds omit the key; `id` is only ever set on a real row, so
+      // fall back to that rather than treating a synthesised default as a deliberate denial.
+      const configured =
+        (data as any).configured ?? Boolean((data as any).id);
+      const permissions: UserPermission = {
         dashboard: (data as any).dashboard ?? true,
         centers: (data as any).centers ?? false,
         users: (data as any).users ?? false,
@@ -168,11 +183,28 @@ const fetchUserPermissionsFromAPI = async (userId: string): Promise<UserPermissi
         documents: (data as any).documents ?? false,
         socialMedia: (data as any).socialMedia ?? false,
       };
+      return { permissions, configured: Boolean(configured) };
     }
-  } catch (error) {
-    console.log("Could not fetch user permissions from API:", error);
   }
   return null;
+};
+
+/** True only when an admin saved a per-user row that turns `permission` on. */
+export const grantsModule = (
+  source: PermissionSource,
+  permissions: UserPermission,
+  permission: keyof UserPermission,
+): boolean => source === "grant" && permissions[permission] === true;
+
+const fetchUserPermissionsFromAPI = async (
+  userId: string,
+): Promise<{ permissions: UserPermission; configured: boolean } | null> => {
+  try {
+    return mapApiPermissions(await apiFetch(`/api/user-permissions/user/${userId}`));
+  } catch (error) {
+    console.log("Could not fetch user permissions from API:", error);
+    return null;
+  }
 };
 
 export function PermissionProvider({ children }: { children: ReactNode }) {
@@ -182,6 +214,10 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     classes: true, courses: true, attendance: true, payments: true, payroll: true, 
     reports: true, settings: true, ai_assistant: true, communication: true, documents: true 
   });
+  // Where the flags in `permissions` came from. The sidebar needs this to honour a
+  // Chairman's per-user grant without also revealing a section to everyone who happens
+  // to hold the same role — a role default is not somebody deciding this user may see it.
+  const [source, setSource] = useState<PermissionSource>("default");
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -233,22 +269,24 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
           reports: true, settings: true, ai_assistant: true, communication: true, documents: true 
         };
         setPermissions(allPermissions);
+        setSource("role");
         setIsLoaded(true);
         return;
       }
 
       // Fetch overrides from API when we have a session (Bearer or HttpOnly cookie via apiFetch)
       if (currentUserId && hasAuthSession()) {
-        const apiPermissions = await fetchUserPermissionsFromAPI(currentUserId);
-        if (apiPermissions) {
-          // Check if any permission is true (not just defaults)
-          const hasCustomPermissions = Object.values(apiPermissions).some(v => v === true);
-          if (hasCustomPermissions) {
-            setPermissions(apiPermissions);
-            setIsLoaded(true);
-            console.log("Loaded permissions from API for user:", currentUserId, apiPermissions);
-            return;
-          }
+        const granted = await fetchUserPermissionsFromAPI(currentUserId);
+        // Only a real stored row counts as a grant. The previous test — "any value is
+        // true" — was satisfied by the server's synthesised default, whose `dashboard`
+        // is always true, so EVERY user took this branch and the role defaults below
+        // were unreachable. It also meant a Chairman who switched everything off had
+        // the revocation ignored and the role defaults restored.
+        if (granted?.configured) {
+          setPermissions(granted.permissions);
+          setSource("grant");
+          setIsLoaded(true);
+          return;
         }
       }
 
@@ -259,6 +297,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
           const allPermissions = JSON.parse(savedPermissions);
           if (allPermissions[currentUserId]) {
             setPermissions(allPermissions[currentUserId]);
+            setSource("grant");
             setIsLoaded(true);
             return;
           }
@@ -268,15 +307,16 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       // Use role default permissions
       const rolePerms = ROLE_DEFAULT_PERMISSIONS[currentRole?.toUpperCase() || ""] || DEFAULT_PERMISSIONS;
       setPermissions(rolePerms);
+      setSource(ROLE_DEFAULT_PERMISSIONS[currentRole?.toUpperCase() || ""] ? "role" : "default");
       setIsLoaded(true);
     } catch (error) {
       console.error("Error loading permissions:", error);
-      // For safety, give all permissions if there's an error for admin users
-      setPermissions({
-        dashboard: true, centers: true, users: true, students: true, teachers: true, 
-        classes: true, courses: true, attendance: true, payments: true, payroll: true, 
-        reports: true, settings: true, ai_assistant: true, communication: true, documents: true 
-      });
+      // Fail CLOSED. This used to grant every module on any thrown error — and the throw is
+      // reachable without being an admin at all (a corrupt `user_permissions` localStorage
+      // value makes JSON.parse throw), which handed a STUDENT the full admin sidebar.
+      // Roles that legitimately see everything are resolved above, before anything can throw.
+      setPermissions(DEFAULT_PERMISSIONS);
+      setSource("default");
       setIsLoaded(true);
     }
   };
@@ -299,12 +339,16 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     return permissions[permission] === true;
   };
 
+  // True only when an admin explicitly turned this module on for THIS user.
+  const isGranted = (permission: keyof UserPermission): boolean =>
+    grantsModule(source, permissions, permission);
+
   const refreshPermissions = () => {
     loadPermissions();
   };
 
   return (
-    <PermissionContext.Provider value={{ permissions, hasPermission, refreshPermissions }}>
+    <PermissionContext.Provider value={{ permissions, hasPermission, source, isGranted, refreshPermissions }}>
       {children}
     </PermissionContext.Provider>
   );

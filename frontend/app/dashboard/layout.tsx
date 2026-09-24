@@ -134,7 +134,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoading } = useAuth();
-  const { hasPermission, permissions } = usePermissions();
+  const { hasPermission, isGranted, permissions } = usePermissions();
   const { t, language, setLanguage } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   // Off-canvas sidebar on phones/tablets (Capacitor iOS/Android load this web app) — start
@@ -349,6 +349,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     return hasPermission(permission);
   };
 
+  // Sections below used to read `isSuperAdmin && checkPermission(x)`. Because
+  // checkPermission short-circuits to true for high-level admins, the `isSuperAdmin`
+  // half decided the whole expression — so a Chairman granting a module to anyone else
+  // changed nothing, and the Feature Management screen could not widen a single user.
+  // `isGranted` is true only where an admin saved a per-user row turning that module on,
+  // so a role default still reveals nothing on its own.
+  const grantedOrAdmin = (...perms: Array<keyof typeof permissions>): boolean =>
+    isSuperAdmin || perms.some((p) => isGranted(p));
+
   // Navigation items based on role and permissions - Chairman has ALL access
   const navigationItems = [
     // Dashboard link - role-specific home page
@@ -474,11 +483,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     ] : []),
     
     // Academy Management - SuperAdmin/Chairman/CEO/Director only (Center Admin/Manager/Teacher have dedicated panels)
-    ...(isSuperAdmin && (checkPermission("students") || checkPermission("teachers") || checkPermission("classes") || checkPermission("courses")) ? [{
+    ...(grantedOrAdmin("students", "teachers", "classes", "courses") ? [{
       name: `🎓 ${t("academy")}`,
       icon: "🎓",
-      roles: ["SUPERADMIN"],
-      permission: "students" as const,
+      // No `roles` gate: this section is built only when the user is a high-level
+      // admin or has been granted the module above. Listing SUPERADMIN here made
+      // filteredNav drop it again for exactly the granted users it was opened for.
       children: [
         ...(checkPermission("students") ? [{ name: t("studentsNav"), href: "/dashboard/academy/students" }] : []),
         ...(checkPermission("teachers") ? [{ name: t("teachersNav"), href: "/dashboard/academy/teachers" }] : []),
@@ -499,11 +509,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }] : []),
     
     // Attendance - SuperAdmin/Chairman/CEO/Director only (others have dedicated panels)
-    ...(isSuperAdmin && checkPermission("attendance") ? [{
+    ...(grantedOrAdmin("attendance") ? [{
       name: `📅 ${t("attendanceLeave")}`,
       icon: "📅",
-      roles: ["SUPERADMIN"],
-      permission: "attendance" as const,
+      // No `roles` gate: this section is built only when the user is a high-level
+      // admin or has been granted the module above. Listing SUPERADMIN here made
+      // filteredNav drop it again for exactly the granted users it was opened for.
       children: [
         { name: `✅ ${t("leaveApprovals")}`, href: "/dashboard/attendance/leave-approvals" },
         { name: t("overview"), href: "/dashboard/superadmin/attendance/overview" },
@@ -514,11 +525,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }] : []),
     
     // Exams & Progress - SuperAdmin/Chairman/CEO/Director
-    ...(isSuperAdmin && checkPermission("classes") ? [{
+    ...(grantedOrAdmin("classes") ? [{
       name: `📝 ${t("examsProgress")}`,
       icon: "📝",
-      roles: ["SUPERADMIN"],
-      permission: "classes" as const,
+      // No `roles` gate: this section is built only when the user is a high-level
+      // admin or has been granted the module above. Listing SUPERADMIN here made
+      // filteredNav drop it again for exactly the granted users it was opened for.
       children: [
         { name: t("exams"), href: "/dashboard/exams" },
         { name: t("results"), href: "/dashboard/exams/results" },
@@ -527,11 +539,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }] : []),
     
     // Payment & Payroll - SuperAdmin/Chairman/CEO/Director
-    ...(isSuperAdmin && (checkPermission("payments") || checkPermission("payroll")) ? [{
+    ...(grantedOrAdmin("payments", "payroll") ? [{
       name: `💰 ${t("finance")}`,
       icon: "💰",
-      roles: ["SUPERADMIN"],
-      permission: "payments" as const,
+      // No `roles` gate: this section is built only when the user is a high-level
+      // admin or has been granted the module above. Listing SUPERADMIN here made
+      // filteredNav drop it again for exactly the granted users it was opened for.
       children: [
         { name: `📊 ${t("financeDashboard")}`, href: "/dashboard/finance" },
         ...(checkPermission("payments") ? [
@@ -630,7 +643,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       children: [
         { name: ` ${language === "VI" ? "Thông báo" : "Notifications"}`, href: "/dashboard/notifications" },
         { name: `🤖 ${language === "VI" ? "Trợ lý AI" : "AI Tutor"}`, href: "/dashboard/ai-tutor" },
-        ...((hasPermission("aiAssistant" as any) || isChairman || isSuperAdmin)
+        ...((hasPermission("ai_assistant") || isChairman || isSuperAdmin)
           ? [{ name: `🎨 ${language === "VI" ? "Xưởng AI (Trò chơi/Slide)" : "AI Studio (Game/Slides)"}`, href: "/dashboard/teacher/ai-studio" }]
           : []),
         { name: `🌐 ${language === "VI" ? "Cộng đồng" : "Social"}`, href: "/dashboard/social" },

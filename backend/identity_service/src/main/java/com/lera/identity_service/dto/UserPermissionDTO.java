@@ -7,6 +7,14 @@ public class UserPermissionDTO {
 
     private UUID id;
     private UUID userId;
+    /**
+     * True when a real user_permissions row backs this response, false when the controller
+     * synthesised an all-denied default because the user has no row. Without it the client
+     * cannot tell "the Chairman denied everything" from "nobody has configured this user",
+     * and every logged-in user silently ran on the synthesised set instead of their role
+     * defaults. Not persisted; ignored on write.
+     */
+    private Boolean configured;
     private Boolean dashboard;
     private Boolean centers;
     private Boolean users;
@@ -37,6 +45,9 @@ public class UserPermissionDTO {
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
+
+    public Boolean getConfigured() { return configured; }
+    public void setConfigured(Boolean configured) { this.configured = configured; }
 
     public UUID getUserId() { return userId; }
     public void setUserId(UUID userId) { this.userId = userId; }
