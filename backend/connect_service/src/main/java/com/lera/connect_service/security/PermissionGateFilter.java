@@ -58,6 +58,18 @@ public class PermissionGateFilter extends OncePerRequestFilter {
         return null;
     }
 
+    /**
+     * The screen also carries a switch for the whole service ("Connect Service"), stored as
+     * user_permissions.connect_service_enabled and likewise read by nothing until now. It governs every
+     * request this service serves, so it applies to unmapped paths too.
+     */
+    String serviceColumn(String path) {
+        if (!path.startsWith("/api/")) return null;
+        if (path.startsWith("/api/internal/")) return null;
+        if (path.startsWith("/api/public/")) return null;
+        return "connect_service_enabled";
+    }
+
     static boolean matches(String path, String prefix) {
         return path.equals(prefix) || path.startsWith(prefix + "/") || path.startsWith(prefix + "?");
     }
@@ -66,7 +78,8 @@ public class PermissionGateFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
         String column = userPermissionColumn(req.getRequestURI());
-        if (column == null) { chain.doFilter(req, res); return; }
+        String svcColumn = serviceColumn(req.getRequestURI());
+        if (column == null && svcColumn == null) { chain.doFilter(req, res); return; }
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) { chain.doFilter(req, res); return; }
@@ -78,7 +91,14 @@ public class PermissionGateFilter extends OncePerRequestFilter {
 
         Object p = auth.getPrincipal();
         UUID userId = (p instanceof AuthUser au) ? au.getUserId() : null;
-        if (userId != null && userExplicitlyDenied(userId, column)) {
+        if (userId != null && svcColumn != null && userExplicitlyDenied(userId, svcColumn)) {
+            res.setStatus(HttpStatus.FORBIDDEN.value());
+            res.setContentType("application/json");
+            res.getWriter().write("{\"success\":false,\"message\":\"Permission denied: "
+                    + svcColumn + " (service disabled for this user)\"}");
+            return;
+        }
+        if (userId != null && column != null && userExplicitlyDenied(userId, column)) {
             res.setStatus(HttpStatus.FORBIDDEN.value());
             res.setContentType("application/json");
             res.getWriter().write("{\"success\":false,\"message\":\"Permission denied: "

@@ -126,4 +126,85 @@ class PermissionGateFilterTest {
         filter.doFilter(req, res, chain);
         verify(chain).doFilter(req, res);
     }
+
+    // ---------------------------------------------------------------------------------
+    // SERVICE layer. "Payment Service" is a switch on the Chairman's Feature Management
+    // screen, stored as user_permissions.payment_service_enabled — and until now read by
+    // nothing at all. It has to bite on every path this service serves, including the ones
+    // requiredPermission() leaves unmapped, which previously returned before any check ran.
+    // ---------------------------------------------------------------------------------
+
+    /**
+     * Answers the actual column named in the SQL. A stub keyed on anyString() cannot tell the
+     * service column from the module column, so it would report success no matter which one
+     * the filter consulted — and this file now queries both.
+     */
+    @SuppressWarnings("unchecked")
+    private void columns(Boolean serviceEnabled, Boolean paymentsAccess) {
+        when(jdbc.query(anyString(), any(PreparedStatementSetter.class), any(ResultSetExtractor.class)))
+                .thenAnswer(inv -> {
+                    String sql = inv.getArgument(0);
+                    if (sql.contains("payment_service_enabled")) return serviceEnabled;
+                    if (sql.contains("payments_access")) return paymentsAccess;
+                    throw new AssertionError("unexpected column in: " + sql);
+                });
+    }
+
+    @Test
+    void serviceDisabledBlocksAPathThatCarriesNoModuleMapping() throws Exception {
+        when(req.getRequestURI()).thenReturn("/api/payment-methods"); // real, and unmapped
+        authenticateAs("ACCOUNTANT", UUID.randomUUID());
+        columns(false, true);
+
+        filter.doFilter(req, res, chain);
+
+        verify(chain, never()).doFilter(any(), any());
+        verify(res).setStatus(403);
+    }
+
+    @Test
+    void serviceEnabledLeavesAnUnmappedPathAlone() throws Exception {
+        when(req.getRequestURI()).thenReturn("/api/payment-methods");
+        authenticateAs("ACCOUNTANT", UUID.randomUUID());
+        columns(true, true);
+
+        filter.doFilter(req, res, chain);
+
+        verify(chain).doFilter(req, res);
+    }
+
+    @Test
+    void noRowMeansTheServiceIsNotDisabled() throws Exception {
+        when(req.getRequestURI()).thenReturn("/api/payment-methods");
+        authenticateAs("ACCOUNTANT", UUID.randomUUID());
+        columns(null, null); // no user_permissions row at all — the state of every user today
+
+        filter.doFilter(req, res, chain);
+
+        verify(chain).doFilter(req, res);
+    }
+
+    @Test
+    void godModeIsNeverGatedByTheServiceSwitch() throws Exception {
+        when(req.getRequestURI()).thenReturn("/api/payment-methods");
+        authenticateAs("CHAIRMAN", UUID.randomUUID());
+        columns(false, false);
+
+        filter.doFilter(req, res, chain);
+
+        verify(chain).doFilter(req, res);
+    }
+
+    @Test
+    void aDisabledServiceBlocksAMappedEndpointTheRoleWouldOtherwiseAllow() throws Exception {
+        when(req.getRequestURI()).thenReturn("/api/fee-receipts");
+        authenticateAs("ACCOUNTANT", UUID.randomUUID());
+        roleHasFinance(true);
+        columns(false, true);
+
+        filter.doFilter(req, res, chain);
+
+        verify(chain, never()).doFilter(any(), any());
+        verify(res).setStatus(403);
+    }
 }

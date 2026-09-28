@@ -62,11 +62,26 @@ public class PermissionGateFilter extends OncePerRequestFilter {
         return path.equals(prefix) || path.startsWith(prefix + "/") || path.startsWith(prefix + "?");
     }
 
+
+    /**
+     * The Chairman's Feature Management screen also carries a switch per SERVICE ("Payroll Service Service"),
+     * stored as user_permissions.payroll_service_enabled. Nothing ever read it, so switching a whole
+     * service off for one user changed nothing at all. Unlike the module columns this governs
+     * every request this service serves, so it is resolved for unmapped paths too.
+     */
+    private String serviceColumn(String path) {
+        if (!path.startsWith("/api/")) return null;
+        if (path.startsWith("/api/internal/")) return null; // service-to-service, never gated
+        if (path.startsWith("/api/public/")) return null;   // anonymous endpoints
+        return "payroll_service_enabled";
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
         String required = requiredPermission(req.getMethod(), req.getRequestURI());
-        if (required == null) { chain.doFilter(req, res); return; }
+        String svcColumn = serviceColumn(req.getRequestURI());
+        if (required == null && svcColumn == null) { chain.doFilter(req, res); return; }
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String role = auth == null ? null : auth.getAuthorities().stream()
@@ -77,10 +92,19 @@ public class PermissionGateFilter extends OncePerRequestFilter {
         // God-mode (Chairman/CEO/…) is never gated by either layer.
         if (GOD_MODE.contains(R)) { chain.doFilter(req, res); return; }
 
+        UUID userId = currentUserId(auth);
+
+        // SERVICE layer: the Chairman can switch this entire service off for one user.
+        if (svcColumn != null && userId != null && userExplicitlyDenied(userId, svcColumn)) {
+            deny(res, svcColumn + " (service disabled for this user)");
+            return;
+        }
+        // Service allowed and this path carries no module mapping — nothing further to check.
+        if (required == null) { chain.doFilter(req, res); return; }
+
         // PER-USER layer: an explicit revoke on the Chairman's Feature Management toggle blocks
         // this caller even if their role would allow it. Only an explicit false denies.
         String upColumn = userPermissionColumn(req.getRequestURI());
-        UUID userId = currentUserId(auth);
         if (upColumn != null && userId != null && userExplicitlyDenied(userId, upColumn)) {
             deny(res, required + " (revoked for this user)");
             return;
