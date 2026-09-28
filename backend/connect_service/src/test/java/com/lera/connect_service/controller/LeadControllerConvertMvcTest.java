@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -63,6 +64,14 @@ class LeadControllerConvertMvcTest {
 
     @MockBean
     private LeadRepository leadRepository;
+
+    /**
+     * PermissionGateFilter is a @Component filter that @WebMvcTest pulls in, and it needs a
+     * JdbcTemplate that this slice has no datasource for. The gate is subtractive and fail-open,
+     * so a mock returning null leaves it a pass-through — this test is about lead conversion.
+     */
+    @MockBean
+    private JdbcTemplate jdbcTemplate;
     @MockBean
     private FollowupRepository followupRepository;
     @MockBean

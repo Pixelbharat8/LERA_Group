@@ -2,6 +2,7 @@ package com.lera.connect_service.config;
 
 import com.lera.connect_service.security.InternalServiceAuthFilter;
 import com.lera.connect_service.security.JwtAuthenticationFilter;
+import com.lera.connect_service.security.PermissionGateFilter;
 
 import java.util.Arrays;
 import java.util.List;
@@ -40,14 +41,16 @@ public class SecurityConfig {
     private List<String> allowedOrigins;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final PermissionGateFilter permissionGateFilter;
     private final InternalServiceAuthFilter internalServiceAuthFilter;
     private final Environment environment;
 
     public SecurityConfig(
-            JwtAuthenticationFilter jwtAuthenticationFilter,
+            PermissionGateFilter permissionGateFilter, JwtAuthenticationFilter jwtAuthenticationFilter,
             InternalServiceAuthFilter internalServiceAuthFilter,
             Environment environment) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.permissionGateFilter = permissionGateFilter;
         this.internalServiceAuthFilter = internalServiceAuthFilter;
         this.environment = environment;
     }
@@ -96,7 +99,10 @@ public class SecurityConfig {
                 })
             )
             .addFilterBefore(internalServiceAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            // Must run AFTER authentication: the gate reads the caller from the
+            // SecurityContext, which the JWT filter has not populated before this point.
+            .addFilterAfter(permissionGateFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

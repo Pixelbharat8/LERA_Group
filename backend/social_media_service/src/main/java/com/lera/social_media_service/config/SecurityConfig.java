@@ -17,6 +17,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.lera.social_media_service.security.JwtAuthenticationFilter;
+import com.lera.social_media_service.security.PermissionGateFilter;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -36,9 +37,11 @@ public class SecurityConfig {
     private List<String> allowedOrigins;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final PermissionGateFilter permissionGateFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(PermissionGateFilter permissionGateFilter, JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.permissionGateFilter = permissionGateFilter;
     }
 
     @Bean
@@ -60,7 +63,10 @@ public class SecurityConfig {
                     response.getWriter().write("{\"success\":false,\"message\":\"Authentication required\"}");
                 })
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            // Must run AFTER authentication: the gate reads the caller from the
+            // SecurityContext, which the JWT filter has not populated before this point.
+            .addFilterAfter(permissionGateFilter, JwtAuthenticationFilter.class);
         
         return http.build();
     }
