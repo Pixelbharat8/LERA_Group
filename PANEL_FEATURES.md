@@ -75,11 +75,12 @@ copy per service) reads the matching `user_permissions` column and returns 403 o
 | Communication, Documents | ✅ *(added `4db7a2e`)* | connect_service |
 | AI Assistant | ✅ *(added `4db7a2e`)* | ai_gateway |
 | Social Media | ✅ *(added `4db7a2e`)* | social_media_service |
+| All 6 service toggles (`*ServiceEnabled`) | ✅ *(added `e9e2add`)* | each service's own gate; governs every path it serves |
 | **Dashboard, Centers, Courses, Reports** | ❌ **no-op** | no gate maps these columns |
-| **All 6 service toggles** (`*ServiceEnabled`) | ❌ **no-op** | stored and echoed by the controller; nothing reads them |
 
-The ❌ rows are switches an admin can throw that change nothing on the API — the menu hides,
-the endpoints keep serving. `centers_access` is a special case: `/api/centers` is governed by
+The ❌ row lists switches an admin can throw that change nothing on the API — the menu hides,
+the endpoints keep serving. A service switch differs from a module switch in reach: a module
+governs its own paths, a service switch governs everything that service serves. `centers_access` is a special case: `/api/centers` is governed by
 `settings_access`, so the Centers toggle is inert while Settings silently covers it.
 
 **The gates carry only the per-user layer where they were added.** The older gates also check a
