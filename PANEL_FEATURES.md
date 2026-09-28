@@ -59,6 +59,34 @@ read as "never configured"; the AI Assistant entry asked for a key that does not
 context failed **open** on any thrown error, handing the full admin sidebar to whoever hit it.
 `user_permissions` currently holds **zero rows**.
 
+### Which toggles actually bite on the backend
+
+The screen shows 22 switches. A subtractive per-user gate (`PermissionGateFilter`, one tailored
+copy per service) reads the matching `user_permissions` column and returns 403 on an explicit
+`false`. God-mode roles are never gated, and no row / null / true always allows.
+
+| Toggle | Backend enforced | Where |
+|---|---|---|
+| Users & Roles, Settings | ✅ | identity_service |
+| Students, Teachers, Classes | ✅ | academy_service |
+| Attendance | ✅ | attendance_service |
+| Payments / Finance | ✅ | payment_service |
+| Payroll | ✅ | payroll_service |
+| Communication, Documents | ✅ *(added `4db7a2e`)* | connect_service |
+| AI Assistant | ✅ *(added `4db7a2e`)* | ai_gateway |
+| Social Media | ✅ *(added `4db7a2e`)* | social_media_service |
+| **Dashboard, Centers, Courses, Reports** | ❌ **no-op** | no gate maps these columns |
+| **All 6 service toggles** (`*ServiceEnabled`) | ❌ **no-op** | stored and echoed by the controller; nothing reads them |
+
+The ❌ rows are switches an admin can throw that change nothing on the API — the menu hides,
+the endpoints keep serving. `centers_access` is a special case: `/api/centers` is governed by
+`settings_access`, so the Centers toggle is inert while Settings silently covers it.
+
+**The gates carry only the per-user layer where they were added.** The older gates also check a
+role layer against granular codes in `role_permissions`; that table seeds 30 codes and none of
+them cover communication, documents, AI or social media, so a role check for those modules would
+match nothing and deny every caller.
+
 > Implementation note: CHAIRMAN (and SUPER_ADMIN) must be excluded from every gate — always allowed.
 
 ---
