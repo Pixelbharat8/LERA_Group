@@ -10,7 +10,10 @@ import { apiFetch } from "../../../../lib/api";
 type Feature = { stateKey: string; putKey: string; label: string };
 
 const MODULES: Feature[] = [
-  { stateKey: "dashboard", putKey: "dashboard", label: "Dashboard" },
+  // Dashboard has no API of its own to gate — it governs whether the sidebar shows a
+  // dashboard entry, and nothing more. Labelled so an admin is not misled into reading it
+  // as access control the way the other switches now are.
+  { stateKey: "dashboard", putKey: "dashboard", label: "Dashboard (menu only)" },
   { stateKey: "centers", putKey: "centers", label: "Centers" },
   { stateKey: "users", putKey: "users", label: "Users & Roles" },
   { stateKey: "students", putKey: "students", label: "Students" },

@@ -44,14 +44,15 @@ public class PermissionGateFilter extends OncePerRequestFilter {
     private static final long TTL_MS = 15_000;
 
     /** academy_service map (conservative core). GET→.view; mutations→.create. null = unmapped (allow). */
-    private String requiredPermission(String method, String path) {
+    String requiredPermission(String method, String path) {
         String base = baseModule(path);
         if (base == null) return null; // exams, grades, library, cms, calendar … stay role-only
         return "GET".equalsIgnoreCase(method) ? base + ".view" : base + ".create";
     }
 
     /** Module governing this path (also names the user_permissions column), or null if unmapped. */
-    private String baseModule(String path) {
+    // package-private so a test can pin the role codes as unchanged by the split above.
+    String baseModule(String path) {
         if (matches(path, "/api/students") || matches(path, "/api/enrollments")) return "students";
         if (matches(path, "/api/teachers")) return "teachers";
         if (matches(path, "/api/classes") || matches(path, "/api/courses")) return "classes";
@@ -59,9 +60,23 @@ public class PermissionGateFilter extends OncePerRequestFilter {
     }
 
     /** The user_permissions column governing this path, or null if unmapped. */
-    private String userPermissionColumn(String path) {
-        String base = baseModule(path);
-        return base == null ? null : base + "_access"; // students_access / teachers_access / classes_access
+    /**
+     * Deliberately NOT derived from baseModule(). That method also produces the granular role
+     * code, and role_permissions seeds no courses.* or reports.* codes — deriving both from one
+     * mapping would mean splitting Courses out of Classes denied every caller. The Chairman's
+     * per-user columns and the role codes are separate concerns and now map separately.
+     *
+     * Before this, /api/courses reported classes_access, so the "Courses" switch on the Feature
+     * Management screen was inert while "Classes" silently governed courses; /api/reports and
+     * /api/report-cards reported nothing, so "Reports" was inert altogether.
+     */
+    String userPermissionColumn(String path) {
+        if (matches(path, "/api/students") || matches(path, "/api/enrollments")) return "students_access";
+        if (matches(path, "/api/teachers")) return "teachers_access";
+        if (matches(path, "/api/courses")) return "courses_access";
+        if (matches(path, "/api/classes")) return "classes_access";
+        if (matches(path, "/api/reports") || matches(path, "/api/report-cards")) return "reports_access";
+        return null;
     }
 
     private static boolean matches(String path, String prefix) {
@@ -105,16 +120,18 @@ public class PermissionGateFilter extends OncePerRequestFilter {
             deny(res, svcColumn + " (service disabled for this user)");
             return;
         }
-        // Service allowed and this path carries no module mapping — nothing further to check.
-        if (required == null) { chain.doFilter(req, res); return; }
-
         // PER-USER layer: an explicit revoke on the Chairman's Feature Management toggle blocks
         // this caller even if their role would allow it. Only an explicit false denies.
+        // This runs BEFORE the unmapped-path return below: a module column may govern a path
+        // that carries no granular role code (reports being the case that forced the order).
         String upColumn = userPermissionColumn(req.getRequestURI());
         if (upColumn != null && userId != null && userExplicitlyDenied(userId, upColumn)) {
-            deny(res, required + " (revoked for this user)");
+            deny(res, upColumn + " (revoked for this user)");
             return;
         }
+
+        // No granular role code governs this path — the layers above have had their say.
+        if (required == null) { chain.doFilter(req, res); return; }
 
         // ROLE layer: role_permissions must hold the granular code (seeded generously).
         if (roleHas(R, required)) { chain.doFilter(req, res); return; }

@@ -44,7 +44,8 @@ public class PermissionGateFilter extends OncePerRequestFilter {
     private static final long TTL_MS = 15_000;
 
     /** Module governing this path ("users" / "settings"), or null if unmapped. */
-    private String baseModule(String path) {
+    // package-private so a test can pin the role codes as unchanged by the split above.
+    String baseModule(String path) {
         // Self-service on one's OWN record (/api/users/me/**: view/edit own profile, change own
         // password) is authorised by authentication alone (+ current-password check for the
         // password change) — it must NOT require the admin users.create/users.view permission,
@@ -74,7 +75,15 @@ public class PermissionGateFilter extends OncePerRequestFilter {
     }
 
     /** The user_permissions column governing this path, or null if unmapped. */
-    private String userPermissionColumn(String path) {
+    /**
+     * Separate from baseModule(), which also yields the granular role code. /api/centers used to
+     * report settings_access, so the Chairman's "Centers" switch was inert while "Settings"
+     * silently governed centres. Centres now answer to their own column; the role code stays
+     * settings.view/settings.edit, because role_permissions seeds no centers.* code and changing
+     * it would deny every caller.
+     */
+    String userPermissionColumn(String path) {
+        if (matches(path, "/api/centers")) return "centers_access";
         String base = baseModule(path);
         return base == null ? null : base + "_access"; // users_access / settings_access
     }

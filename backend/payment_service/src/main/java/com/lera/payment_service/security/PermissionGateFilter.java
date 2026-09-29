@@ -100,16 +100,18 @@ public class PermissionGateFilter extends OncePerRequestFilter {
             deny(res, svcColumn + " (service disabled for this user)");
             return;
         }
-        // Service allowed and this path carries no module mapping — nothing further to check.
-        if (required == null) { chain.doFilter(req, res); return; }
-
         // PER-USER layer: an explicit revoke on the Chairman's Feature Management toggle blocks
         // this caller even if their role would allow it. Only an explicit false denies.
+        // This runs BEFORE the unmapped-path return below: a module column may govern a path
+        // that carries no granular role code (reports being the case that forced the order).
         String upColumn = userPermissionColumn(req.getRequestURI());
         if (upColumn != null && userId != null && userExplicitlyDenied(userId, upColumn)) {
-            deny(res, required + " (revoked for this user)");
+            deny(res, upColumn + " (revoked for this user)");
             return;
         }
+
+        // No granular role code governs this path — the layers above have had their say.
+        if (required == null) { chain.doFilter(req, res); return; }
 
         // ROLE layer: role_permissions must hold the granular code (seeded generously).
         if (roleHas(R, required)) { chain.doFilter(req, res); return; }
