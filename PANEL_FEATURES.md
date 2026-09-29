@@ -68,7 +68,9 @@ copy per service) reads the matching `user_permissions` column and returns 403 o
 | Toggle | Backend enforced | Where |
 |---|---|---|
 | Users & Roles, Settings | ✅ | identity_service |
+| Centers | ✅ *(added `c5ea805`)* | identity_service — see the caveat below |
 | Students, Teachers, Classes | ✅ | academy_service |
+| Courses, Reports | ✅ *(added `c5ea805`)* | academy_service |
 | Attendance | ✅ | attendance_service |
 | Payments / Finance | ✅ | payment_service |
 | Payroll | ✅ | payroll_service |
@@ -76,11 +78,25 @@ copy per service) reads the matching `user_permissions` column and returns 403 o
 | AI Assistant | ✅ *(added `4db7a2e`)* | ai_gateway |
 | Social Media | ✅ *(added `4db7a2e`)* | social_media_service |
 | All 6 service toggles (`*ServiceEnabled`) | ✅ *(added `e9e2add`)* | each service's own gate; governs every path it serves |
-| **Dashboard, Centers, Courses, Reports** | ❌ **no-op** | no gate maps these columns |
+| Dashboard | ⚠️ **menu only** | no API of its own; governs the sidebar entry and nothing more |
 
-The ❌ row lists switches an admin can throw that change nothing on the API — the menu hides,
-the endpoints keep serving. A service switch differs from a module switch in reach: a module
-governs its own paths, a service switch governs everything that service serves. `centers_access` is a special case: `/api/centers` is governed by
+All 21 enforceable switches now bite. A service switch differs from a module switch in reach:
+a module governs its own paths, a service switch governs everything that service serves.
+
+**Dashboard is the exception and is labelled as such in the UI** ("Dashboard (menu only)").
+There is no dashboard API to gate, and revoking it would lock a user out of everything.
+
+**Caveat on Centers.** `GET /api/centers`, `/centers/active` and `/centers/code/**` are
+deliberately `permitAll` so the public website can list centres. Revoking Centers blocks a
+revoked user's authenticated calls and every mutating endpoint, but the centre list is readable
+by anyone regardless — it is not a confidentiality control for that data.
+
+**Two switches were previously worse than unenforced: they were silently covered by a
+neighbour.** `/api/courses` reported `classes_access` and `/api/centers` reported
+`settings_access`, so the screen implied a distinction the backend did not make. The per-user
+column and the granular role code are now mapped separately — deriving both from one mapping
+would demand `courses.*` / `reports.*` codes that `role_permissions` has never seeded, and deny
+every non-god-mode caller. `centers_access` is a special case: `/api/centers` is governed by
 `settings_access`, so the Centers toggle is inert while Settings silently covers it.
 
 **The gates carry only the per-user layer where they were added.** The older gates also check a
