@@ -152,9 +152,35 @@ database those tables are already empty and the deletes are harmless.
 docker exec -i lera_postgres psql -U lera -d lera < scripts/fix-placeholder-production-data.sql
 ```
 
-The script wraps its changes in a transaction and prints what it is about to change. **Read that
-output and confirm the phone number and email are the ones you actually want** before you let it
-commit; they are set from the values in the script, not from anything live.
+It sets the contact block to the values the repository documents as real — corroborated across
+~19 address, ~14 phone and ~6 email references in the public pages:
+
+| | |
+|---|---|
+| Address | 95 Hải Đăng, khu đô thị Vinhomes Marina, phường An Biên, Hải Phòng |
+| Phone | 0387.633.141 |
+| Email | info@leraacademy.edu.vn |
+
+**Confirm those three against what LERA actually uses before committing** — a wrong digit here
+is a phone number that does not ring.
+
+Run it inside a transaction so you can inspect first:
+
+```bash
+docker exec -i lera_postgres psql -U lera -d lera <<'SQL'
+BEGIN;
+\i /dev/stdin
+SQL
+```
+
+or more simply, copy the file in and use `BEGIN; \i ...; COMMIT;` from a `psql` session. The
+script ends with three verification queries: the contact block, any live centre outside Hải
+Phòng, and any account on a domain LERA does not own. **All three must read clean before you
+`COMMIT`** — the last one is the same check step 7 gates email on.
+
+It is idempotent; running it twice changes nothing the second time. On a fresh database most of
+it is a no-op (there are no placeholder rows to correct), and the part that matters is the
+contact block, which it creates rather than merely updating.
 
 ## 7. Turn email on — after this check, not before
 
