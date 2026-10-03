@@ -18,6 +18,21 @@ charges a customer will not work. See "Known gaps at launch" at the end.
   somewhere other than the server: `dig +short app.your-domain.com`.
 - The repository checked out at the commit you intend to ship.
 
+### A constraint on the hostname
+
+The WebSocket handshake checks the browser's `Origin` against `lera.cors.allowed-origins`,
+which defaults to `https://*.leraacademy.edu.vn` (plus localhost and the Capacitor schemes).
+**If `DOMAIN` is a subdomain of `leraacademy.edu.vn`, there is nothing to do.** If you deploy on
+any other hostname, set `CORS_ALLOWED_ORIGINS` in step 3 to include it:
+
+```
+CORS_ALLOWED_ORIGINS=https://your-host.example,capacitor://localhost,ionic://localhost
+```
+
+Get this wrong and the symptom is misleading: messages still arrive, because both chat screens
+poll every 4 seconds when the socket is down. What silently stops working is voice and video
+calling, whose signalling has no fallback.
+
 ## 2. Generate the secrets
 
 Run these once and keep the output somewhere safe. They are not recoverable from the server
@@ -133,6 +148,14 @@ leracompose ps --format '{{.Service}}\t{{.Ports}}' | grep -v '^caddy'
 # TLS answering on the real hostname
 curl -sS -o /dev/null -w '%{http_code}\n' https://app.your-domain.com/
 
+# The websocket route reaches connect_service, not the frontend. A raw curl gets 400
+# ("Can \"Upgrade\" only to \"WebSocket\"") from Spring — that 400 is the success signal
+# here; a 404 or an HTML body means /ws fell through to Next.js.
+curl -sS -o /dev/null -w '%{http_code}\n' https://app.your-domain.com/ws/chat
+
+# And the URL the browser will be told to open — expect wss://<your domain>/ws/chat
+curl -sS https://app.your-domain.com/api/chat/ws-url -H 'Cookie: token=<a real session token>'
+
 # no fake testimonials reached the live database (expect 0)
 docker exec lera_postgres psql -U lera -d lera -tAc 'select count(*) from testimonials;'
 ```
@@ -245,6 +268,7 @@ Accepted deliberately for a soft launch — each is a decision, not an oversight
 | **Payroll report tax is a browser-side estimate** | It ignores the seven configured `tax_settings` rows. Payroll totals themselves are verified correct — but do not file tax from that report. |
 | **Never load-tested** | Correctness is well covered by tests; capacity under real traffic is unmeasured. |
 | **Mobile apps not submitted** | The iOS/Android shell builds, but nothing is in either store. |
+| **Voice/video calling untested on a server** | The signalling path was dead until `efc7055` and has only been verified by unit tests, never over a real TLS socket. Messaging is unaffected. |
 | **No metrics or alerting** | You will find out about an outage from a person, not a dashboard. Prometheus, Grafana and alert rules exist on the unmerged `feat/vps-monitoring` branch — see below. |
 
 ### The five unmerged branches
