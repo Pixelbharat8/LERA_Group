@@ -26,6 +26,18 @@ public class DataLoader implements CommandLineRunner {
     private final com.lera.identity_service.repository.PermissionRepository permissionRepository;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * The seeded SUPER_ADMIN's address. It used to be a hard-coded literal on a domain LERA does
+     * not own — a generic short .com that somebody else certainly does. This seeder is a
+     * CommandLineRunner with no profile guard, so spring.sql.init.mode=never does NOT stop it:
+     * a fresh production database got that account too. Since POST /api/auth/forgot-password is
+     * permitAll and mails the reset link to whatever address sits on the account, configuring
+     * SMTP would have handed a stranger a SUPER_ADMIN reset link. Defaults to LERA's real
+     * domain; override per environment if a different inbox is wanted.
+     */
+    @Value("${lera.seed.admin-email:admin@leraacademy.edu.vn}")
+    private String adminSeedEmail;
+
     @Value("${lera.seed.admin-password:}")
     private String adminSeedPassword;
 
@@ -326,12 +338,12 @@ public class DataLoader implements CommandLineRunner {
     }
 
     private void createAdminUser() {
-        if (userRepository.findByEmail("admin@lera.com").isEmpty()) {
+        if (userRepository.findByEmail(adminSeedEmail).isEmpty()) {
             Role superAdminRole = roleRepository.findByName("SUPER_ADMIN").orElse(null);
             
             User admin = User.builder()
-                    .email("admin@lera.com")
-                    .passwordHash(passwordEncoder.encode(resolveSeedPassword(adminSeedPassword, "admin@lera.com")))
+                    .email(adminSeedEmail)
+                    .passwordHash(passwordEncoder.encode(resolveSeedPassword(adminSeedPassword, adminSeedEmail)))
                     .fullname("Super Administrator")
                     .fullnameVi("Quản trị viên cao cấp")
                     .phone("+84901234567")
@@ -341,7 +353,7 @@ public class DataLoader implements CommandLineRunner {
                     .build();
             
             userRepository.save(admin);
-            log.info("Created admin user: admin@lera.com");
+            log.info("Created admin user: {}", adminSeedEmail);
         } else {
             log.info("Admin user already exists");
         }
