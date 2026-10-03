@@ -10,6 +10,8 @@ import com.lera.connect_service.security.ChatAuthorizationService;
 import com.lera.connect_service.security.ConnectSecurity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -130,6 +132,45 @@ public class ChatController {
     }
 
     // Get all conversations for a user - only returns conversations where user is a participant
+    /**
+     * The browser's STOMP client asks here for the URL to open. `useConnectStomp` has always
+     * fetched GET /api/chat/ws-url — and this endpoint did not exist, so the fetch 404'd, the
+     * hook returned silently (`if (!res.ok) return;`) and the socket was never opened. Chat
+     * itself survived because both chat screens poll as a fallback (4s while disconnected
+     * instead of 15s), which is why nothing looked broken; WebRTC call signalling does not
+     * have a fallback, and went nowhere.
+     *
+     * No token is placed in the URL. The handshake is same-origin through the gateway, so the
+     * browser sends the HttpOnly `token` cookie by itself and JwtAuthenticationFilter already
+     * reads it. Echoing the session JWT into a query string would have made it readable by
+     * JavaScript and loggable by every proxy in the path, which is exactly what HttpOnly is
+     * for. (The `access_token` query parameter that filter also accepts stays for the mobile
+     * shell, whose WebView is not same-origin and has no cookie to send.)
+     *
+     * The host comes from the forwarded request rather than configuration: Caddy terminates
+     * TLS and sets X-Forwarded-Proto/Host, and the prod profile marks it a trusted proxy.
+     */
+    @GetMapping("/ws-url")
+    public ResponseEntity<Map<String, String>> wsUrl(HttpServletRequest request) {
+        String forwardedProto = request.getHeader("X-Forwarded-Proto");
+        String forwardedHost = request.getHeader("X-Forwarded-Host");
+
+        String host = (forwardedHost != null && !forwardedHost.isBlank())
+                ? forwardedHost.split(",")[0].trim()
+                : request.getHeader("Host");
+        if (host == null || host.isBlank()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "cannot determine the public host for the websocket URL"));
+        }
+
+        String proto = (forwardedProto != null && !forwardedProto.isBlank())
+                ? forwardedProto.split(",")[0].trim()
+                : request.getScheme();
+        String scheme = "https".equalsIgnoreCase(proto) ? "wss" : "ws";
+
+        return ResponseEntity.ok(Map.of("url", scheme + "://" + host + "/ws/chat"));
+    }
+
     @GetMapping("/conversations")
     public ResponseEntity<?> getConversations(
             @RequestParam(required = false) String userId,
