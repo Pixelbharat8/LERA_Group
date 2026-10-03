@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { apiFetch } from "../../../../lib/api";
+import { partialPermissionBody } from "../../../../lib/feature-registry";
 
 export default function ChairmanRolesPage() {
   const [roles, setRoles] = useState<any[]>([]);
@@ -223,31 +224,27 @@ export default function ChairmanRolesPage() {
 
       const promises = selectedUserIds.map(async (userId) => {
         await apiFetch(`/api/user-permissions/user/${userId}`, {
-          method: "POST",
-          body: JSON.stringify({
-            userId: userId,
-            dashboard: permissionObject.dashboard || false,
-            centers: permissionObject.centers || false,
-            users: permissionObject.users || false,
-            students: permissionObject.students || false,
-            teachers: permissionObject.teachers || false,
-            classes: permissionObject.classes || false,
-            courses: permissionObject.courses || false,
-            attendance: permissionObject.attendance || false,
-            payments: permissionObject.payments || false,
-            payroll: permissionObject.payroll || false,
-            reports: permissionObject.reports || false,
-            settings: permissionObject.settings || false,
-            aiAssistant: permissionObject.ai_assistant || false,
-            communication: permissionObject.marketing || permissionObject.social_media || false,
-            documents: permissionObject.website_content || false,
-            academyServiceEnabled: true,
-            paymentServiceEnabled: true,
-            attendanceServiceEnabled: true,
-            payrollServiceEnabled: true,
-            connectServiceEnabled: true,
-            aiGatewayEnabled: true,
-          }),
+          // PUT updates only the keys sent; a full POST used to reset the six service
+          // switches to on, undoing any revocation made in Feature Management.
+          method: "PUT",
+          body: JSON.stringify(partialPermissionBody({
+            dashboard: permissionObject.dashboard,
+            centers: permissionObject.centers,
+            users: permissionObject.users,
+            students: permissionObject.students,
+            teachers: permissionObject.teachers,
+            classes: permissionObject.classes,
+            courses: permissionObject.courses,
+            attendance: permissionObject.attendance,
+            payments: permissionObject.payments,
+            payroll: permissionObject.payroll,
+            reports: permissionObject.reports,
+            settings: permissionObject.settings,
+            ai_assistant: permissionObject.ai_assistant,
+            communication: permissionObject.marketing || permissionObject.social_media,
+            documents: permissionObject.website_content,
+            socialMedia: permissionObject.social_media,
+          })),
         });
       });
 

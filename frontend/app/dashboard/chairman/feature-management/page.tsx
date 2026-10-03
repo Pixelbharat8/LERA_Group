@@ -3,42 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
+import { FEATURES, type FeatureDef } from "../../../../lib/feature-registry";
 
-// Feature registry — keep in sync with UserPermissionDTO (identity_service) and
-// PermissionContext. `stateKey` is what the GET returns; `putKey` is what the PUT accepts
-// (note: AI assistant differs — read `aiAssistant`, write `ai_assistant`).
-type Feature = { stateKey: string; putKey: string; label: string };
-
-const MODULES: Feature[] = [
-  // Dashboard has no API of its own to gate — it governs whether the sidebar shows a
-  // dashboard entry, and nothing more. Labelled so an admin is not misled into reading it
-  // as access control the way the other switches now are.
-  { stateKey: "dashboard", putKey: "dashboard", label: "Dashboard (menu only)" },
-  { stateKey: "centers", putKey: "centers", label: "Centers" },
-  { stateKey: "users", putKey: "users", label: "Users & Roles" },
-  { stateKey: "students", putKey: "students", label: "Students" },
-  { stateKey: "teachers", putKey: "teachers", label: "Teachers" },
-  { stateKey: "classes", putKey: "classes", label: "Classes" },
-  { stateKey: "courses", putKey: "courses", label: "Courses" },
-  { stateKey: "attendance", putKey: "attendance", label: "Attendance" },
-  { stateKey: "payments", putKey: "payments", label: "Payments / Finance" },
-  { stateKey: "payroll", putKey: "payroll", label: "Payroll" },
-  { stateKey: "reports", putKey: "reports", label: "Reports" },
-  { stateKey: "settings", putKey: "settings", label: "Settings" },
-  { stateKey: "aiAssistant", putKey: "ai_assistant", label: "AI Assistant" },
-  { stateKey: "communication", putKey: "communication", label: "Communication" },
-  { stateKey: "documents", putKey: "documents", label: "Documents" },
-  { stateKey: "socialMedia", putKey: "socialMedia", label: "Social Media (Facebook)" },
-];
-
-const SERVICES: Feature[] = [
-  { stateKey: "academyServiceEnabled", putKey: "academyServiceEnabled", label: "Academy Service" },
-  { stateKey: "paymentServiceEnabled", putKey: "paymentServiceEnabled", label: "Payment Service" },
-  { stateKey: "attendanceServiceEnabled", putKey: "attendanceServiceEnabled", label: "Attendance Service" },
-  { stateKey: "payrollServiceEnabled", putKey: "payrollServiceEnabled", label: "Payroll Service" },
-  { stateKey: "connectServiceEnabled", putKey: "connectServiceEnabled", label: "Connect Service" },
-  { stateKey: "aiGatewayEnabled", putKey: "aiGatewayEnabled", label: "AI Gateway" },
-];
+// Dashboard has no API of its own to gate — it governs whether the sidebar shows a
+// dashboard entry, and nothing more; its label in the registry says so.
+type Feature = FeatureDef;
+const MODULES = FEATURES.filter((f) => f.kind === "module");
+const SERVICES = FEATURES.filter((f) => f.kind === "service");
 
 // Roles that always have full access (never gated) — mirrors PermissionContext god-mode list.
 const GOD_MODE_ROLES = ["CHAIRMAN", "CEO", "SUPER_ADMIN", "SUPERADMIN", "ADMIN", "DIRECTOR"];
@@ -52,6 +23,9 @@ export default function FeatureManagementPage() {
   const [perms, setPerms] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [loadingPerms, setLoadingPerms] = useState(false);
+  // Until a user's real switches have loaded, every toggle reads "off"; saving then would
+  // write false to all 22 and lock the user out of every service.
+  const [permsLoaded, setPermsLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   // AI monthly token budget (per user)
@@ -82,15 +56,20 @@ export default function FeatureManagementPage() {
     setSelected(u);
     setMsg(null);
     setLoadingPerms(true);
+    setPermsLoaded(false);
     setPerms({});
     try {
-      const p = (await apiFetch(`/api/user-permissions/user/${u.id}`).catch(() => ({}))) as any;
+      const p = (await apiFetch(`/api/user-permissions/user/${u.id}`).catch(() => null)) as any;
+      if (!p) {
+        setMsg("✗ Could not load this user's features, so saving is disabled. Reselect the user to retry.");
+        return;
+      }
       const next: Record<string, boolean> = {};
       [...MODULES, ...SERVICES].forEach((f) => {
-        // API returns aiAssistant; everything else matches stateKey.
-        next[f.stateKey] = Boolean(p?.[f.stateKey] ?? (f.stateKey === "aiAssistant" ? p?.ai_assistant : undefined));
+        next[f.field] = Boolean(p?.[f.field]);
       });
       setPerms(next);
+      setPermsLoaded(true);
       // Load this user's AI token budget + usage
       setAiUsed(null); setAiBudget("");
       const usage = (await apiFetch(`/api/ai/usage/${u.id}`, {}, { silent: true }).catch(() => null)) as any;
@@ -116,13 +95,13 @@ export default function FeatureManagementPage() {
   const toggle = (key: string) => setPerms((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const save = async () => {
-    if (!selected) return;
+    if (!selected || !permsLoaded) return;
     setSaving(true);
     setMsg(null);
     try {
       const body: Record<string, boolean> = {};
       [...MODULES, ...SERVICES].forEach((f) => {
-        body[f.putKey] = Boolean(perms[f.stateKey]);
+        body[f.putKey] = Boolean(perms[f.field]);
       });
       await apiFetch(`/api/user-permissions/user/${selected.id}`, {
         method: "PUT",
@@ -163,18 +142,18 @@ export default function FeatureManagementPage() {
     <button
       type="button"
       disabled={isGodMode}
-      onClick={() => toggle(f.stateKey)}
+      onClick={() => toggle(f.field)}
       className={`flex items-center justify-between p-3 rounded-lg border text-left transition ${
-        perms[f.stateKey] ? "border-blue-300 bg-blue-50" : "border-gray-200 bg-white"
+        perms[f.field] ? "border-blue-300 bg-blue-50" : "border-gray-200 bg-white"
       } ${isGodMode ? "opacity-60 cursor-not-allowed" : "hover:border-blue-400"}`}
     >
       <span className="text-sm font-medium text-gray-800">{f.label}</span>
       <span
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-          perms[f.stateKey] ? "bg-blue-600" : "bg-gray-300"
+          perms[f.field] ? "bg-blue-600" : "bg-gray-300"
         }`}
       >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${perms[f.stateKey] ? "translate-x-6" : "translate-x-1"}`} />
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${perms[f.field] ? "translate-x-6" : "translate-x-1"}`} />
       </span>
     </button>
   );
@@ -238,7 +217,7 @@ export default function FeatureManagementPage() {
                 </div>
                 <div className="flex gap-2">
                   <button onClick={resetToRoleDefault} disabled={saving || isGodMode} className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">Reset to role default</button>
-                  <button onClick={save} disabled={saving || isGodMode} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>
+                  <button onClick={save} disabled={saving || isGodMode || !permsLoaded} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>
                 </div>
               </div>
 
@@ -255,11 +234,11 @@ export default function FeatureManagementPage() {
                 <>
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">Modules</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
-                    {MODULES.map((f) => <Toggle key={f.stateKey} f={f} />)}
+                    {MODULES.map((f) => <Toggle key={f.field} f={f} />)}
                   </div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">Backend Services</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {SERVICES.map((f) => <Toggle key={f.stateKey} f={f} />)}
+                    {SERVICES.map((f) => <Toggle key={f.field} f={f} />)}
                   </div>
 
                   {/* AI token budget — applies when "AI Assistant" is enabled */}

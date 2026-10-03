@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
+import { partialPermissionBody } from "../../../../lib/feature-registry";
 
 interface Role {
   id: string;
@@ -287,34 +288,13 @@ export default function RolesPage() {
       // Get current permissions for this user
       const currentPerms = getUserPermissions(selectedUser);
       
-      // Save to backend API using the UserPermissionDTO format
       await apiFetch(`/api/user-permissions/user/${selectedUser.id}`, {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: selectedUser.id,
-          dashboard: currentPerms.dashboard,
-          centers: currentPerms.centers,
-          users: currentPerms.users,
-          students: currentPerms.students,
-          teachers: currentPerms.teachers,
-          classes: currentPerms.classes,
-          courses: currentPerms.courses,
-          attendance: currentPerms.attendance,
-          payments: currentPerms.payments,
-          payroll: currentPerms.payroll,
-          reports: currentPerms.reports,
-          settings: currentPerms.settings,
-          aiAssistant: currentPerms.ai_assistant,
-          communication: currentPerms.communication,
-          documents: currentPerms.documents,
-          academyServiceEnabled: true,
-          paymentServiceEnabled: true,
-          attendanceServiceEnabled: true,
-          payrollServiceEnabled: true,
-          connectServiceEnabled: true,
-          aiGatewayEnabled: true,
-        }),
+        // PUT updates only the keys sent. This screen does not show Social Media or the
+        // six service switches, so it must not write them — a full POST used to reset
+        // them on every save, undoing whatever Feature Management had set.
+        body: JSON.stringify(partialPermissionBody(currentPerms)),
       });
       
       setSuccessMessage("Permissions saved to server successfully!");
@@ -394,32 +374,12 @@ export default function RolesPage() {
     try {
       const promises = selectedUserIds.map(async (userId) => {
         await apiFetch(`/api/user-permissions/user/${userId}`, {
-          method: "POST",
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: userId,
-            dashboard: bulkPermissions.dashboard,
-            centers: bulkPermissions.centers,
-            users: bulkPermissions.users,
-            students: bulkPermissions.students,
-            teachers: bulkPermissions.teachers,
-            classes: bulkPermissions.classes,
-            courses: bulkPermissions.courses,
-            attendance: bulkPermissions.attendance,
-            payments: bulkPermissions.payments,
-            payroll: bulkPermissions.payroll,
-            reports: bulkPermissions.reports,
-            settings: bulkPermissions.settings,
-            aiAssistant: bulkPermissions.ai_assistant,
-            communication: bulkPermissions.communication,
-            documents: bulkPermissions.documents,
-            academyServiceEnabled: true,
-            paymentServiceEnabled: true,
-            attendanceServiceEnabled: true,
-            payrollServiceEnabled: true,
-            connectServiceEnabled: true,
-            aiGatewayEnabled: true,
-          }),
+          // PUT updates only the keys sent. This screen does not show Social Media or the
+          // six service switches, so it must not write them — a full POST used to reset
+          // them on every save, undoing whatever Feature Management had set.
+          body: JSON.stringify(partialPermissionBody(bulkPermissions)),
         });
       });
 
