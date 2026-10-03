@@ -48,9 +48,20 @@ one was fixed today; the rest are genuinely outstanding.
    a Roles × Features matrix does not exist.
 4. **`targetRoles` on FeatureFlag** — ❌ outstanding. `FeatureFlag` carries `targetTenants` and
    `targetUsers`; there is no role dimension, and no frontend reader.
-5. **Registry of features** — ❌ outstanding. The 16 keys in `UserPermission` are the de-facto
-   registry, duplicated across the entity, the DTO, the context and the editor's own list. Nav
-   sections that have no key cannot be granted at all.
+5. **Registry of features** — ⚠️ partly done (2026-10-03). The 22 switches now live once, in
+   `frontend/lib/feature-registry.ts`, with the field the API returns and the key PUT reads.
+   `feature-registry.test.ts` fails if that list drifts from `UserPermissionDTO` or from the
+   PUT handler. Feature Management and both Roles screens use it; `PermissionContext` and the
+   per-role defaults still carry their own copy. Nav sections without a key remain ungrantable.
+
+   **Bug found while consolidating:** both Roles screens (`superadmin/roles`, `chairman/roles`)
+   saved with POST, a full replace, and their bodies hard-coded all six service switches to on
+   and never mentioned Social Media. Saving a user there therefore **re-enabled any service the
+   Chairman had switched off in Feature Management, and revoked Social Media**, with no sign of
+   either. They now PUT only the switches they show; a test fails if any editor POSTs again.
+   Feature Management itself enabled Save while a user's switches were still loading (or had
+   failed to load) and read as all-off, so one click could write `false` to all 22 and lock the
+   user out; Save now waits for a successful load.
 
 **Also fixed today (`e4e5f5c`), found while checking the above:** the permissions endpoint
 answered 200 with a synthesised all-denied default when a user had no row, indistinguishable
@@ -96,8 +107,7 @@ neighbour.** `/api/courses` reported `classes_access` and `/api/centers` reporte
 `settings_access`, so the screen implied a distinction the backend did not make. The per-user
 column and the granular role code are now mapped separately — deriving both from one mapping
 would demand `courses.*` / `reports.*` codes that `role_permissions` has never seeded, and deny
-every non-god-mode caller. `centers_access` is a special case: `/api/centers` is governed by
-`settings_access`, so the Centers toggle is inert while Settings silently covers it.
+every non-god-mode caller. `/api/centers` now reports `centers_access` (`c5ea805`).
 
 **The gates carry only the per-user layer where they were added.** The older gates also check a
 role layer against granular codes in `role_permissions`; that table seeds 30 codes and none of
