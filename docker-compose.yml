@@ -291,6 +291,10 @@ services:
       # Left optional so an existing dev stack still starts; SET THEM for any real deployment.
       LERA_SEED_CHAIRMAN_PASSWORD: ${LERA_SEED_CHAIRMAN_PASSWORD:-}
       LERA_SEED_CEO_PASSWORD: ${LERA_SEED_CEO_PASSWORD:-}
+      # Repeats the property default verbatim on purpose: an EMPTY env var OVERRIDES a
+      # Spring default rather than falling back to it, so `${VAR:-}` here would blank the
+      # seeded admin address instead of leaving it alone.
+      LERA_SEED_ADMIN_EMAIL: ${LERA_SEED_ADMIN_EMAIL:-admin@leraacademy.edu.vn}
       LERA_SEED_ADMIN_PASSWORD: ${LERA_SEED_ADMIN_PASSWORD:-}
       DB_NAME: lera
     ports:
