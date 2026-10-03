@@ -74,17 +74,30 @@ set -a && . ./.env.production && set +a
 docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build
 ```
 
-**Both `-f` flags are mandatory, on this and on every later command.** The overlay does two
-things the base file does not: it puts Caddy in front of the gateway and obtains the TLS
-certificate, and it switches all nine services from the `docker` profile to `prod`. The `prod`
-profile is what sets `lera.cookies.secure` and `lera.security.trusted-proxy` across every
-service — both of which matter here specifically because Caddy terminates TLS and forwards
-`X-Forwarded-For`. Without them your session cookies are not marked Secure and every request
-looks like it came from the proxy. It also drops logging to WARN and keeps the API docs off.
+**Both `-f` flags are mandatory, on this and on every later command.** The single most
+important thing the overlay does is **close the ports**. The base compose publishes, to the
+host: PostgreSQL on **5432**, pgAdmin on **5050**, MinIO on **9000/9001**, the frontend on
+3000, and all nine services on 8081–8089. On a laptop those are conveniences. On a public
+server they are your database, your object store and an admin console, open to the internet.
+The overlay resets every one of them (`ports: !reset []`) and publishes only Caddy on 80/443.
 
-If you run plain `docker compose up -d` against this stack it will recreate the containers
-under the `docker` profile, dropping TLS and those two settings. Not fatal, but wrong — bring
-it back up with both files.
+It also puts Caddy in front of the gateway for TLS, and switches all nine services from the
+`docker` profile to `prod` — which is what sets `lera.cookies.secure` and
+`lera.security.trusted-proxy` everywhere, both of which matter precisely because Caddy
+terminates TLS and forwards `X-Forwarded-For`. Without them session cookies are not marked
+Secure and every request appears to come from the proxy. `prod` also drops logging to WARN and
+keeps the API docs off.
+
+So if you ever run plain `docker compose up -d` against this stack, you have not merely lost
+TLS — you have republished Postgres on 5432 to the public internet. Bring it back up with both
+files, and confirm with `docker compose -f docker-compose.yml -f docker-compose.https.yml ps`
+that nothing but Caddy lists a published port.
+
+To reach pgAdmin or MinIO, tunnel over SSH rather than publishing the port:
+
+```bash
+ssh -L 5050:localhost:5050 user@server   # then open http://localhost:5050
+```
 
 > On fake data: there is none to worry about, and this was checked rather than assumed. No
 > service contains a `data.sql` or `import.sql`, so Spring's SQL initialisation has nothing to
@@ -109,6 +122,13 @@ leracompose ps
 # the profile actually in effect — must print prod
 docker inspect identity_service --format '{{range .Config.Env}}{{println .}}{{end}}' \
   | grep SPRING_PROFILES_ACTIVE
+
+# NOTHING but Caddy may list a published port. If postgres, pgadmin, minio or any
+# 808x service appears here, you are running without the overlay — stop and redeploy.
+leracompose ps --format '{{.Service}}\t{{.Ports}}' | grep -v '^caddy'
+
+# and from somewhere OTHER than the server, confirm the database is not reachable:
+#   nc -z -w3 app.your-domain.com 5432   # must fail
 
 # TLS answering on the real hostname
 curl -sS -o /dev/null -w '%{http_code}\n' https://app.your-domain.com/
@@ -199,6 +219,21 @@ Accepted deliberately for a soft launch — each is a decision, not an oversight
 | **Payroll report tax is a browser-side estimate** | It ignores the seven configured `tax_settings` rows. Payroll totals themselves are verified correct — but do not file tax from that report. |
 | **Never load-tested** | Correctness is well covered by tests; capacity under real traffic is unmeasured. |
 | **Mobile apps not submitted** | The iOS/Android shell builds, but nothing is in either store. |
+| **No metrics or alerting** | You will find out about an outage from a person, not a dashboard. Prometheus, Grafana and alert rules exist on the unmerged `feat/vps-monitoring` branch — see below. |
+
+### The five unmerged branches
+
+None is required for this launch, and merging on launch day is optional. Each is a single
+commit on a base roughly 114 commits old, so the large diff you see against `main` is the
+two-way tip difference, not what a merge would remove. Dry-run merges (`git merge-tree`):
+
+| Branch | Merges | Relevance today |
+|---|---|---|
+| `feat/vps-monitoring` | clean | The only one that touches this path: Prometheus + Grafana + alert rules, and it edits `docker-compose.https.yml`. It also makes `/actuator/prometheus` `permitAll`, which is safe **only** because the overlay publishes no service ports — verified. Merge it if you want monitoring on day one; redeploy after. |
+| `chore/next-15-upgrade` | clean | Next 14 → 15. Do not take a framework upgrade on launch day. |
+| `fix/mobile-conversion-audit` | clean | Public-site tap targets and form labels. Cosmetic; safe later. |
+| `fix/e2e-stale-consent-tests` | clean | Test-only. |
+| `fix/deploy-script-two-phase` | **conflicts** in `aws/deploy-aws.sh` | AWS only. Irrelevant to a VPS deploy; leave it. |
 
 ## If you need to roll back
 
