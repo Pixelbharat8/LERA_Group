@@ -34,6 +34,16 @@ BACKENDS=(identity_service academy_service payment_service payroll_service
           attendance_service connect_service ai_gateway rule_engine
           social_media_service)
 
+# rule_engine is deliberately NOT in phase 1. Every other backend needs ddl-auto to build the
+# shared schema with Flyway off; rule_engine is the inverse — its own V1__Rule_Engine_Tables.sql
+# CREATEs the four tables it owns, and with Flyway off it finds none of them and dies on
+#   Schema-validation: missing table [business_rules]
+# Measured: with Flyway off it never becomes healthy, so waiting for it made phase 1 time out
+# after 900s and the bootstrap died before reaching phase 2. With Flyway on and an empty
+# database it starts in 2.5s on its own.
+PHASE1_BACKENDS=(identity_service academy_service payment_service payroll_service
+                 attendance_service connect_service ai_gateway social_media_service)
+
 RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[1;33m'; NC=$'\033[0m'
 say() { printf '%s\n' "${YELLOW}$*${NC}"; }
 ok()  { printf '%s\n' "${GREEN}✓ $*${NC}"; }
@@ -52,11 +62,15 @@ if [[ -z "${LERA_SEED_CHAIRMAN_PASSWORD:-}" ]]; then
 fi
 
 # Wait for the backends to report healthy (compose healthchecks hit /actuator/health).
+# wait_healthy <timeout> [service…] — defaults to every backend.
 wait_healthy() {
   local deadline=$(( SECONDS + ${1:-600} ))
+  shift || true
+  local -a svcs=("$@")
+  (( ${#svcs[@]} )) || svcs=("${BACKENDS[@]}")
   while (( SECONDS < deadline )); do
     local pending=0
-    for svc in "${BACKENDS[@]}"; do
+    for svc in "${svcs[@]}"; do
       local cid state
       cid=$("${COMPOSE[@]}" ps -q "$svc" 2>/dev/null || true)
       if [[ -z "$cid" ]]; then pending=$(( pending + 1 )); continue; fi
@@ -64,7 +78,7 @@ wait_healthy() {
       [[ "$state" == "healthy" || "$state" == "running" ]] || pending=$(( pending + 1 ))
     done
     (( pending == 0 )) && return 0
-    printf '  %d/%d still starting…\n' "$pending" "${#BACKENDS[@]}"
+    printf '  %d/%d still starting…\n' "$pending" "${#svcs[@]}"
     sleep 10
   done
   return 1
@@ -88,8 +102,9 @@ if schema_exists; then
 else
   say "Empty database detected — running the two-phase bootstrap."
   say "Phase 1/2 — backends with Flyway DISABLED so ddl-auto can build the base schema…"
-  SPRING_FLYWAY_ENABLED=false "${COMPOSE[@]}" up -d --build "${BACKENDS[@]}"
-  wait_healthy 900 || die "Phase 1: services did not become healthy. Check 'docker compose logs'."
+  SPRING_FLYWAY_ENABLED=false "${COMPOSE[@]}" up -d --build "${PHASE1_BACKENDS[@]}"
+  wait_healthy 900 "${PHASE1_BACKENDS[@]}" \
+    || die "Phase 1: services did not become healthy. Check 'docker compose logs'."
   ok "Phase 1 complete — base schema built."
 
   say "Phase 2/2 — restarting with Flyway ENABLED to apply the migration overlays…"

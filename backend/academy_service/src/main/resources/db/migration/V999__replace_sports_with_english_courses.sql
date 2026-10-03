@@ -3,6 +3,28 @@
 -- =====================================================
 -- Safe on existing dev DBs: deletes only unreferenced rows; upserts by primary key (id).
 
+-- GUARDED, and it has to be. Flyway runs BEFORE Hibernate, so on a brand-new database
+-- `course_programs` and `classes` do not exist yet — ddl-auto=update creates them later in the
+-- same startup. Unguarded, the first DELETE below raised
+--     ERROR: relation "course_programs" does not exist
+-- which failed the migration, failed flywayInitializer, and stopped academy_service from
+-- starting at all. Measured on an empty database, not theorised: that is precisely what a
+-- deployment to a fresh server does, and it is the one case no previous check covered because
+-- every database to hand already had the tables.
+--
+-- On a fresh database there is nothing to replace, so skipping is the correct behaviour: the
+-- English programmes this script upserts are seeded by the application, and the sports rows it
+-- removes have never existed. Same idiom as V20260701__fix_library_transport_id_drift.sql.
+DO $guard$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables
+                    WHERE table_schema = 'public' AND table_name = 'course_programs')
+    OR NOT EXISTS (SELECT 1 FROM information_schema.tables
+                    WHERE table_schema = 'public' AND table_name = 'classes') THEN
+        RAISE NOTICE 'V999: course_programs/classes not present yet (fresh database) — nothing to replace, skipping';
+        RETURN;
+    END IF;
+
 -- Step 1: Delete sports programs not referenced by classes
 DELETE FROM course_programs
 WHERE category IN ('SPORTS', 'FOOTBALL', 'SWIMMING', 'TENNIS', 'BASKETBALL', 'MARTIAL_ARTS', 'YOGA')
@@ -117,3 +139,4 @@ ON CONFLICT (id) DO UPDATE SET
     level = EXCLUDED.level, price = EXCLUDED.price, color = EXCLUDED.color,
     is_featured = EXCLUDED.is_featured, is_active = EXCLUDED.is_active,
     display_order = EXCLUDED.display_order, updated_at = NOW();
+END $guard$;

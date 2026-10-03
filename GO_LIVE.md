@@ -84,10 +84,28 @@ whatever sits on the account, and `POST /api/auth/forgot-password` is public.
 
 ## 4. Deploy — both compose files, every time
 
+**Use the script — it already does this correctly:**
+
 ```bash
 set -a && . ./.env.production && set +a
+./scripts/vps-first-deploy.sh
+```
+
+It detects whether the database is empty and, if so, runs a two-phase bootstrap: backends with
+Flyway **off** so Hibernate's `ddl-auto=update` builds the shared schema, then again with Flyway
+**on** to apply the migration overlays, waiting for health between the two. On an existing
+database it skips phase 1 and just deploys. Afterwards, ordinary deploys are the plain command:
+
+```bash
 docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build
 ```
+
+**Why two phases.** Flyway runs *before* Hibernate, and these migrations are overlays that
+`ALTER` tables `ddl-auto` has not created yet. A first boot with Flyway on dies on
+`relation "..." does not exist`, which fails `flywayInitializer` and stops the service dead.
+Measured on an empty database: academy_service was taken down by exactly that. `rule_engine` is
+the one exception and the script knows it — it owns a migration that CREATEs its own tables, so
+it starts in phase 2 rather than phase 1.
 
 **Both `-f` flags are mandatory, on this and on every later command.** The single most
 important thing the overlay does is **close the ports**. The base compose publishes, to the

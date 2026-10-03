@@ -15,6 +15,21 @@
 -- A fresh install has no LEG_* rows — V999 only renames rows that already existed, and the demo
 -- seed no longer loads — so this is a no-op there. Rows still referenced by a class or a course
 -- level are left active: those need a human to re-point the reference first.
+--
+-- The no-op above is NOT automatic, which is why this is wrapped. `course_levels` is owned by no
+-- JPA entity, so ddl-auto=update never creates it — it exists only on databases old enough to
+-- have had it. PostgreSQL resolves every table reference when it plans the statement, before any
+-- row is matched, so the NOT EXISTS below raised
+--     ERROR: relation "course_levels" does not exist
+-- on a fresh database and took academy_service down with it. Measured on a Hibernate-built
+-- schema, which is what a new deployment actually has.
+DO $guard$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables
+                    WHERE table_schema = 'public' AND table_name = 'course_levels') THEN
+        RAISE NOTICE 'V20260912: course_levels absent (fresh database, no legacy catalogue) — nothing to retire, skipping';
+        RETURN;
+    END IF;
 
 UPDATE course_programs leg
 SET is_active = false,
@@ -23,3 +38,4 @@ WHERE leg.code LIKE 'LEG\_%'
   AND leg.is_active
   AND NOT EXISTS (SELECT 1 FROM classes c       WHERE c.program_id = leg.id)
   AND NOT EXISTS (SELECT 1 FROM course_levels l WHERE l.program_id = leg.id);
+END $guard$;
