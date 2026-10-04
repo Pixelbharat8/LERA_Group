@@ -153,6 +153,12 @@ export default function TeachersPage() {
       const newTeacher = await apiFetch("/api/teachers", {
         method: "POST",
         body: JSON.stringify({
+          // The form marks Email required and the payload used to drop it, so every teacher was
+          // created without one: the Email column rendered blank and, because the server
+          // provisions the TEACHER login from this address, the teacher had no way to sign in.
+          // (The form has no phone input, so the list's Phone column stays blank — a separate gap,
+          // not worth inventing a field for here.)
+          email: formData.email,
           teacherCode: formData.teacherCode,
           specialization: formData.specialization,
           qualification: formData.qualification,

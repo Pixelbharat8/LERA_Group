@@ -154,6 +154,14 @@ public class TeacherController {
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','CHAIRMAN','CEO','DIRECTOR','CENTER_MANAGER')")
     public ResponseEntity<Teacher> createTeacher(@Valid @RequestBody Teacher teacher) {
+        // Provision a TEACHER login exactly as /teachers/bulk already does. Without this a teacher
+        // added one at a time through the admin UI got a profile with NO user account and could
+        // never sign in — and nothing said so. The bulk importer had this from the start; the
+        // single create, which is the path an administrator actually uses, did not.
+        if (teacher.getUserId() == null && teacher.getEmail() != null && !teacher.getEmail().isBlank()) {
+            identityClient.provisionUser(teacher.getEmail(), teacher.getDisplayName(),
+                    teacher.getPhone(), "TEACHER").ifPresent(teacher::setUserId);
+        }
         return ResponseEntity.ok(teacherService.create(teacher));
     }
     

@@ -152,6 +152,39 @@ Consider an alias so it cannot be got wrong:
 alias leracompose='docker compose -f docker-compose.yml -f docker-compose.https.yml'
 ```
 
+## 4b. Upgrading a database that already ran these migrations
+
+**Skip this on a brand-new database.** If the target database has already applied academy's
+migrations — a staging box, or anything restored from an earlier deploy — the backends will
+refuse to start:
+
+```
+Validate failed: Migrations have failed validation
+Migration checksum mismatch for migration version 999
+Migration checksum mismatch for migration version 20260912
+```
+
+Two already-applied migrations were edited to add fresh-install guards (`3194f1e`), which
+changed their checksums. Flyway compares the checksum of each file against the one recorded in
+`flyway_academy_history` and refuses to run when they differ — by design, because an edited
+migration usually means someone changed history. Here the edit is deliberate and the applied
+effect is unchanged: both now skip when their tables are absent, which on an already-migrated
+database is never the case.
+
+Clear the two recorded checksums so validation accepts the files, then start:
+
+```bash
+docker exec lera_postgres psql -U lera -d lera -c \
+  "UPDATE flyway_academy_history SET checksum = NULL WHERE version IN ('999','20260912');"
+```
+
+A null checksum means "do not validate this one", which is what `flyway repair` does for this
+case. Do **not** reach for `spring.flyway.validate-on-migrate=false` instead — that disables the
+check for every migration, permanently.
+
+I hit this on the development database while verifying the flow: academy_service crash-looped
+until the checksums were cleared.
+
 ## 5. Verify the boot
 
 ```bash
