@@ -1,5 +1,11 @@
 # Going live — soft launch (public site + logins + email, no payments)
 
+> **This is the operator runbook: the ordered commands to follow on the server.** The
+> authoritative status-and-decisions record is `docs/GO_LIVE_CHECKLIST.md`, which predates this
+> file and carries the evidence behind each claim (secret rotation, the hosting-country decision,
+> the §3a schema-bootstrap proof, Vietnam compliance). Read that for *why*; follow this for *how*.
+> Where they disagree, trust the checklist.
+
 Written for whoever runs the deployment. Follow the steps in order; step 4 and step 7 are the
 two places where getting it wrong is costly.
 

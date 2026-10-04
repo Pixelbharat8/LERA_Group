@@ -41,7 +41,8 @@ x-prod-profile: &prod-profile
   # to apply the migration overlays. No migration in this repo creates the base
   # tables, so a first boot with Flyway on dies on
   #   ERROR: relation "course_programs" does not exist
-  # `scripts/vps-first-deploy.sh` does both phases for you. See GO_LIVE.md step 4.
+  # `scripts/vps-first-deploy.sh` does both phases for you. See docs/GO_LIVE_CHECKLIST.md
+  # §3a (the authoritative account), or GO_LIVE.md step 4 for the operator steps.
   SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED:-true}
 
 # SECURITY: the base compose publishes every service to the host — Postgres on

@@ -1,7 +1,31 @@
 # LERA — Go-Live Checklist
 
-## Current status (updated 2026-09-09)
-Code is feature-complete and builds clean. `origin/main` is in sync at `233eb48`.
+> **Two documents, different jobs.** This one is the authoritative *status and decisions* record:
+> what is verified, what is outstanding, what LERA must choose. `GO_LIVE.md` at the repo root is
+> the *operator runbook* — the ordered commands for a VPS soft launch. Where they disagree, this
+> file is the one with the evidence; the runbook is the one you follow on the server.
+
+## Current status (updated 2026-10-04)
+Code is feature-complete and builds clean.
+
+> ### ⛔ `origin/main` is NOT in sync — 22 commits behind local
+>
+> `origin/main` is at `591eb1c`; the local branch is at `405ecd4`, **22 ahead and 0 behind**.
+> A server built from a fresh clone of origin therefore gets **none** of the following, all of
+> which are launch-relevant:
+>
+> - the fresh-database migration guards — **the two-phase bootstrap FAILS without them**
+>   (`3194f1e`), so a first deploy from origin dies in phase 2
+> - `GO_LIVE.md`, the operator runbook itself
+> - the seeded SUPER_ADMIN moved off a domain LERA does not own (`415b8d7`)
+> - the privacy policy's AI cross-border and staff-data disclosures (`405ecd4`)
+> - the chat WebSocket endpoint and gateway route (`efc7055`)
+> - the corrected Hải Phòng contact-data script (`9883c05`)
+> - the permission-system fixes and all 21 enforceable Chairman toggles
+>
+> **Push before deploying, or deploy from this working copy.** This line previously read
+> "`origin/main` is in sync at `233eb48`" and had been stale since 2026-09-09 — which is the
+> kind of claim that makes a deploy ship the wrong code.
 
 > **Correcting the previous entry.** This file claimed origin was in sync at `2a2ee72` from
 > 2026-06-29 onward. It was not: `main` sat **182 commits ahead of origin for two months**
@@ -57,7 +81,9 @@ These cannot both be right. Resolve this **before** deploying, with counsel:
 Everything below assumes the AWS path, because that is what the templates automate.
 
 **✅ Done & verified this round:**
-- Flyway baselines deploy on a fresh DB — all 9 services dry-run clean (see 3a/3b).
+- Flyway baselines deploy on a fresh DB — re-measured 2026-10-04 by booting the real images
+  against an empty database: 8/9 healthy in phase 1 (203 tables), all 58 migrations then applied,
+  0 failures. The 2026-09-11 claim had been invalidated the next day by one new migration; see 3a.
 - API returns correct status codes everywhere (404/400/405/415, no spurious 500s); regression test added.
 - Frontend: 0 JS crashes across 323 routes; AI pages fixed; 0 dead nav links.
 - **Backend test suite GREEN** on `main` (9/9 modules BUILD SUCCESS).
@@ -238,7 +264,31 @@ first, then let update+Flyway adopt it. Either way the **full** schema must exis
 first Flyway boot. (This `pg_dump --schema-only` base + docker-profile boot is exactly how the
 2026-07-04 verification was run — all 9 services clean.)
 
-#### ✅ 3a-verified. The two-phase bootstrap now has an end-to-end proof (2026-09-11)
+#### ⚠️ 3a-REGRESSED then re-verified (2026-10-04) — read this before trusting the 09-11 proof
+
+**The 2026-09-11 proof below was valid when it was made and was invalidated the next day.**
+Exactly one academy migration has been added since that commit (21 → 22):
+`V20260912__deactivate_superseded_legacy_programs.sql`, committed 2026-09-12. It was unguarded
+and referenced `course_levels` — a table **no JPA entity owns**, so `ddl-auto` never creates it.
+PostgreSQL resolves table references when it plans a statement, before any row is matched, so it
+failed on a Hibernate-built schema regardless of its `WHERE` clause matching nothing. The
+document's summary line "Flyway baselines deploy on a fresh DB — all 9 services dry-run clean"
+was therefore **false for three weeks** and nobody re-ran the check.
+
+Re-measured 2026-10-04 by booting the real images against an empty database (`3194f1e`):
+
+| Finding | Status |
+|---|---|
+| `V20260912` failed phase 2 on a Hibernate-built schema | **fixed** — guarded with the `DO $guard$` idiom, skips when `course_levels` is absent |
+| `V999` failed phase 1 when Flyway was on | **fixed** — guarded the same way (defensive; the two-phase order already avoided it) |
+| **`rule_engine` can never complete phase 1** | **fixed** — it is the inverse case: its own `V1` CREATEs its four tables, so with Flyway *off* it dies on `Schema-validation: missing table [business_rules]`. It was in `vps-first-deploy.sh`'s `wait_healthy` list, so phase 1 timed out after 900s and the bootstrap died before reaching phase 2. It now starts in phase 2, where it comes up unaided in 2.5s |
+| All 9 services, empty DB, two phases | **8/9 healthy in phase 1 building 203 tables; all 58 migrations then applied, 0 failures** |
+
+**The lesson for this checklist: a dated proof is not a standing guarantee.** Any new migration
+can invalidate §3a, and this one did so within 24 hours. Re-run the bootstrap against an empty
+database whenever a migration is added — not just before a release.
+
+#### ✅ The original proof (2026-09-11), kept for its method
 
 Previous verifications ran service-by-service, or against a `pg_dump` of an already-correct
 schema. This one ran the **actual deploy sequence** against a real, empty Postgres in an isolated
