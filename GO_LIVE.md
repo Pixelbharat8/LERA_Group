@@ -230,6 +230,24 @@ It is idempotent; running it twice changes nothing the second time. On a fresh d
 it is a no-op (there are no placeholder rows to correct), and the part that matters is the
 contact block, which it creates rather than merely updating.
 
+## 6b. Give every staff account a centre
+
+Lead reads are centre-scoped. A staff account with no `center_id` gets
+`403 "JWT must include centerId for this operation"` on the whole CRM — the lead list and the
+needs-contact SLA queue both. It is not a permissions toggle and no grant fixes it; the centre
+has to be on the account, and it is read from the JWT, so **the user must log in again after you
+set it**.
+
+```sql
+-- staff who cannot see any lead
+SELECT email FROM users WHERE center_id IS NULL
+  AND role_id IN (SELECT id FROM roles
+                  WHERE name IN ('STAFF','CENTER_MANAGER','CENTER_ADMIN','ACADEMIC_MANAGER'));
+```
+
+Chairman, CEO, Director and Super Admin are org-wide and see everything regardless, which is
+why this stays invisible until a non-executive tries to work the enquiry queue.
+
 ## 7. Turn email on — after this check, not before
 
 Email is the one feature that converts a dormant problem into a live one. Before enabling it,

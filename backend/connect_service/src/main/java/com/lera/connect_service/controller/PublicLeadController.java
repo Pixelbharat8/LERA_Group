@@ -79,7 +79,7 @@ public class PublicLeadController {
                 ? req.getParentPhone().trim()
                 : "—";
         Lead lead = Lead.builder()
-                .centerId(req.getCenterId())
+                .centerId(req.getCenterId() != null ? req.getCenterId() : soleActiveCenterId())
                 .parentName(stripTags(req.getParentName().trim()))
                 .parentPhone(phone)
                 .parentEmail(req.getParentEmail() != null ? req.getParentEmail().trim() : null)
@@ -135,6 +135,40 @@ public class PublicLeadController {
                 "id", saved.getId().toString(),
                 "message", "Thank you — we will contact you shortly."
         ));
+    }
+
+    /**
+     * The centre a public lead belongs to, when that is unambiguous.
+     *
+     * None of the eight public entry points (contact, enroll, book-trial, placement, corporate,
+     * blog, course pages, homepage) sends a centreId, so every website enquiry was stored with
+     * center_id NULL. Lead reads are centre-scoped: ConnectSecurity.assertCanAccessLead rejects a
+     * lead whose centre does not match the caller's JWT centre, and effectiveCenterId refuses a
+     * caller with no JWT centre outright. Only org-wide roles (Chairman/CEO/Director/SuperAdmin)
+     * can see an unassigned lead — so the centre staff who actually return enquiries saw none of
+     * them and their needs-contact SLA queue was permanently empty. Measured, not inferred: a
+     * lead submitted through the real contact form came back 403 "JWT must include centerId" for
+     * a STAFF caller.
+     *
+     * Resolved here rather than in each form, because that covers every channel present and
+     * future and does not trust a centre id supplied by an anonymous caller. Read straight from
+     * the shared database, as PermissionGateFilter already reads identity's user_permissions.
+     *
+     * Deliberately conservative: only when EXACTLY ONE active centre exists. With none, or with
+     * several, there is no right answer to guess, so the lead stays unassigned for org-wide
+     * triage — the previous behaviour, not a regression.
+     */
+    private UUID soleActiveCenterId() {
+        try {
+            List<UUID> ids = jdbc.query(
+                    "SELECT id FROM centers WHERE status = 'ACTIVE' LIMIT 2",
+                    (rs, i) -> (UUID) rs.getObject(1));
+            return ids.size() == 1 ? ids.get(0) : null;
+        } catch (Exception e) {
+            // Never fail lead capture over this: an unassigned lead is recoverable, a lost one is not.
+            log.warn("Could not resolve the sole active centre for a public lead: {}", e.toString());
+            return null;
+        }
     }
 
     private boolean allowSubmission(String clientKey) {
