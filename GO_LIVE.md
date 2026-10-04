@@ -281,6 +281,26 @@ SELECT email FROM users WHERE center_id IS NULL
 Chairman, CEO, Director and Super Admin are org-wide and see everything regardless, which is
 why this stays invisible until a non-executive tries to work the enquiry queue.
 
+## 6c. Who can create a usable login
+
+Only an **org-wide** role — Chairman, CEO, Director, Super Admin — creates an account that is
+immediately ACTIVE. `AuthController` computes `privileged = isInternal || isAuthenticatedOrgWideAdmin()`
+and **CENTER_MANAGER is deliberately not in that set**.
+
+So when a centre manager adds a student with "create account" ticked, the call succeeds, the
+account lands PENDING, and that student's login is refused until somebody approves it under
+Pending Approvals. Measured: register returns 200, the row is PENDING/PENDING, login returns 400.
+The screen now says so instead of reporting plain success, but the behaviour itself is unchanged.
+
+**Decide before you hand the system over:** if centre managers are meant to enrol students
+without an executive approving every login, either have an org-wide account do the data entry,
+or widen that set. Widening it is a privilege change and deliberately not made here.
+
+The same applies to the **bulk importers**, which are the only path that links a PARENT login to
+a student (from `parentEmail`) and a TEACHER login on import. The one-at-a-time student form
+collects no parent details at all, so students created that way have no parent account and the
+parent panel stays empty for them.
+
 ## 7. Turn email on — after this check, not before
 
 Email is the one feature that converts a dormant problem into a live one. Before enabling it,

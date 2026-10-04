@@ -144,6 +144,7 @@ export default function StudentsPage() {
     try {
       // If createAccounts is checked, first create a user account
       let userId = formData.userId;
+      let pendingApproval = false;
       if (createAccounts && formData.email && formData.password) {
         const userResponse = await apiFetch("/api/auth/register", {
           method: "POST",
@@ -159,6 +160,16 @@ export default function StudentsPage() {
         });
         if (userResponse.user?.id) {
           userId = userResponse.user.id;
+        }
+        // Whether that login can actually be used is the server's call, not ours: only an
+        // org-wide admin (Chairman/CEO/Director/Super Admin) creates an ACTIVE account.
+        // A centre manager's registration lands PENDING and the student's login is refused
+        // until someone approves it — measured: register returns 200, the row is
+        // PENDING/PENDING, and signing in gets 400. This screen used to read only `user.id`
+        // and then announce "Student created successfully!", so the password was typed in and
+        // the account silently could not be used.
+        if (userResponse.user?.status === "PENDING" || userResponse.user?.approvalStatus === "PENDING") {
+          pendingApproval = true;
         }
       }
 
@@ -192,7 +203,12 @@ export default function StudentsPage() {
       setStudents([...students, newStudent]);
       setShowAddModal(false);
       setFormData({ studentCode: "", fullname: "", email: "", phone: "", dateOfBirth: "", centerId: "", userId: "", password: "", classId: "" });
-      setSuccessMessage("Student created successfully!");
+      setSuccessMessage(
+        pendingApproval
+          ? "Student created — but the login is PENDING APPROVAL and cannot be used yet. " +
+            "Approve it under Pending Approvals (an org-wide admin can create active logins directly)."
+          : "Student created successfully!"
+      );
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err: any) {
       setError(err.message);
