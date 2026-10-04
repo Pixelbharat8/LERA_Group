@@ -24,25 +24,51 @@ export interface LegalSection {
   content: string;
 }
 
+/**
+ * The live privacy policy and terms. These render on /privacy and /terms unless the CMS holds
+ * an override (Super Admin → Public Website), and no override exists, so this file IS what the
+ * public sees.
+ *
+ * Two statements here are factual claims about LERA's operations, not boilerplate, and whoever
+ * changes the deployment owns them:
+ *   1. "Your data is stored on servers located in Vietnam" (privacy §8). True only while the
+ *      platform is actually hosted in Vietnam. The AWS CloudFormation template in this repo
+ *      pins us-east-1 (its WAFv2 WebACL is Scope=CLOUDFRONT, which AWS only accepts there), so
+ *      deploying that way makes this sentence false and must be corrected first.
+ *   2. The AI cross-border transfer (privacy §7, terms §7) describes ai_gateway calling
+ *      api.anthropic.com / api.openai.com. If those integrations are removed, the disclosure
+ *      should go with them; if a different provider is added, it belongs in the list.
+ *
+ * None of this has been reviewed by a Vietnamese lawyer.
+ */
 export const PRIVACY_SECTIONS_EN: LegalSection[] = [
   {
     title: "1. Scope & Legal Basis",
-    content: `LERA Academy processes personal data in accordance with Vietnam's Personal Data Protection Decree (Nghị định 13/2023/NĐ-CP). We process your data on the basis of your consent and to perform our educational services. By submitting a form on this website you consent to the processing described here.`
+    content: `LERA Academy processes personal data in accordance with Vietnam's Personal Data Protection Decree (Nghị định 13/2023/NĐ-CP). We process your data on the basis of your consent and to perform our educational services. By submitting a form on this website you consent to the processing described here. This policy covers learners, parents and guardians, and also our staff (section 4).`
   },
   {
     title: "2. Information We Collect",
-    content: `We collect information you provide directly, such as when you enrol, book a trial, contact us, or use our services. This may include:
+    content: `We collect information you provide directly, and information our systems record while you use the service:
     • Name and contact information (email, phone number, address)
-    • A child's name and age (for children's programs)
-    • Payment information
-    • Course preferences and learning progress`
+    • A child's name, date of birth and age (for children's programs)
+    • Payment information, invoices and payment history
+    • Course enrolment, preferences and learning progress
+    • Attendance records and assessment or exam results
+    • Messages you exchange with teachers and staff through the platform
+    • Documents and files you upload (for example enrolment paperwork)
+    • Device identifiers, where you enable push notifications
+    • Technical data needed to keep you signed in, such as session cookies`
   },
   {
     title: "3. Children's Data & Parental Consent",
     content: `Many of our learners are minors. Where we process a child's personal data, we do so only with the consent of the child's parent or legal guardian, who provides that consent when submitting our forms. A parent/guardian may review, correct, or request deletion of their child's data at any time.`
   },
   {
-    title: "4. How We Use Your Information",
+    title: "4. Staff & Employee Data",
+    content: `We also process personal data about our teachers and staff in order to employ them: contact details, employment records, attendance and leave, qualifications and uploaded documents, and payroll information including salary, allowances, deductions and payslips. This is processed to perform the employment contract and to meet our obligations under Vietnamese labour, tax and social-insurance law. Staff have the same rights set out in section 9.`
+  },
+  {
+    title: "5. How We Use Your Information",
     content: `We use the information we collect to:
     • Provide and improve our educational services
     • Communicate with you about courses and schedules
@@ -51,18 +77,25 @@ export const PRIVACY_SECTIONS_EN: LegalSection[] = [
     • Send promotional materials (only with your consent)`
   },
   {
-    title: "5. Information Sharing",
+    title: "6. Information Sharing",
     content: `We do not sell or rent your personal data. We may share it with:
     • Our teachers and staff for educational purposes
     • Service providers who assist our operations (e.g. our licensed payment gateway)
+    • The providers of the optional AI features described in section 7
     • Legal authorities when required by law`
   },
   {
-    title: "6. Data Storage, Security & Retention",
-    content: `Your data is stored on servers located in Vietnam and protected with appropriate technical and organisational measures (encryption, access controls). We retain your data for as long as you use our services and for any period required by law, after which it is securely deleted. We will notify affected individuals and the competent authority of a personal-data breach as required by law.`
+    title: "7. AI Features & International Data Transfer",
+    content: `Some optional features of our platform are powered by third-party artificial-intelligence providers (Anthropic and OpenAI). Where such a feature is enabled and you use it, the content of your interaction with it — for example the questions you ask an AI tutor and the text it returns — is transmitted to and processed by that provider on servers OUTSIDE Vietnam, and a record of the conversation is kept in our own system.
+
+    This is a cross-border transfer of personal data. Do not enter personal details you do not wish to be processed abroad into an AI feature. If you would rather not have your data transferred in this way, do not use these features; the rest of the service does not depend on them, and you may withdraw consent at any time using the contact details in section 10.`
   },
   {
-    title: "7. Your Rights",
+    title: "8. Data Storage, Security & Retention",
+    content: `Your data is stored on servers located in Vietnam and protected with appropriate technical and organisational measures (encryption, access controls). The single exception is the AI features described in section 7, which transmit data abroad. We retain your data for as long as you use our services and for any period required by law, after which it is securely deleted. We will notify affected individuals and the competent authority of a personal-data breach as required by law.`
+  },
+  {
+    title: "9. Your Rights",
     content: `Under Nghị định 13/2023/NĐ-CP you have the right to:
     • Be informed about how your data is processed
     • Give and withdraw consent at any time
@@ -71,7 +104,7 @@ export const PRIVACY_SECTIONS_EN: LegalSection[] = [
     • Lodge a complaint with the competent authority`
   },
   {
-    title: "8. Contact Us",
+    title: "10. Contact Us",
     content: `For any privacy request (access, correction, deletion, or withdrawing consent), contact us at:
     Email: privacy@leraacademy.edu.vn
     Phone: 0387.633.141
@@ -82,22 +115,31 @@ export const PRIVACY_SECTIONS_EN: LegalSection[] = [
 export const PRIVACY_SECTIONS_VI: LegalSection[] = [
   {
     title: "1. Phạm Vi & Cơ Sở Pháp Lý",
-    content: `LERA Academy xử lý dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân. Chúng tôi xử lý dữ liệu của bạn trên cơ sở sự đồng ý của bạn và để cung cấp dịch vụ giáo dục. Khi gửi biểu mẫu trên website này, bạn đồng ý với việc xử lý dữ liệu được mô tả tại đây.`
+    content: `LERA Academy xử lý dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân. Chúng tôi xử lý dữ liệu của bạn trên cơ sở sự đồng ý của bạn và để cung cấp dịch vụ giáo dục. Khi gửi biểu mẫu trên website này, bạn đồng ý với việc xử lý dữ liệu được mô tả tại đây. Chính sách này áp dụng cho học viên, phụ huynh và người giám hộ, đồng thời áp dụng cho nhân viên của chúng tôi (mục 4).`
   },
   {
     title: "2. Thông Tin Chúng Tôi Thu Thập",
-    content: `Chúng tôi thu thập thông tin bạn cung cấp trực tiếp, chẳng hạn khi đăng ký nhập học, đăng ký học thử, liên hệ hoặc sử dụng dịch vụ. Có thể bao gồm:
+    content: `Chúng tôi thu thập thông tin bạn cung cấp trực tiếp và thông tin hệ thống ghi nhận trong quá trình bạn sử dụng dịch vụ:
     • Tên và thông tin liên hệ (email, số điện thoại, địa chỉ)
-    • Tên và tuổi của trẻ (cho các chương trình trẻ em)
-    • Thông tin thanh toán
-    • Sở thích khóa học và tiến độ học tập`
+    • Tên, ngày sinh và tuổi của trẻ (cho các chương trình trẻ em)
+    • Thông tin thanh toán, hóa đơn và lịch sử thanh toán
+    • Thông tin ghi danh, sở thích khóa học và tiến độ học tập
+    • Dữ liệu điểm danh và kết quả kiểm tra, thi
+    • Tin nhắn bạn trao đổi với giáo viên và nhân viên trên hệ thống
+    • Tài liệu và tệp bạn tải lên (ví dụ: hồ sơ nhập học)
+    • Định danh thiết bị, nếu bạn bật thông báo đẩy
+    • Dữ liệu kỹ thuật cần thiết để duy trì đăng nhập, như cookie phiên`
   },
   {
     title: "3. Dữ Liệu Của Trẻ Em & Sự Đồng Ý Của Phụ Huynh",
     content: `Nhiều học viên của chúng tôi là trẻ vị thành niên. Khi xử lý dữ liệu cá nhân của trẻ, chúng tôi chỉ thực hiện khi có sự đồng ý của cha mẹ hoặc người giám hộ hợp pháp — được cung cấp khi gửi biểu mẫu. Phụ huynh/người giám hộ có quyền xem, sửa hoặc yêu cầu xóa dữ liệu của con bất kỳ lúc nào.`
   },
   {
-    title: "4. Cách Chúng Tôi Sử Dụng Thông Tin",
+    title: "4. Dữ Liệu Của Nhân Viên",
+    content: `Chúng tôi cũng xử lý dữ liệu cá nhân của giáo viên và nhân viên để phục vụ quan hệ lao động: thông tin liên hệ, hồ sơ lao động, điểm danh và nghỉ phép, bằng cấp và tài liệu tải lên, cùng thông tin tiền lương bao gồm lương, phụ cấp, các khoản trừ và phiếu lương. Việc xử lý này nhằm thực hiện hợp đồng lao động và tuân thủ nghĩa vụ theo pháp luật lao động, thuế và bảo hiểm xã hội Việt Nam. Nhân viên có các quyền nêu tại mục 9.`
+  },
+  {
+    title: "5. Cách Chúng Tôi Sử Dụng Thông Tin",
     content: `Chúng tôi sử dụng thông tin thu thập được để:
     • Cung cấp và cải thiện dịch vụ giáo dục
     • Liên lạc với bạn về các khóa học và lịch trình
@@ -106,18 +148,25 @@ export const PRIVACY_SECTIONS_VI: LegalSection[] = [
     • Gửi tài liệu quảng cáo (chỉ khi có sự đồng ý của bạn)`
   },
   {
-    title: "5. Chia Sẻ Thông Tin",
+    title: "6. Chia Sẻ Thông Tin",
     content: `Chúng tôi không bán hoặc cho thuê dữ liệu cá nhân của bạn. Chúng tôi có thể chia sẻ với:
     • Giáo viên và nhân viên cho mục đích giáo dục
     • Nhà cung cấp dịch vụ hỗ trợ hoạt động (ví dụ: cổng thanh toán được cấp phép)
+    • Nhà cung cấp các tính năng AI tùy chọn nêu tại mục 7
     • Cơ quan pháp luật khi được yêu cầu`
   },
   {
-    title: "6. Lưu Trữ, Bảo Mật & Thời Gian Lưu Giữ",
-    content: `Dữ liệu của bạn được lưu trên máy chủ đặt tại Việt Nam và được bảo vệ bằng các biện pháp kỹ thuật và tổ chức phù hợp (mã hóa, kiểm soát truy cập). Chúng tôi lưu giữ dữ liệu trong thời gian bạn sử dụng dịch vụ và theo thời hạn pháp luật yêu cầu, sau đó xóa an toàn. Chúng tôi sẽ thông báo cho cá nhân bị ảnh hưởng và cơ quan có thẩm quyền khi xảy ra sự cố lộ lọt dữ liệu theo quy định.`
+    title: "7. Tính Năng AI & Chuyển Dữ Liệu Ra Nước Ngoài",
+    content: `Một số tính năng tùy chọn trên hệ thống sử dụng nhà cung cấp trí tuệ nhân tạo của bên thứ ba (Anthropic và OpenAI). Khi một tính năng như vậy được bật và bạn sử dụng, nội dung tương tác của bạn — ví dụ câu hỏi bạn gửi cho AI và nội dung AI trả lời — được truyền tới và xử lý bởi nhà cung cấp đó trên máy chủ Ở NGOÀI VIỆT NAM, và lịch sử hội thoại được lưu trong hệ thống của chúng tôi.
+
+    Đây là hoạt động chuyển dữ liệu cá nhân ra nước ngoài. Vui lòng không nhập vào tính năng AI những thông tin cá nhân mà bạn không muốn được xử lý ở nước ngoài. Nếu bạn không muốn dữ liệu của mình được chuyển theo cách này, vui lòng không sử dụng các tính năng đó; phần còn lại của dịch vụ không phụ thuộc vào chúng, và bạn có thể rút lại sự đồng ý bất kỳ lúc nào qua thông tin liên hệ tại mục 10.`
   },
   {
-    title: "7. Quyền Của Bạn",
+    title: "8. Lưu Trữ, Bảo Mật & Thời Gian Lưu Giữ",
+    content: `Dữ liệu của bạn được lưu trên máy chủ đặt tại Việt Nam và được bảo vệ bằng các biện pháp kỹ thuật và tổ chức phù hợp (mã hóa, kiểm soát truy cập). Ngoại lệ duy nhất là các tính năng AI nêu tại mục 7, có truyền dữ liệu ra nước ngoài. Chúng tôi lưu giữ dữ liệu trong thời gian bạn sử dụng dịch vụ và theo thời hạn pháp luật yêu cầu, sau đó xóa an toàn. Chúng tôi sẽ thông báo cho cá nhân bị ảnh hưởng và cơ quan có thẩm quyền khi xảy ra sự cố lộ lọt dữ liệu theo quy định.`
+  },
+  {
+    title: "9. Quyền Của Bạn",
     content: `Theo Nghị định 13/2023/NĐ-CP, bạn có quyền:
     • Được biết về việc xử lý dữ liệu của mình
     • Đồng ý và rút lại sự đồng ý bất kỳ lúc nào
@@ -126,7 +175,7 @@ export const PRIVACY_SECTIONS_VI: LegalSection[] = [
     • Khiếu nại đến cơ quan có thẩm quyền`
   },
   {
-    title: "8. Liên Hệ",
+    title: "10. Liên Hệ",
     content: `Đối với mọi yêu cầu về quyền riêng tư (truy cập, sửa, xóa hoặc rút lại sự đồng ý), vui lòng liên hệ:
     Email: privacy@leraacademy.edu.vn
     Điện thoại: 0387.633.141
@@ -190,7 +239,9 @@ export const TERMS_SECTIONS_EN: LegalSection[] = [
     content: `Our AI tutoring service is provided for educational purposes only. By using the AI tutor:
     • You agree not to attempt to misuse or manipulate the system
     • You understand that AI responses are for learning support, not professional advice
-    • You consent to your interactions being recorded for quality improvement`
+    • You consent to your interactions being recorded for quality improvement
+    • You understand that your interactions are sent to a third-party AI provider (Anthropic or OpenAI) and processed on servers outside Vietnam, as described in section 7 of our Privacy Policy
+    • You agree not to enter personal information into the AI tutor that you do not wish to be processed abroad`
   },
   {
     title: "8. Limitation of Liability",
@@ -270,7 +321,9 @@ export const TERMS_SECTIONS_VI: LegalSection[] = [
     content: `Dịch vụ AI tutoring chỉ phục vụ mục đích giáo dục. Khi sử dụng AI tutor:
     • Bạn đồng ý không lạm dụng hoặc thao túng hệ thống
     • Bạn hiểu rằng phản hồi AI chỉ để hỗ trợ học tập
-    • Bạn đồng ý cho ghi lại tương tác để cải thiện chất lượng`
+    • Bạn đồng ý cho ghi lại tương tác để cải thiện chất lượng
+    • Bạn hiểu rằng nội dung tương tác của bạn được gửi tới nhà cung cấp AI của bên thứ ba (Anthropic hoặc OpenAI) và được xử lý trên máy chủ ở ngoài Việt Nam, như mô tả tại mục 7 Chính Sách Bảo Mật
+    • Bạn đồng ý không nhập vào AI tutor những thông tin cá nhân mà bạn không muốn được xử lý ở nước ngoài`
   },
   {
     title: "8. Giới Hạn Trách Nhiệm",

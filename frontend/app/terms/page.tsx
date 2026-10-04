@@ -15,7 +15,10 @@ export default function TermsPage() {
   const [sectionsEN, setSectionsEN] = useState<LegalSection[]>(TERMS_SECTIONS_EN);
   const [sectionsVI, setSectionsVI] = useState<LegalSection[]>(TERMS_SECTIONS_VI);
   const [title, setTitle] = useState({ EN: "Terms of Service", VI: "Điều Khoản Sử Dụng" });
-  const [lastUpdated, setLastUpdated] = useState({ EN: "Last updated: December 2025", VI: "Cập nhật lần cuối: Tháng 12, 2025" });
+  // Dated to when the content was last actually changed, not to when the file was created.
+  // It read "December 2025" while the text had been rewritten since — a stale date on a legal
+  // document misrepresents how current it is.
+  const [lastUpdated, setLastUpdated] = useState({ EN: "Last updated: October 2026", VI: "Cập nhật lần cuối: Tháng 10, 2026" });
   const [intro, setIntro] = useState({ 
     EN: "Please read these Terms of Service carefully before using LERA Academy's services.",
     VI: "Vui lòng đọc kỹ Điều khoản Sử dụng trước khi sử dụng dịch vụ của LERA Academy."

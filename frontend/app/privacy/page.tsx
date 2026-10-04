@@ -15,7 +15,10 @@ export default function PrivacyPage() {
   const [sectionsEN, setSectionsEN] = useState<LegalSection[]>(PRIVACY_SECTIONS_EN);
   const [sectionsVI, setSectionsVI] = useState<LegalSection[]>(PRIVACY_SECTIONS_VI);
   const [title, setTitle] = useState({ EN: "Privacy Policy", VI: "Chính Sách Bảo Mật" });
-  const [lastUpdated, setLastUpdated] = useState({ EN: "Last updated: December 2025", VI: "Cập nhật lần cuối: Tháng 12, 2025" });
+  // Dated to when the content was last actually changed, not to when the file was created.
+  // It read "December 2025" while the text had been rewritten since — a stale date on a legal
+  // document misrepresents how current it is.
+  const [lastUpdated, setLastUpdated] = useState({ EN: "Last updated: October 2026", VI: "Cập nhật lần cuối: Tháng 10, 2026" });
   const [intro, setIntro] = useState({ 
     EN: "At LERA Academy, we are committed to protecting your privacy and ensuring the security of your personal information.",
     VI: "Tại LERA Academy, chúng tôi cam kết bảo vệ quyền riêng tư và đảm bảo an toàn thông tin cá nhân của bạn."

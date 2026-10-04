@@ -63,4 +63,65 @@ describe("legal content has one source", () => {
       expect(s.content.trim().length, `"${s.title}" has no Vietnamese text`).toBeGreaterThan(0);
     }
   });
+
+  /**
+   * These tie the document to the code rather than to a reviewer's memory. ai_gateway posts to
+   * api.anthropic.com / api.openai.com, which is a transfer of personal data out of Vietnam and
+   * a disclosure obligation under Nghị định 13/2023/NĐ-CP. Neither document mentioned it. If the
+   * integration is ever removed these tests should be removed with it — but while the calls are
+   * in the source, the policy has to say so.
+   */
+  it("discloses the AI cross-border transfer for as long as the code makes those calls", () => {
+    const aiSrc = path.join(REPO, "backend/ai_gateway/src/main/java");
+    const calls: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) walk(full);
+        else if (e.name.endsWith(".java")) {
+          const src = fs.readFileSync(full, "utf8");
+          if (src.includes("api.anthropic.com")) calls.push("Anthropic");
+          if (src.includes("api.openai.com")) calls.push("OpenAI");
+        }
+      }
+    };
+    walk(aiSrc);
+    if (calls.length === 0) return; // integration gone; the disclosure may go too
+
+    const privacy = PRIVACY_SECTIONS_EN.map((s) => `${s.title} ${s.content}`).join("\n");
+    const privacyVi = PRIVACY_SECTIONS_VI.map((s) => `${s.title} ${s.content}`).join("\n");
+    for (const provider of Array.from(new Set(calls))) {
+      expect(privacy, `${provider} receives personal data and must be named`).toContain(provider);
+      expect(privacyVi, `${provider} must be named in the Vietnamese policy too`).toContain(provider);
+    }
+    expect(privacy, "the transfer must be described as leaving Vietnam").toMatch(/outside Vietnam/i);
+    expect(privacyVi).toMatch(/ngoài Việt Nam/i);
+    expect(
+      TERMS_SECTIONS_EN.map((s) => s.content).join("\n"),
+      "the AI terms must repeat the transfer, since that is where consent to use the tutor is given"
+    ).toMatch(/Anthropic|OpenAI/);
+  });
+
+  it("covers staff data while the platform holds payroll", () => {
+    // The policy was written for learners and parents only, yet the platform stores salaries,
+    // payslips, leave and employment documents. Staff are data subjects under the same decree.
+    const payrollEntities = path.join(REPO, "backend/payroll_service/src/main/java");
+    if (!fs.existsSync(payrollEntities)) return;
+    const titles = PRIVACY_SECTIONS_EN.map((s) => s.title).join(" | ");
+    expect(titles, "payroll exists, so employee data must be disclosed").toMatch(/Staff|Employee/i);
+    expect(PRIVACY_SECTIONS_VI.map((s) => s.title).join(" | ")).toMatch(/Nhân Viên/i);
+  });
+
+  it("numbers its sections consecutively from 1", () => {
+    // Two sections were inserted; a stale "see section 7" reference is a document that
+    // contradicts itself.
+    for (const [label, sections] of [
+      ["privacy EN", PRIVACY_SECTIONS_EN], ["privacy VI", PRIVACY_SECTIONS_VI],
+      ["terms EN", TERMS_SECTIONS_EN], ["terms VI", TERMS_SECTIONS_VI],
+    ] as const) {
+      const numbers = sections.map((s) => Number(s.title.match(/^(\d+)\./)?.[1]));
+      expect(numbers, `${label} has an unnumbered section`).not.toContain(NaN);
+      expect(numbers, `${label} is misnumbered`).toEqual(numbers.map((_, i) => i + 1));
+    }
+  });
 });
