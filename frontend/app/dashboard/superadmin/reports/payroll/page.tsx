@@ -337,6 +337,19 @@ export default function PayrollReportsPage() {
               </div>
             </div>
           </div>
+
+          {/*
+            The basis used to live only in a `title` tooltip. A tooltip does not exist on a
+            touch device and does not appear in a printed page, so the one sentence that
+            matters — do not file from this — was invisible to anyone reading the report on a
+            phone or on paper. The numbers stay labelled "est."; this states why, in the DOM.
+          */}
+          <div className="md:col-span-2 lg:col-span-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-900">
+              Tax and net figures on this page are estimates — do not file from them
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-amber-800">{TAX_ESTIMATE_BASIS}</p>
+          </div>
         </div>
       )}
 
