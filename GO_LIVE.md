@@ -166,10 +166,11 @@ leracompose ps --format '{{.Service}}\t{{.Ports}}' | grep -v '^caddy'
 # TLS answering on the real hostname
 curl -sS -o /dev/null -w '%{http_code}\n' https://app.your-domain.com/
 
-# The websocket route reaches connect_service, not the frontend. A raw curl gets 400
-# ("Can \"Upgrade\" only to \"WebSocket\"") from Spring — that 400 is the success signal
-# here; a 404 or an HTML body means /ws fell through to Next.js.
-curl -sS -o /dev/null -w '%{http_code}\n' https://app.your-domain.com/ws/chat
+# The websocket route reaches connect_service, not the frontend. Unauthenticated you get
+# connect_service's own JSON:  {"success":false,"message":"Authentication required"}
+# That 401 is the success signal. A 307 to /auth/login means /ws fell through to Next.js
+# (the gateway is serving an old config — see the note below), and a 404 means no route.
+curl -sS https://app.your-domain.com/ws/chat
 
 # And the URL the browser will be told to open — expect wss://<your domain>/ws/chat
 curl -sS https://app.your-domain.com/api/chat/ws-url -H 'Cookie: token=<a real session token>'
@@ -315,4 +316,22 @@ A rebuild of one service after a code change:
 ```bash
 leracompose up -d --no-deps --build <service>
 docker restart lera_gateway      # otherwise the gateway serves 502s for that service
+```
+
+**Changing `gateway/nginx/nginx.conf` needs a REBUILD, not a restart.** The Dockerfile `COPY`s
+the config into the image and nothing mounts it, so `docker restart lera_gateway` keeps serving
+the old routes — silently, with no error. This cost a confusing round of "the route is there but
+the request still hits the frontend":
+
+```bash
+leracompose up -d --no-deps --build --force-recreate gateway
+docker exec lera_gateway grep -c 'location \^~ /ws/' /etc/nginx/nginx.conf   # expect 1
+```
+
+To check the config before deploying it, run real nginx against it on the compose network (off
+the network the upstream service names do not resolve and it fails for that reason alone):
+
+```bash
+docker run --rm --network lera_group_lera-net \
+  -v "$PWD/gateway/nginx/nginx.conf:/etc/nginx/nginx.conf:ro" nginx:alpine nginx -t
 ```
