@@ -468,7 +468,7 @@ export default function ExecutiveAttendanceOverviewPage() {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {summaries.map(summary => {
-                        const rate = ((summary.presentToday / summary.totalStaff) * 100).toFixed(1);
+                        const rate = (summary.totalStaff > 0 ? (summary.presentToday / summary.totalStaff) * 100 : 0).toFixed(1);
                         return (
                           <tr key={summary.centerId} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -590,10 +590,10 @@ export default function ExecutiveAttendanceOverviewPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">🏆 Top Performing Centers</h3>
               <div className="space-y-4">
                 {summaries
-                  .sort((a, b) => (b.presentToday / b.totalStaff) - (a.presentToday / a.totalStaff))
+                  .sort((a, b) => (b.presentToday / (b.totalStaff||1)) - (a.presentToday / (a.totalStaff||1)))
                   .slice(0, 4)
                   .map((summary, index) => {
-                    const rate = ((summary.presentToday / summary.totalStaff) * 100).toFixed(1);
+                    const rate = (summary.totalStaff > 0 ? (summary.presentToday / summary.totalStaff) * 100 : 0).toFixed(1);
                     return (
                       <div key={summary.centerId} className="flex items-center gap-4">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
