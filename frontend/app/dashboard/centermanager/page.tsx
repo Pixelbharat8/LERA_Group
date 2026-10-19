@@ -200,10 +200,17 @@ export default function CenterManagerDashboard() {
     return `₫${amount.toLocaleString()}`;
   };
 
+  // The per-user permission record carries service switches (academyServiceEnabled, ...) and
+  // `dashboard`, not module keys like "students". A manager whose list held only those had
+  // permissions.length > 0 yet matched no action or stat, so the page showed "No permissions
+  // assigned yet" beside "7 permissions active". Only restrict when the list actually names a
+  // module this page can show; otherwise treat it like an empty list (no module restriction).
+  const moduleKeys = new Set(allQuickActions.map(a => a.permission));
+  const restrictByModule = permissions.some(p => moduleKeys.has(p));
+  const allowed = (key: string) => !restrictByModule || permissions.includes(key);
+
   // Filter quick actions based on permissions
-  const quickActions = allQuickActions.filter(action => 
-    permissions.length === 0 || permissions.includes(action.permission)
-  );
+  const quickActions = allQuickActions.filter(action => allowed(action.permission));
 
   // Dynamic stats based on permissions
   const allStats = [
@@ -215,9 +222,7 @@ export default function CenterManagerDashboard() {
     { label: "Monthly Revenue", value: formatCurrency(statsData.monthlyRevenue), icon: "💰", color: "bg-yellow-500", permission: "payments" },
   ];
 
-  const stats = allStats.filter(stat => 
-    permissions.length === 0 || permissions.includes(stat.permission)
-  ).slice(0, 4); // Show max 4 stats
+  const stats = allStats.filter(stat => allowed(stat.permission)).slice(0, 4); // Show max 4 stats
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
