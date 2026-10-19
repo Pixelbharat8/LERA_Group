@@ -11,6 +11,9 @@ interface Payment {
   studentEmail: string;
   amount: number;
   method: string;
+  paymentMethod?: string;
+  studentId?: string;
+  invoiceId?: string;
   status: string;
   invoiceNumber: string;
   paidAt: string;
@@ -32,9 +35,33 @@ export default function PaymentsPage() {
 
   const fetchPayments = async () => {
     try {
-      const url = buildCenterFilterUrl("/api/payments", shouldFilterByCenter ? userCenterId : null);
-      const data = await apiFetch(url);
-      setPayments(Array.isArray(data) ? data : data.content || []);
+      const center = shouldFilterByCenter ? userCenterId : null;
+      const [paymentsData, studentsData, invoicesData] = await Promise.all([
+        apiFetch(buildCenterFilterUrl("/api/payments", center)),
+        apiFetch(buildCenterFilterUrl("/api/students", center)).catch(() => []),
+        apiFetch(buildCenterFilterUrl("/api/invoices", center)).catch(() => []),
+      ]);
+      const asList = (d: any) => (Array.isArray(d) ? d : d?.content || []);
+      // `/api/payments` returns studentId / invoiceId / paymentMethod only — never studentName,
+      // invoiceNumber or method. The search filter below calls `.includes` on those names, so
+      // with them missing every row evaluated to undefined and was hidden: the summary cards
+      // counted the money while the table said "No payments found." Join the names here.
+      const studentById = new Map<string, any>(asList(studentsData).map((st: any) => [String(st.id), st]));
+      const invoiceNumberById = new Map<string, string>(
+        asList(invoicesData).map((inv: any) => [String(inv.id), inv.invoiceNumber || ""])
+      );
+      setPayments(
+        asList(paymentsData).map((p: any) => {
+          const st = studentById.get(String(p.studentId));
+          return {
+            ...p,
+            studentName: p.studentName || st?.fullname || st?.fullName || st?.name || "",
+            studentEmail: p.studentEmail || st?.email || "",
+            invoiceNumber: p.invoiceNumber || invoiceNumberById.get(String(p.invoiceId)) || "",
+            method: p.method || p.paymentMethod || "",
+          };
+        })
+      );
     } catch (error) {
       console.error("Failed to fetch payments:", error);
     } finally {
@@ -43,10 +70,16 @@ export default function PaymentsPage() {
   };
 
   const filteredPayments = payments.filter((payment) => {
+    const term = searchTerm.toLowerCase();
     const matchesSearch =
-      payment.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !statusFilter || payment.status === statusFilter;
+      !term ||
+      (payment.studentName ?? "").toLowerCase().includes(term) ||
+      (payment.invoiceNumber ?? "").toLowerCase().includes(term);
+    // The payment service records a settled payment as COMPLETED; "Paid" must match it.
+    const matchesStatus =
+      !statusFilter ||
+      payment.status === statusFilter ||
+      (statusFilter === "PAID" && payment.status === "COMPLETED");
     return matchesSearch && matchesStatus;
   });
 
