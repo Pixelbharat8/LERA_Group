@@ -10,7 +10,7 @@ interface DashboardStats {
   totalCenters: number;
   totalClasses: number;
   totalRevenue: number;
-  pendingApprovals: number;
+  pendingApprovals: number | null;
 }
 
 export default function CEODashboardPage() {
@@ -20,7 +20,7 @@ export default function CEODashboardPage() {
     totalCenters: 0,
     totalClasses: 0,
     totalRevenue: 0,
-    pendingApprovals: 0,
+    pendingApprovals: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -30,20 +30,33 @@ export default function CEODashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      const [students, teachers, centers, classes] = await Promise.all([
+      const [students, teachers, centers, classes, payments] = await Promise.all([
         apiFetch("/api/students").catch(() => []),
         apiFetch("/api/teachers").catch(() => []),
         apiFetch("/api/centers").catch(() => []),
         apiFetch("/api/classes").catch(() => []),
+        apiFetch("/api/payments").catch(() => []),
       ]);
+
+      // Monthly revenue = settled payments (the payment service marks them COMPLETED) in this month.
+      const now = new Date();
+      const paymentList = Array.isArray(payments) ? payments : (payments as any)?.content || [];
+      const monthlyRevenue = paymentList
+        .filter((p: any) => (p.status === "COMPLETED" || p.status === "PAID") && p.paidAt)
+        .filter((p: any) => {
+          const d = new Date(p.paidAt);
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        })
+        .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
 
       setStats({
         totalStudents: Array.isArray(students) ? students.length : 0,
         totalTeachers: Array.isArray(teachers) ? teachers.length : 0,
         totalCenters: Array.isArray(centers) ? centers.length : 0,
         totalClasses: Array.isArray(classes) ? classes.length : 0,
-        totalRevenue: 0,
-        pendingApprovals: 0,
+        totalRevenue: monthlyRevenue,
+        // Nothing counts approvals here; null renders "—" instead of a made-up 0.
+        pendingApprovals: null,
       });
     } catch (err) {
       console.error("Failed to fetch dashboard data:", err);
@@ -72,17 +85,14 @@ export default function CEODashboardPage() {
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
           <h3 className="text-gray-500 text-xs uppercase">Total Students</h3>
           <p className="text-2xl font-bold">{stats.totalStudents}</p>
-          <p className="text-xs text-green-500 mt-1">+12% from last month</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
           <h3 className="text-gray-500 text-xs uppercase">Total Teachers</h3>
           <p className="text-2xl font-bold">{stats.totalTeachers}</p>
-          <p className="text-xs text-green-500 mt-1">+3 new hires</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500">
           <h3 className="text-gray-500 text-xs uppercase">Centers</h3>
           <p className="text-2xl font-bold">{stats.totalCenters}</p>
-          <p className="text-xs text-gray-500 mt-1">All operational</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-orange-500">
           <h3 className="text-gray-500 text-xs uppercase">Active Classes</h3>
@@ -91,13 +101,11 @@ export default function CEODashboardPage() {
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-teal-500">
           <h3 className="text-gray-500 text-xs uppercase">Monthly Revenue</h3>
-          <p className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</p>
-          <p className="text-xs text-green-500 mt-1">+8% growth</p>
+          <p className="text-2xl font-bold">{stats.totalRevenue.toLocaleString("vi-VN")} ₫</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-red-500">
           <h3 className="text-gray-500 text-xs uppercase">Pending Approvals</h3>
-          <p className="text-2xl font-bold">{stats.pendingApprovals}</p>
-          <p className="text-xs text-orange-500 mt-1">Action required</p>
+          <p className="text-2xl font-bold">{stats.pendingApprovals ?? "—"}</p>
         </div>
       </div>
 
@@ -155,7 +163,7 @@ export default function CEODashboardPage() {
             </Link>
             <Link href="/dashboard/superadmin/approvals" className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
               <span>Pending Approvals</span>
-              <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-xs">{stats.pendingApprovals}</span>
+              <span>→</span>
             </Link>
             <Link href="/dashboard/attendance/leave-approvals" className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
               <span>Leave Requests</span>

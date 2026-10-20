@@ -9,16 +9,12 @@ interface AnalyticsData {
     totalStudents: number;
     totalTeachers: number;
     totalClasses: number;
-    avgAttendance: number;
-    satisfactionScore: number;
     retentionRate: number;
   };
   centerPerformance: {
     name: string;
     students: number;
     classes: number;
-    attendance: number;
-    satisfaction: number;
   }[];
   monthlyTrends: {
     month: string;
@@ -56,8 +52,6 @@ export default function DirectorAnalyticsPage() {
           totalStudents: studentList.length,
           totalTeachers: Array.isArray(teachers) ? teachers.length : 0,
           totalClasses: classList.length,
-          avgAttendance: 92,
-          satisfactionScore: 4.6,
           retentionRate: enrollmentList.length > 0
             ? Math.round((enrollmentList.filter((e: any) => e.status === "ACTIVE" || e.status === "active").length / enrollmentList.length) * 100)
             : 0,
@@ -71,8 +65,6 @@ export default function DirectorAnalyticsPage() {
                 name: c.name,
                 students: cStudents,
                 classes: cClasses,
-                attendance: 90,
-                satisfaction: 4.5,
               };
             })
           : [],
@@ -140,13 +132,11 @@ export default function DirectorAnalyticsPage() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Total Students", value: data.overview.totalStudents.toLocaleString(), icon: "👨‍🎓", color: "bg-blue-500" },
           { label: "Total Teachers", value: data.overview.totalTeachers, icon: "👨‍🏫", color: "bg-green-500" },
           { label: "Active Classes", value: data.overview.totalClasses, icon: "📚", color: "bg-purple-500" },
-          { label: "Avg Attendance", value: `${data.overview.avgAttendance}%`, icon: "✅", color: "bg-teal-500" },
-          { label: "Satisfaction", value: `${data.overview.satisfactionScore}/5`, icon: "⭐", color: "bg-yellow-500" },
           { label: "Retention", value: `${data.overview.retentionRate}%`, icon: "🔄", color: "bg-orange-500" },
         ].map((stat, i) => (
           <div key={i} className="bg-white rounded-xl shadow p-4">
@@ -169,38 +159,15 @@ export default function DirectorAnalyticsPage() {
                 <th className="text-left py-3 px-4">Center</th>
                 <th className="text-center py-3 px-4">Students</th>
                 <th className="text-center py-3 px-4">Classes</th>
-                <th className="text-center py-3 px-4">Attendance</th>
-                <th className="text-center py-3 px-4">Satisfaction</th>
-                <th className="text-center py-3 px-4">Performance</th>
               </tr>
             </thead>
             <tbody>
               {data.centerPerformance.map((center, i) => {
-                const score = (Number(center.attendance) + Number(center.satisfaction) * 20) / 2;
-                const performance = score >= 95 ? "Excellent" : score >= 85 ? "Good" : score >= 75 ? "Average" : "Needs Improvement";
-                const performanceColor = score >= 95 ? "bg-green-100 text-green-800" : score >= 85 ? "bg-blue-100 text-blue-800" : score >= 75 ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800";
-                
                 return (
                   <tr key={i} className="border-b hover:bg-gray-50">
                     <td className="py-4 px-4 font-medium">{center.name}</td>
                     <td className="py-4 px-4 text-center">{center.students}</td>
                     <td className="py-4 px-4 text-center">{center.classes}</td>
-                    <td className="py-4 px-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-16 bg-gray-100 rounded-full h-2">
-                          <div className="bg-green-500 h-2 rounded-full" style={{ width: `${center.attendance}%` }}></div>
-                        </div>
-                        <span className="text-sm">{center.attendance}%</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-center">
-                      <span className="text-yellow-500">⭐</span> {center.satisfaction}
-                    </td>
-                    <td className="py-4 px-4 text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${performanceColor}`}>
-                        {performance}
-                      </span>
-                    </td>
                   </tr>
                 );
               })}
@@ -239,36 +206,6 @@ export default function DirectorAnalyticsPage() {
         </div>
       </div>
 
-      {/* Insights */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
-          <h4 className="font-semibold text-green-800 mb-3">✅ Strengths</h4>
-          <ul className="space-y-2 text-sm text-green-700">
-            <li>• Main Center leads in satisfaction (4.8/5)</li>
-            <li>• 92% average attendance across centers</li>
-            <li>• Strong September enrollment (+135)</li>
-            <li>• Teacher retention above industry avg</li>
-          </ul>
-        </div>
-        <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border border-yellow-200">
-          <h4 className="font-semibold text-yellow-800 mb-3">⚠️ Watch Areas</h4>
-          <ul className="space-y-2 text-sm text-yellow-700">
-            <li>• Ngô Quyền center needs improvement</li>
-            <li>• Summer months show enrollment dip</li>
-            <li>• June has highest dropout rate</li>
-            <li>• Class capacity utilization at 75%</li>
-          </ul>
-        </div>
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
-          <h4 className="font-semibold text-blue-800 mb-3">💡 Recommendations</h4>
-          <ul className="space-y-2 text-sm text-blue-700">
-            <li>• Launch summer retention programs</li>
-            <li>• Focus on Ngô Quyền improvement</li>
-            <li>• Add more classes at Main Center</li>
-            <li>• Increase marketing for Q4</li>
-          </ul>
-        </div>
-      </div>
     </div>
   );
 }

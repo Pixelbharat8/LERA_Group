@@ -250,8 +250,8 @@ export default function EnrollmentsPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -269,8 +269,8 @@ export default function EnrollmentsPage() {
               filteredEnrollments.map((enrollment) => (
                 <tr key={enrollment.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">{enrollment.enrollmentCode}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{enrollment.studentId?.substring(0, 8)}...</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{enrollment.classId?.substring(0, 8)}...</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{students.find((st) => st.id === enrollment.studentId)?.fullname || `${enrollment.studentId?.substring(0, 8)}…`}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{classes.find((c) => c.id === enrollment.classId)?.name || `${enrollment.classId?.substring(0, 8)}…`}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">
                     {enrollment.enrollmentDate ? new Date(enrollment.enrollmentDate).toLocaleDateString() : "-"}
                   </td>

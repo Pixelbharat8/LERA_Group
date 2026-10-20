@@ -33,18 +33,24 @@ export default function AcademyDashboard() {
       const classesUrl = shouldFilterByCenter
         ? buildCenterFilterUrl("/api/classes", userCenterId)
         : "/api/classes";
-      const [students, teachers, classes, courses] = await Promise.all([
+      const enrollmentsUrl = shouldFilterByCenter
+        ? buildCenterFilterUrl("/api/enrollments", userCenterId)
+        : "/api/enrollments";
+      const [students, teachers, classes, courses, enrollments] = await Promise.all([
         apiFetch(studentsUrl).catch(() => ({ totalElements: 0 })),
         apiFetch(teachersUrl).catch(() => ({ totalElements: 0 })),
         apiFetch(classesUrl).catch(() => ({ totalElements: 0 })),
         apiFetch("/api/courses").catch(() => ({ totalElements: 0 })),
+        apiFetch(enrollmentsUrl).catch(() => []),
       ]);
+      const enrollmentList = Array.isArray(enrollments) ? enrollments : enrollments?.content || [];
       setStats({
         totalStudents: students.totalElements || students.length || 0,
         totalTeachers: teachers.totalElements || teachers.length || 0,
         totalClasses: classes.totalElements || classes.length || 0,
         totalCourses: courses.totalElements || courses.length || 0,
-        activeEnrollments: 0,
+        // Was hard-coded 0, so the card contradicted the Enrollments page.
+        activeEnrollments: enrollmentList.filter((e: any) => String(e.status).toUpperCase() === "ACTIVE").length,
       });
     } catch (error) {
       console.error("Failed to fetch stats:", error);

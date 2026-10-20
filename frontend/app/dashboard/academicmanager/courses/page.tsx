@@ -205,7 +205,7 @@ export default function AcademicManagerCoursesPage() {
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-orange-500">
           <h3 className="text-gray-500 text-sm">Avg Fee</h3>
           <p className="text-2xl font-bold">
-            ${courses.length > 0 ? Math.round(courses.reduce((s, c) => s + (c.price || 0), 0) / courses.length) : 0}
+            {(courses.length > 0 ? Math.round(courses.reduce((s, c) => s + (c.price || 0), 0) / courses.length) : 0).toLocaleString("vi-VN")} ₫
           </p>
         </div>
       </div>
@@ -240,7 +240,7 @@ export default function AcademicManagerCoursesPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">
                     {course.durationWeeks ? `${course.durationWeeks} weeks` : "-"}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">${course.price || 0}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">{(course.price || 0).toLocaleString("vi-VN")} ₫</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       course.isActive !== false ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
@@ -318,7 +318,7 @@ export default function AcademicManagerCoursesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Fee ($)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Fee (₫)</label>
                   <input
                     type="number"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -420,7 +420,7 @@ export default function AcademicManagerCoursesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Fee ($)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Fee (₫)</label>
                   <input
                     type="number"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"

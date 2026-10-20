@@ -47,7 +47,9 @@ export default function CEODashboard() {
         apiFetch("/api/centers").catch(() => []),
         apiFetch("/api/students").catch(() => []),
         apiFetch("/api/finance/dashboard").catch(() => null),
-        apiFetch("/api/users?role=TEACHER").catch(() => []),
+        // /api/users ignores ?role=, so this used to return EVERY user and the card counted
+        // admins and the CEO as teachers. /api/teachers is the teacher list.
+        apiFetch("/api/teachers").catch(() => []),
         apiFetch("/api/enrollments").catch(() => []),
         apiFetch("/api/payments").catch(() => []),
       ]);

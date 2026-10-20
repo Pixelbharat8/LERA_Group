@@ -9,8 +9,16 @@ interface DashboardStats {
   totalTeachers: number;
   totalCenters: number;
   totalClasses: number;
-  attendanceRate: number;
-  pendingLeaves: number;
+  attendanceRate: number | null;
+  pendingLeaves: number | null;
+}
+
+interface CenterRow {
+  id: string;
+  name: string;
+  status: string;
+  students: number;
+  teachers: number;
 }
 
 export default function DirectorDashboardPage() {
@@ -19,9 +27,10 @@ export default function DirectorDashboardPage() {
     totalTeachers: 0,
     totalCenters: 0,
     totalClasses: 0,
-    attendanceRate: 0,
-    pendingLeaves: 0,
+    attendanceRate: null,
+    pendingLeaves: null,
   });
+  const [centerRows, setCenterRows] = useState<CenterRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,9 +51,21 @@ export default function DirectorDashboardPage() {
         totalTeachers: Array.isArray(teachers) ? teachers.length : 0,
         totalCenters: Array.isArray(centers) ? centers.length : 0,
         totalClasses: Array.isArray(classes) ? classes.length : 0,
-        attendanceRate: 0,
-        pendingLeaves: 0,
+        // Not computed on this page — null renders as "—" rather than a fake 0%.
+        attendanceRate: null,
+        pendingLeaves: null,
       });
+      const list = (d: any) => (Array.isArray(d) ? d : []);
+      const countBy = (rows: any[], id: string) => rows.filter((r) => String(r.centerId) === String(id)).length;
+      setCenterRows(
+        list(centers).map((c: any) => ({
+          id: c.id,
+          name: c.name || c.nameVi || "—",
+          status: c.status || "—",
+          students: countBy(list(students), c.id),
+          teachers: countBy(list(teachers), c.id),
+        }))
+      );
     } catch (err) {
       console.error("Failed to fetch dashboard data:", err);
     } finally {
@@ -87,11 +108,11 @@ export default function DirectorDashboardPage() {
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-teal-500">
           <h3 className="text-gray-500 text-xs uppercase">Attendance Rate</h3>
-          <p className="text-2xl font-bold">{stats.attendanceRate}%</p>
+          <p className="text-2xl font-bold">{stats.attendanceRate === null ? "—" : `${stats.attendanceRate}%`}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-red-500">
           <h3 className="text-gray-500 text-xs uppercase">Pending Leaves</h3>
-          <p className="text-2xl font-bold">{stats.pendingLeaves}</p>
+          <p className="text-2xl font-bold">{stats.pendingLeaves ?? "—"}</p>
         </div>
       </div>
 
@@ -121,35 +142,12 @@ export default function DirectorDashboardPage() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-bold mb-4">📈 Performance Metrics</h2>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span>Student Attendance</span>
-                <span className="font-bold">{stats.attendanceRate}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: `${stats.attendanceRate}%` }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span>Teacher Attendance</span>
-                <span className="font-bold">96%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{ width: "96%" }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span>Class Completion</span>
-                <span className="font-bold">88%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-purple-500 h-2 rounded-full" style={{ width: "88%" }}></div>
-              </div>
-            </div>
-          </div>
+          {/* Teacher attendance and class completion used to be hard-coded (96% / 88%) here.
+              Nothing computes them yet, so say so rather than show invented figures. */}
+          <p className="text-gray-500 text-sm">
+            Attendance and class-completion metrics will appear here once they are calculated from
+            recorded attendance. See Analytics for live enrolment figures.
+          </p>
         </div>
       </div>
 
@@ -168,32 +166,21 @@ export default function DirectorDashboardPage() {
                 <th className="pb-3">Center</th>
                 <th className="pb-3">Students</th>
                 <th className="pb-3">Teachers</th>
-                <th className="pb-3">Attendance</th>
                 <th className="pb-3">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              <tr>
-                <td className="py-3 font-medium">Main Campus</td>
-                <td className="py-3">245</td>
-                <td className="py-3">18</td>
-                <td className="py-3">95%</td>
-                <td className="py-3"><span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Excellent</span></td>
-              </tr>
-              <tr>
-                <td className="py-3 font-medium">District 2 Branch</td>
-                <td className="py-3">180</td>
-                <td className="py-3">12</td>
-                <td className="py-3">92%</td>
-                <td className="py-3"><span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Good</span></td>
-              </tr>
-              <tr>
-                <td className="py-3 font-medium">District 7 Branch</td>
-                <td className="py-3">120</td>
-                <td className="py-3">8</td>
-                <td className="py-3">89%</td>
-                <td className="py-3"><span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Fair</span></td>
-              </tr>
+              {centerRows.length === 0 && (
+                <tr><td colSpan={4} className="py-3 text-gray-500">No centers yet.</td></tr>
+              )}
+              {centerRows.map((c) => (
+                <tr key={c.id}>
+                  <td className="py-3 font-medium">{c.name}</td>
+                  <td className="py-3">{c.students}</td>
+                  <td className="py-3">{c.teachers}</td>
+                  <td className="py-3"><span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">{c.status}</span></td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
