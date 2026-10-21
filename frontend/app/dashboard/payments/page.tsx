@@ -144,11 +144,18 @@ export default function PaymentsPage() {
         ? buildCenterFilterUrl("/api/invoices", userCenterId)
         : "/api/invoices";
         
+      // A role the payment service excludes (e.g. CENTER_ADMIN) got 403s that were swallowed into [],
+      // so every card read "0 ₫" as if there were no money. Remember a denial and say so.
+      let denied = false;
+      const orEmpty = (e: any) => {
+        if (e?.status === 403) denied = true;
+        return [];
+      };
       const [paymentsData, studentsData, centersData, invoicesData, usersData] = await Promise.all([
-        apiFetch(paymentsUrl).catch(() => []),
+        apiFetch(paymentsUrl).catch(orEmpty),
         apiFetch(studentsUrl).catch(() => []),
         apiFetch("/api/centers").catch(() => []),
-        apiFetch(invoicesUrl).catch(() => []),
+        apiFetch(invoicesUrl).catch(orEmpty),
         apiFetch("/api/users").catch(() => [])
       ]);
 
@@ -190,7 +197,7 @@ export default function PaymentsPage() {
 
       setPayments(enrichedPayments);
       calculateStats(enrichedPayments);
-      setError("");
+      setError(denied ? "Access denied — your role cannot view payments or invoices, so the figures below are not real totals." : "");
     } catch (err: any) {
       setError(err.message || "Failed to load data");
     } finally {

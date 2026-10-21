@@ -184,7 +184,11 @@ export async function apiFetch(
         && res.status !== 404 && !isPermissionDenial) {
       window.dispatchEvent(new CustomEvent("lera:error", { detail: { message: finalMsg } }));
     }
-    throw new Error(finalMsg);
+    // Keep the HTTP status on the error: a bodiless 403 has no message to match on, so callers
+    // that need to tell "denied" from "empty" have nothing else to go on.
+    const failure = new Error(finalMsg) as Error & { status?: number };
+    failure.status = res.status;
+    throw failure;
   }
 
   return data;

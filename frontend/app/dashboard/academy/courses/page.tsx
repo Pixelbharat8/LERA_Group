@@ -260,13 +260,13 @@ export default function CoursesPage() {
               {course.nameVi && <p className="text-sm text-gray-500 mb-2">{course.nameVi}</p>}
               <p className="text-sm text-gray-600 mb-4 line-clamp-2">{course.description || "No description"}</p>
               <div className="flex flex-wrap gap-2 text-xs text-gray-500 mb-4">
-                <span className="bg-gray-100 px-2 py-1 rounded">📅 {course.durationWeeks} weeks</span>
-                <span className="bg-gray-100 px-2 py-1 rounded">🔄 {course.sessionsPerWeek}x/week</span>
+                {course.durationWeeks ? <span className="bg-gray-100 px-2 py-1 rounded">📅 {course.durationWeeks} weeks</span> : null}
+                {course.sessionsPerWeek ? <span className="bg-gray-100 px-2 py-1 rounded">🔄 {course.sessionsPerWeek}x/week</span> : null}
                 {course.level && <span className="bg-blue-100 px-2 py-1 rounded">{course.level}</span>}
               </div>
               <div className="flex justify-between items-center pt-4 border-t">
                 <span className="text-lg font-bold text-blue-600">
-                  {course.price?.toLocaleString()}đ/session
+                  {course.price ? `${course.price.toLocaleString()}đ/session` : "Price not set"}
                 </span>
                 <div className="flex gap-2">
                   <button onClick={() => handleEdit(course)} className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>

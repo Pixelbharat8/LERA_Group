@@ -23,20 +23,28 @@ export default function ReportsPage() {
   const fetchStats = async () => {
     try {
       // apiFetch sends the JWT (these endpoints are STAFF-gated); raw fetch() 401'd -> all zeros.
-      const [students, teachers, centers, classes] = await Promise.all([
+      const [students, teachers, centers, classes, enrollments, payments] = await Promise.all([
         apiFetch("/api/students").catch(() => []),
         apiFetch("/api/teachers").catch(() => []),
         apiFetch("/api/centers").catch(() => []),
         apiFetch("/api/classes").catch(() => []),
+        apiFetch("/api/enrollments").catch(() => []),
+        apiFetch("/api/payments").catch(() => []),
       ]);
+      const asList = (d: any) => (Array.isArray(d) ? d : d?.content || []);
+      // Enrollments and revenue were hard-coded 0 (and revenue printed with a "$"), so this page
+      // read 0 enrollments / $0 next to real enrolments and ₫ payments elsewhere.
+      const totalRevenue = asList(payments)
+        .filter((p: any) => p.status === "COMPLETED" || p.status === "PAID")
+        .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
 
       setStats({
         totalStudents: Array.isArray(students) ? students.length : 0,
         totalTeachers: Array.isArray(teachers) ? teachers.length : 0,
         totalCenters: Array.isArray(centers) ? centers.length : 0,
         totalClasses: Array.isArray(classes) ? classes.length : 0,
-        totalEnrollments: 0,
-        totalRevenue: 0,
+        totalEnrollments: asList(enrollments).length,
+        totalRevenue,
       });
     } catch (err) {
       console.error("Failed to fetch stats:", err);
@@ -65,35 +73,34 @@ export default function ReportsPage() {
       description: "Revenue, expenses, and payroll reports",
       reports: [
         { name: "Payroll Summary", href: "/dashboard/superadmin/reports/payroll", icon: "💰" },
-        { name: "Revenue Report", href: "/dashboard/superadmin/reports/revenue", icon: "📈" },
-        { name: "Fee Collection", href: "/dashboard/superadmin/reports/fees", icon: "🧾" },
+        { name: "Revenue Report", href: "/dashboard/finance", icon: "📈" },
+        { name: "Fee Collection", href: "/dashboard/finance/invoices", icon: "🧾" },
       ]
     },
     {
       name: "🎓 Academic Reports",
       description: "Student performance and attendance",
       reports: [
-        { name: "Student Performance", href: "/dashboard/superadmin/reports/performance", icon: "📝" },
-        { name: "Attendance Summary", href: "/dashboard/superadmin/reports/attendance", icon: "📅" },
-        { name: "Exam Results", href: "/dashboard/superadmin/reports/exams", icon: "✅" },
+        { name: "Student Performance", href: "/dashboard/performance", icon: "📝" },
+        { name: "Attendance Summary", href: "/dashboard/superadmin/attendance/overview", icon: "📅" },
+        { name: "Exam Results", href: "/dashboard/superadmin/exams", icon: "✅" },
       ]
     },
     {
       name: "👥 HR Reports",
       description: "Staff and teacher analytics",
       reports: [
-        { name: "Staff Overview", href: "/dashboard/superadmin/reports/staff", icon: "👨‍💼" },
-        { name: "Leave Summary", href: "/dashboard/superadmin/reports/leave", icon: "🏖️" },
-        { name: "Training Records", href: "/dashboard/superadmin/reports/training", icon: "📚" },
+        { name: "Staff Overview", href: "/dashboard/director/staff", icon: "👨‍💼" },
+        { name: "Leave Summary", href: "/dashboard/attendance/leave-approvals", icon: "🏖️" },
+        { name: "Training Records", href: "/dashboard/training", icon: "📚" },
       ]
     },
     {
       name: "🏢 Center Reports",
       description: "Center-wise performance and metrics",
       reports: [
-        { name: "Center Performance", href: "/dashboard/superadmin/reports/centers", icon: "🏛️" },
-        { name: "Enrollment Trends", href: "/dashboard/superadmin/reports/enrollments", icon: "📊" },
-        { name: "Capacity Analysis", href: "/dashboard/superadmin/reports/capacity", icon: "📉" },
+        { name: "Center Performance", href: "/dashboard/superadmin/centers/analytics", icon: "🏛️" },
+        { name: "Enrollment Trends", href: "/dashboard/director/analytics", icon: "📊" },
       ]
     },
   ];
@@ -137,7 +144,7 @@ export default function ReportsPage() {
         </div>
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-teal-500">
           <h3 className="text-gray-500 text-xs uppercase">Revenue</h3>
-          <p className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</p>
+          <p className="text-2xl font-bold">{stats.totalRevenue.toLocaleString("vi-VN")} ₫</p>
         </div>
       </div>
 

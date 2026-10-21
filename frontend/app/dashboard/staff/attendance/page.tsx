@@ -110,7 +110,7 @@ export default function StaffAttendancePage() {
     fetchAttendance();
     fetchLeaveRequests();
     fetchLeaveBalance();
-  }, [currentDate]);
+  }, [currentDate, userData?.id]);
 
   const fetchLeaveBalance = async () => {
     try {
@@ -176,10 +176,10 @@ export default function StaffAttendancePage() {
 
   const fetchLeaveRequests = async () => {
     try {
-      const data = await apiFetch("/api/leaves/all").catch(() => []);
-      const userLeaves = Array.isArray(data) 
-        ? data.filter((l: any) => l.userId === userData?.id)
-        : [];
+      // /api/leaves/all is SUPER_ADMIN/CHAIRMAN/CEO/DIRECTOR only, so a staff member got a 403 and an
+      // always-empty leave history. The per-user endpoint allows reading your own leaves.
+      const data = userData?.id ? await apiFetch(`/api/leaves/user/${userData.id}`).catch(() => []) : [];
+      const userLeaves = Array.isArray(data) ? data : [];
       setLeaveRequests(userLeaves);
     } catch (err) {
       console.error("Error fetching leave requests:", err);
