@@ -121,10 +121,11 @@ export default function PricingPage() {
                         <td className="px-5 py-4 text-gray-600 hidden md:table-cell">{c.maxClassSize ? `≤${c.maxClassSize}` : "—"}</td>
                         <td className="px-5 py-4 text-right font-bold text-brand-navy whitespace-nowrap">{fmt(c.price)}</td>
                         <td className="px-5 py-4 text-right whitespace-nowrap">
-                          <Link href={`/courses/${CODE_TO_SLUG[c.code] || ""}`} className="text-gray-500 font-medium hover:text-gray-700 mr-4">
+                          <Link href={`/courses/${CODE_TO_SLUG[c.code] || ""}`} className="inline-flex items-center min-h-[44px] px-2 text-gray-500 font-medium hover:text-gray-700 mr-2">
                             {EN ? "Details" : "Chi tiết"}
                           </Link>
-                          <Link href={`/enroll?course=${c.code}`} className="text-brand-orange font-semibold hover:opacity-80">
+                          {/* This is the conversion action on the pricing page — was a 20px-tall text link. */}
+                          <Link href={`/enroll?course=${c.code}`} className="inline-flex items-center min-h-[44px] px-3 rounded-lg text-brand-orange font-semibold hover:bg-brand-orange/10 transition-colors">
                             {EN ? "Enrol →" : "Đăng ký →"}
                           </Link>
                         </td>
