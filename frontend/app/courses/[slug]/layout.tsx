@@ -44,9 +44,9 @@ const COURSE_SEO: Record<string, { title: string; description: string }> = {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const slug = params.slug;
+  const { slug } = await params;
   const seo = COURSE_SEO[slug] ?? {
     title: "English Course",
     description: "Cambridge-aligned English course at LERA Academy, Hải Phòng — native and qualified teachers in small classes.",

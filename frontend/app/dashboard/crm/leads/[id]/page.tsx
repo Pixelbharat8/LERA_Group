@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "../../../../../lib/api";
 import { ConvertLeadStudentModal } from "../../components/ConvertLeadStudentModal";
@@ -72,8 +73,10 @@ interface Center {
   name: string;
 }
 
-export default function LeadDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function LeadDetailPage() {
+  // Next 15 hands client components `params` as a Promise; useParams() reads the
+  // route segment synchronously, matching every other [id] page in the dashboard.
+  const { id } = useParams<{ id: string }>();
   const [lead, setLead] = useState<Lead | null>(null);
   const [notes, setNotes] = useState<LeadNote[]>([]);
   const [activities, setActivities] = useState<LeadActivity[]>([]);
